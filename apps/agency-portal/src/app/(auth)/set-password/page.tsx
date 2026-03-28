@@ -1,22 +1,36 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://kaivo-backend.onrender.com';
 
 function SetPasswordContent() {
   const { data: session, status } = useSession();
-  const router = useRouter();
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [waitingForSession, setWaitingForSession] = useState(true);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  if (status === 'loading') {
+  useEffect(() => {
+    if (status === 'authenticated') {
+      setWaitingForSession(false);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      return;
+    }
+    if (status === 'unauthenticated') {
+      timerRef.current = setTimeout(() => {
+        setWaitingForSession(false);
+      }, 3000);
+    }
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [status]);
+
+  if (status === 'loading' || (waitingForSession && status !== 'authenticated')) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-white">
         <span className="inline-block h-8 w-8 border-[3px] border-teal/20 border-t-teal rounded-full animate-spin" />
@@ -25,7 +39,7 @@ function SetPasswordContent() {
   }
 
   if (status === 'unauthenticated') {
-    router.replace('/login');
+    window.location.href = '/login';
     return null;
   }
 
@@ -44,11 +58,12 @@ function SetPasswordContent() {
 
     setIsLoading(true);
     try {
+      const token = session?.accessToken || (session?.user as Record<string, unknown>)?.accessToken;
       const res = await fetch(`${API_BASE}/auth/set-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ password, confirm_password: confirmPassword }),
       });
@@ -61,7 +76,7 @@ function SetPasswordContent() {
 
       setSuccess(true);
       await signOut({ redirect: false });
-      router.push('/login');
+      window.location.href = '/login';
     } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {

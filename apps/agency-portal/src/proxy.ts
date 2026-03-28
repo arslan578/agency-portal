@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 
-const PUBLIC_AUTH_PATHS = ["/login", "/verify", "/expired"];
+const PUBLIC_AUTH_PATHS = ["/login", "/verify", "/expired", "/set-password"];
 
 function isPublicPath(pathname: string): boolean {
     return PUBLIC_AUTH_PATHS.some((p) => pathname.startsWith(p));

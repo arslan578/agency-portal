@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { Loader2, Send, RefreshCw, ShieldCheck, UserPlus } from 'lucide-react';
+import { Loader2, Send, RefreshCw, ShieldCheck, UserPlus, Copy, Check } from 'lucide-react';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { cn } from '@/lib/utils';
@@ -43,6 +43,8 @@ export default function AdminInvitePage() {
   const [agencyId, setAgencyId] = useState<string>('');
   const [sending, setSending] = useState(false);
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
+  const [lastEmailSent, setLastEmailSent] = useState<boolean | null>(null);
 
   const [agencies, setAgencies] = useState<Agency[]>([]);
   const [agenciesLoading, setAgenciesLoading] = useState(true);
@@ -113,8 +115,10 @@ export default function AdminInvitePage() {
     }
 
     setSending(true);
+    setLastInviteLink(null);
+    setLastEmailSent(null);
     try {
-      await apiClient.post(
+      const res = await apiClient.post<{ success: boolean; invite_link?: string; email_sent?: boolean; message?: string }>(
         API_ENDPOINTS.ADMIN.INVITE,
         {
           email: email.trim(),
@@ -123,7 +127,14 @@ export default function AdminInvitePage() {
         },
         { accessToken },
       );
-      toast.success(`Invite sent to ${email}`);
+      if (res.invite_link) setLastInviteLink(res.invite_link);
+      setLastEmailSent(res.email_sent ?? false);
+
+      if (res.email_sent) {
+        toast.success(`Invite emailed to ${email}`);
+      } else {
+        toast.success('Invite created — copy the link below to share manually');
+      }
       setEmail('');
       fetchInvites();
     } catch (err: unknown) {
@@ -256,6 +267,36 @@ export default function AdminInvitePage() {
             Send Invite
           </button>
         </form>
+
+        {lastInviteLink && (
+          <div className={cn(
+            'mt-5 p-4 rounded-xl border-2',
+            lastEmailSent ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200',
+          )}>
+            <p className={cn('text-[12px] font-bold mb-2', lastEmailSent ? 'text-emerald-700' : 'text-amber-700')}>
+              {lastEmailSent ? 'Email sent! You can also share this link directly:' : 'Email could not be sent. Share this invite link manually:'}
+            </p>
+            <div className="flex items-center gap-2">
+              <input
+                readOnly
+                value={lastInviteLink}
+                className="flex-1 py-2 px-3 bg-white border border-gray-200 rounded-lg text-[13px] text-text-primary font-mono select-all"
+                onFocus={(e) => e.target.select()}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(lastInviteLink);
+                  toast.success('Link copied!');
+                }}
+                className="flex items-center gap-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[12px] font-bold text-text-secondary hover:text-teal transition-colors"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                Copy
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Invite History */}

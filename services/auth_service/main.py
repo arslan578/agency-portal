@@ -399,17 +399,22 @@ def verify_magic_token(token: str, db: Session = Depends(get_db)):
     if not magic:
         raise HTTPException(status_code=404, detail="Invalid link")
 
+    GRACE_PERIOD_MINUTES = 5
+
     if magic.used_at is not None:
-        raise HTTPException(status_code=400, detail="This link has already been used")
+        used_at = magic.used_at if magic.used_at.tzinfo else magic.used_at.replace(tzinfo=timezone.utc)
+        since_used = (datetime.now(timezone.utc) - used_at).total_seconds()
+        if since_used > GRACE_PERIOD_MINUTES * 60:
+            raise HTTPException(status_code=400, detail="This link has already been used")
+        # Within grace period — allow re-verification, just issue a fresh JWT
+        logger.info("Token re-verified within grace period (%ds) for %s", int(since_used), magic.email)
+    else:
+        exp = magic.expires_at if magic.expires_at.tzinfo else magic.expires_at.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            raise HTTPException(status_code=400, detail="This link has expired")
+        magic.used_at = datetime.now(timezone.utc)
+        db.flush()
 
-    exp = magic.expires_at if magic.expires_at.tzinfo else magic.expires_at.replace(tzinfo=timezone.utc)
-    if exp < datetime.now(timezone.utc):
-        raise HTTPException(status_code=400, detail="This link has expired")
-
-    magic.used_at = datetime.now(timezone.utc)
-    db.flush()
-
-    # Find or create user
     user = auth.get_user_by_email(db, magic.email)
     if not user:
         user_create = schemas.UserCreate(
@@ -421,7 +426,6 @@ def verify_magic_token(token: str, db: Session = Depends(get_db)):
     user.last_login_at = datetime.now(timezone.utc)
     user.is_active = True
 
-    # Create agency membership if agency_id specified and not already a member
     if magic.agency_id:
         existing_membership = db.query(AgencyMembership).filter(
             AgencyMembership.user_id == user.id,

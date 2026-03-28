@@ -65,15 +65,19 @@ def send_magic_link_email(to_email: str, magic_url: str) -> bool:
         resend.api_key = api_key
 
         from_addr = os.getenv("RESEND_FROM_EMAIL", "Kaivo <onboarding@resend.dev>")
-        resend.Emails.send({
+        logger.info(
+            "Sending invite email: to=%s, from=%s, api_key=%s...",
+            to_email, from_addr, api_key[:8],
+        )
+        result = resend.Emails.send({
             "from": from_addr,
             "to": [to_email],
             "subject": "You're invited to Kaivo Agency Portal",
             "html": html_body,
             "text": text_body,
         })
-        logger.info("Magic link email sent to %s", to_email)
+        logger.info("Magic link email sent to %s — resend response: %s", to_email, result)
         return True
     except Exception as e:
-        logger.error("Failed to send magic link email to %s: %s", to_email, e)
+        logger.error("Failed to send magic link email to %s: %s", to_email, e, exc_info=True)
         return False

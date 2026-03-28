@@ -1,8 +1,8 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { signIn, getSession } from 'next-auth/react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 type VerifyState =
   | { status: 'loading' }
@@ -11,9 +11,9 @@ type VerifyState =
 
 function VerifyContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const token = searchParams?.get('token');
   const [state, setState] = useState<VerifyState>({ status: 'loading' });
+  const hasStarted = useRef(false);
 
   useEffect(() => {
     if (!token) {
@@ -21,7 +21,8 @@ function VerifyContent() {
       return;
     }
 
-    let cancelled = false;
+    if (hasStarted.current) return;
+    hasStarted.current = true;
 
     async function verify() {
       try {
@@ -29,8 +30,6 @@ function VerifyContent() {
           token,
           redirect: false,
         });
-
-        if (cancelled) return;
 
         if (result?.error) {
           setState({
@@ -44,12 +43,11 @@ function VerifyContent() {
         setState({ status: 'success' });
         const freshSession = await getSession();
         if (freshSession?.user?.needsPassword) {
-          router.push('/set-password');
+          window.location.href = '/set-password';
         } else {
-          router.push('/');
+          window.location.href = '/';
         }
       } catch {
-        if (cancelled) return;
         setState({
           status: 'error',
           code: 'unknown',
@@ -59,8 +57,7 @@ function VerifyContent() {
     }
 
     verify();
-    return () => { cancelled = true; };
-  }, [token, router]);
+  }, [token]);
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-white p-8">
