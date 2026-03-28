@@ -150,6 +150,26 @@ export function AgencySidebar({ initialUser }: { initialUser?: SidebarUserSnapsh
             </Link>
           );
         })}
+
+        {session?.user?.isSuperuser && (
+          <>
+            <div className="h-px bg-cream-border my-2" />
+            <Link
+              href="/admin/invite"
+              className={`flex items-center gap-[9px] px-[10px] py-[9px] rounded-lg text-[13px] font-semibold transition-all mb-[2px] whitespace-nowrap ${
+                pathname.startsWith("/admin")
+                  ? "bg-coral text-white"
+                  : "text-coral hover:bg-coral/5 hover:text-coral"
+              }`}
+            >
+              <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[15px] h-[15px] shrink-0">
+                <path d="M8 1v4M8 11v4M1 8h4M11 8h4" />
+                <circle cx="8" cy="8" r="3" />
+              </svg>
+              <span className="flex-1">Admin</span>
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* User Card Footer */}

@@ -33,9 +33,14 @@ class UserOut(UserBase):
     agency_role: Optional[str] = None
     agency_credits: Optional[float] = 0.0
     google_id: Optional[str] = None
+    has_password: bool = True
 
     class Config:
         from_attributes = True
+
+class SetPassword(BaseModel):
+    password: str
+    confirm_password: str
 
 class Token(BaseModel):
     access_token: str

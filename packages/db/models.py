@@ -64,6 +64,7 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
 
     agency_memberships = relationship("packages.db.models.AgencyMembership", back_populates="user")
     client_memberships = relationship("packages.db.models.ClientMembership", back_populates="user")
@@ -351,6 +352,26 @@ class PlatformCredential(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+# --- Magic Link Tokens ---
+
+class MagicToken(Base):
+    """Single-use magic link tokens for passwordless invite authentication"""
+    __tablename__ = "magic_tokens"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String, unique=True, nullable=False, index=True)
+    email = Column(String, nullable=False, index=True)
+    role = Column(Enum(AgencyRole), default=AgencyRole.VIEWER)
+    agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+    invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+    agency = relationship("packages.db.models.Agency")
+    invited_by = relationship("packages.db.models.User")
 
 # --- Shopify Integration ---
 

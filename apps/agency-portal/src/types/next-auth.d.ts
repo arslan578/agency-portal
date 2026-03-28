@@ -9,14 +9,14 @@ declare module "next-auth" {
       agencyRole: string | null;
       agencyName: string | null;
       tier: string;
+      isSuperuser: boolean;
+      needsPassword: boolean;
     };
     accessToken?: string;
     refreshError?: string;
   }
 
   interface User {
-    // Keep DefaultUser fields compatible with NextAuth
-    // and extend with our backend-auth token + agency context.
     id: DefaultUser["id"];
     name?: DefaultUser["name"];
     email?: DefaultUser["email"];
@@ -27,5 +27,7 @@ declare module "next-auth" {
     agencyRole: string | null;
     agencyName: string | null;
     tier: string;
+    isSuperuser: boolean;
+    needsPassword: boolean;
   }
 }
