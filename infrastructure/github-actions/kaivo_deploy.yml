@@ -1,8 +1,9 @@
+# Template: copy to .github/workflows/ (see scripts/sync-github-workflows.ps1)
 name: Kaivo Deployment Pipeline V2
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
     inputs:
       environment:
@@ -150,7 +151,7 @@ jobs:
     name: 🚀 Deploy to Staging
     needs: build-and-test
     # Only branch / event logic here – no secrets.*
-    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
     runs-on: ubuntu-latest
     environment:
       name: staging

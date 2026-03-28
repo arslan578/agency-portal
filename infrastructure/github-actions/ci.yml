@@ -1,10 +1,12 @@
+# Template: copy to .github/workflows/ (see scripts/sync-github-workflows.ps1)
+# GitHub only runs workflows from .github/workflows/; keeping them here avoids PAT "workflow" scope on first push.
 name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
 
 jobs:
   test:
