@@ -202,10 +202,13 @@ export default function ClientDetailPage() {
   );
 
   const platforms = useMemo(() => {
+    if (hc?.platforms?.length) {
+      return hc.platforms.map((p) => p.display_name);
+    }
     const set = new Set<string>();
     campaigns.forEach((c) => set.add(c.platform));
     return Array.from(set);
-  }, [campaigns]);
+  }, [hc, campaigns]);
 
   const avgRoas = useMemo(() => {
     if (campaigns.length === 0) return 0;
@@ -320,7 +323,7 @@ export default function ClientDetailPage() {
                   <ScoreBadge score={client.score} />
                   {platforms.map((p) => <PlatformTag key={p} name={p} />)}
                   {platforms.length === 0 && (
-                    <span className="text-[11px] font-bold text-text-muted">No connected campaigns</span>
+                    <span className="text-[11px] font-bold text-text-muted">No platforms or campaigns yet</span>
                   )}
                 </div>
               </div>

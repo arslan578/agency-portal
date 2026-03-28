@@ -6,10 +6,12 @@ It includes compatibility logic to support legacy field names (client_name, mark
 used by older tests and internal calls.
 """
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import List, Optional
 from decimal import Decimal
 from packages.db.models import AgencyRole, ClientRole
+
+_DEFAULT_MARKUP = Decimal("1.0000")
 
 class AgencyBase(BaseModel):
     name: str
@@ -103,9 +105,16 @@ class ClientOut(ClientBase):
     """
     id: int
     agency_id: int
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("markup_percent", mode="before")
+    @classmethod
+    def _coerce_markup_percent(cls, v):
+        """DB allows NULL; API contract expects a decimal multiplier (default 1.0)."""
+        if v is None:
+            return _DEFAULT_MARKUP
+        return v
 
 class PermissionUpdate(BaseModel):
     """
@@ -156,10 +165,18 @@ class HierarchyCampaign(BaseModel):
     ad_sets: List[HierarchyAdSet] = Field(default_factory=list)
 
 
+class HierarchyLinkedAccount(BaseModel):
+    """Linked PlatformAccount row (display: external account id)."""
+
+    id: int
+    external_id: str
+
+
 class HierarchyPlatform(BaseModel):
     key: str
     display_name: str
     account_ids: List[str] = Field(default_factory=list)
+    linked_accounts: List[HierarchyLinkedAccount] = Field(default_factory=list)
     metrics: HierarchyMetrics
     campaigns: List[HierarchyCampaign] = Field(default_factory=list)
 

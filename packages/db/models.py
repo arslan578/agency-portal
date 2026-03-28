@@ -40,6 +40,12 @@ class PlanStatus(enum.Enum):
     DRAFT = "DRAFT"
     CONVERTED = "CONVERTED"
 
+
+def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
+    """Persist Enum .value to PostgreSQL when labels match values (not Python member names)."""
+    return [e.value for e in enum_cls]
+
+
 class InviteStatus(enum.Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
@@ -79,7 +85,15 @@ class Agency(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    current_plan = Column(Enum(PlanTier), default=PlanTier.FREE)
+    current_plan = Column(
+        Enum(
+            PlanTier,
+            name="plantier",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=PlanTier.FREE,
+    )
     credits = Column(DECIMAL(10, 2), default=0.00, nullable=False)
     billing_status = Column(String, default="active")
     
@@ -94,8 +108,16 @@ class AgencyMembership(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
-    role = Column(Enum(AgencyRole), default=AgencyRole.VIEWER)
-    
+    role = Column(
+        Enum(
+            AgencyRole,
+            name="agencyrole",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=AgencyRole.VIEWER,
+    )
+
     user = relationship("packages.db.models.User", back_populates="agency_memberships")
     agency = relationship("packages.db.models.Agency", back_populates="memberships")
 
@@ -107,9 +129,25 @@ class AgencyInvite(Base):
     id = Column(Integer, primary_key=True, index=True)
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
     email = Column(String, nullable=False, index=True)
-    role = Column(Enum(AgencyRole), default=AgencyRole.VIEWER)
+    role = Column(
+        Enum(
+            AgencyRole,
+            name="agencyrole",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=AgencyRole.VIEWER,
+    )
     token = Column(String, unique=True, nullable=False, index=True)
-    status = Column(Enum(InviteStatus), default=InviteStatus.PENDING)
+    status = Column(
+        Enum(
+            InviteStatus,
+            name="invitestatus",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=InviteStatus.PENDING,
+    )
     invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -363,7 +401,15 @@ class MagicToken(Base):
     id = Column(Integer, primary_key=True, index=True)
     token = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, nullable=False, index=True)
-    role = Column(Enum(AgencyRole), default=AgencyRole.VIEWER)
+    role = Column(
+        Enum(
+            AgencyRole,
+            name="agencyrole",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=AgencyRole.VIEWER,
+    )
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=False)

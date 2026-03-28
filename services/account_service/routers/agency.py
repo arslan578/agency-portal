@@ -9,7 +9,7 @@ This module provides endpoints for:
 All sensitive operations require appropriate role-based access control.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -53,8 +53,7 @@ def get_agency_dashboard(
     Agency dashboard summary. Only agency members can access.
     Returns agency info, client count, and campaign counts for the agency.
     """
-    if ctx["agency_id"] != agency_id:
-        raise HTTPException(status_code=403, detail="Access denied to this agency")
+    ensure_agency_scope(ctx, agency_id)
     agency = db.query(Agency).filter(Agency.id == agency_id).first()
     if not agency:
         raise HTTPException(status_code=404, detail="Agency not found")
@@ -410,11 +409,11 @@ def remove_member(
 
 @router.get("/clients", response_model=List[schemas_agency.ClientOut])
 def list_clients_by_agency(
-    agency_id: int,
+    agency_id: int = Query(..., description="Agency id (must match X-Agency-ID context)"),
     db: Session = Depends(get_db),
     ctx: dict = Depends(require_any_member),
 ):
-    """List clients for an agency by query parameter"""
+    """List clients for an agency by query parameter (same RBAC as /agency/{id}/clients)."""
     ensure_agency_scope(ctx, agency_id)
     clients = db.query(Client).filter(Client.agency_id == agency_id).all()
     return clients

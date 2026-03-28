@@ -126,10 +126,16 @@ export const HierarchyCampaignSchema = z.object({
   ad_sets: z.array(HierarchyAdSetSchema).default([]),
 });
 
+export const HierarchyLinkedAccountSchema = z.object({
+  id: z.number(),
+  external_id: z.string(),
+});
+
 export const HierarchyPlatformSchema = z.object({
   key: z.string(),
   display_name: z.string(),
   account_ids: z.array(z.string()).default([]),
+  linked_accounts: z.array(HierarchyLinkedAccountSchema).default([]),
   metrics: HierarchyMetricsSchema,
   campaigns: z.array(HierarchyCampaignSchema).default([]),
 });
