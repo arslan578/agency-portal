@@ -2,7 +2,7 @@ import logging
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 from . import models, schemas, auth
 from packages.db.database import engine, get_db
 
@@ -278,6 +278,7 @@ def read_users_me(token: str = Depends(auth.oauth2_scheme), db: Session = Depend
         setattr(user, "agency_role", None)
         setattr(user, "agency_credits", 0.0)
 
+    setattr(user, "has_password", bool(user.hashed_password))
     return user
 
 @app.patch("/profile", response_model=schemas.UserOut)
@@ -329,8 +330,32 @@ def update_user_profile(
         setattr(user, "agency_name", None)
         setattr(user, "agency_role", None)
         setattr(user, "agency_credits", 0.0)
-    
+
+    setattr(user, "has_password", bool(user.hashed_password))
     return user
+
+
+@app.post("/set-password")
+def set_password(
+    body: schemas.SetPassword,
+    token: str = Depends(auth.oauth2_scheme),
+    db: Session = Depends(get_db),
+):
+    user = auth.get_current_user(db, token)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+
+    if body.password != body.confirm_password:
+        raise HTTPException(status_code=400, detail="Passwords do not match")
+
+    if len(body.password) < 8:
+        raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+
+    user.hashed_password = auth.pwd_context.hash(body.password)
+    db.commit()
+
+    return {"success": True, "message": "Password set successfully"}
+
 
 # --- Role Enforcement ---
 
@@ -355,3 +380,91 @@ def check_permissions(user: schemas.UserOut, required_action: str):
                 detail=f"Permission denied: Client Viewers cannot perform '{required_action}'"
             )
     return True
+
+
+# --- Magic Link Verification ---
+
+@app.get("/verify-token")
+def verify_magic_token(token: str, db: Session = Depends(get_db)):
+    """
+    Public endpoint — verify a magic link token and issue a JWT.
+    Creates the user account if it doesn't exist, and establishes agency membership.
+    """
+    from packages.db.models import MagicToken, AgencyMembership, AgencyRole
+
+    if not token or not token.strip():
+        raise HTTPException(status_code=400, detail="Token parameter is required")
+
+    magic = db.query(MagicToken).filter(MagicToken.token == token).first()
+    if not magic:
+        raise HTTPException(status_code=404, detail="Invalid link")
+
+    if magic.used_at is not None:
+        raise HTTPException(status_code=400, detail="This link has already been used")
+
+    exp = magic.expires_at if magic.expires_at.tzinfo else magic.expires_at.replace(tzinfo=timezone.utc)
+    if exp < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This link has expired")
+
+    magic.used_at = datetime.now(timezone.utc)
+    db.flush()
+
+    # Find or create user
+    user = auth.get_user_by_email(db, magic.email)
+    if not user:
+        user_create = schemas.UserCreate(
+            email=magic.email,
+            password=None,
+        )
+        user = auth.create_user(db, user_create)
+
+    user.last_login_at = datetime.now(timezone.utc)
+    user.is_active = True
+
+    # Create agency membership if agency_id specified and not already a member
+    if magic.agency_id:
+        existing_membership = db.query(AgencyMembership).filter(
+            AgencyMembership.user_id == user.id,
+            AgencyMembership.agency_id == magic.agency_id,
+        ).first()
+
+        if not existing_membership:
+            membership = AgencyMembership(
+                user_id=user.id,
+                agency_id=magic.agency_id,
+                role=magic.role or AgencyRole.VIEWER,
+            )
+            db.add(membership)
+
+    db.commit()
+    db.refresh(user)
+
+    agency_context = get_user_agency_context(db, user.id)
+
+    access_token = auth.create_access_token(
+        data={
+            "sub": user.email,
+            "user_id": user.id,
+            "agency_id": agency_context["agency_id"],
+            "agency_role": agency_context["agency_role"],
+        },
+        expires_delta=timedelta(hours=auth.ACCESS_TOKEN_EXPIRE_HOURS),
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "role": agency_context.get("agency_role"),
+            "agency_id": agency_context.get("agency_id"),
+            "is_superuser": user.is_superuser,
+        },
+    }
+
+
+@app.post("/logout")
+def logout():
+    """Backend logout endpoint. Session invalidation is handled client-side by NextAuth."""
+    return {"success": True}

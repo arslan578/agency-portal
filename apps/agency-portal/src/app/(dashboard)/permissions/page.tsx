@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { Shield, CheckCircle2, XCircle, Users } from 'lucide-react';
 import { useMembers } from '@/hooks/useAgencyApi';
 import { AGENCY_ROLES, ROLE_PERMISSIONS, type AgencyRole } from '@/lib/api/contracts';
@@ -13,12 +12,12 @@ import { cn } from '@/lib/utils';
 type TabId = 'overview' | 'matrix' | 'members';
 
 export default function PermissionsPage() {
-  const { status } = useSession();
+  const { status } = useRequireAuth();
   const { members, error, isLoading, refresh } = useMembers();
   const [tab, setTab] = useState<TabId>('overview');
 
   if (status === 'loading') return <PermissionsSkeleton />;
-  if (status === 'unauthenticated') redirect('/login');
+  if (status !== 'authenticated') return null;
 
   const roles = Object.entries(AGENCY_ROLES) as [AgencyRole, typeof AGENCY_ROLES[AgencyRole]][];
 

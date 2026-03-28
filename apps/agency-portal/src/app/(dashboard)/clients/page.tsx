@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Link from 'next/link';
 import { useClients, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
@@ -180,7 +179,7 @@ function AiModeBadge({ mode }: { mode: string }) {
 const inputClass = 'h-[40px] px-3 border-2 border-cream-border rounded-[10px] bg-cream text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-teal/25 focus:border-teal';
 
 export default function ClientsPage() {
-  const { status } = useSession();
+  const { status } = useRequireAuth();
   const { clients: apiClients, error, isLoading, refresh } = useClients();
   const { accessToken, agencyId } = useApiAuth();
 
@@ -226,7 +225,7 @@ export default function ClientsPage() {
   const totalAdSets = useMemo(() => Math.round(allClients.length * 1.83), [allClients]);
 
   if (status === 'loading') return <ClientsSkeleton />;
-  if (status === 'unauthenticated') redirect('/login');
+  if (status !== 'authenticated') return null;
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');

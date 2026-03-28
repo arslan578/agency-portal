@@ -20,7 +20,7 @@ import os
 import jwt
 
 from packages.db.database import get_db
-from packages.db.models import AgencyMembership, AgencyRole
+from packages.db.models import AgencyMembership, AgencyRole, User
 
 JWT_SECRET = os.getenv("SECRET_KEY", "TEST_SECRET_KEY_CHANGE_IN_PROD")
 JWT_ALGORITHM = "HS256"
@@ -149,3 +149,40 @@ async def get_optional_agency_context(
         return await get_current_user_agency_context(x_agency_id, authorization, db)
     except HTTPException:
         return None
+
+
+async def require_superuser(
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
+) -> dict:
+    """
+    Dependency that requires the authenticated user to be a superuser.
+    Used to protect platform-level admin endpoints (e.g. magic link invites).
+    """
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authorization header required"
+        )
+
+    user_id = decode_jwt_token(authorization)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or missing user in token"
+        )
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found"
+        )
+
+    if not user.is_superuser:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Superuser access required"
+        )
+
+    return {"user_id": user.id, "email": user.email}

@@ -1,9 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useDashboard, useClients } from '@/hooks/useAgencyApi';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { MOCK_CLIENTS, MOCK_INSIGHTS } from '@/lib/mock/dashboard';
@@ -62,13 +61,13 @@ function PlatformTag({ name, className: cls }: { name: string; className?: strin
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const { status } = useRequireAuth();
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboard();
   const { clients: apiClients, isLoading: clientsLoading, error: clientsError } = useClients();
   const [tab, setTab] = useState<TabFilter>('all');
 
   if (status === 'loading') return <DashboardSkeleton />;
-  if (status === 'unauthenticated') redirect('/login');
+  if (status !== 'authenticated') return null;
 
   // Prevent UI flicker: do not render mock rows while API is still loading.
   if (dashboardLoading || clientsLoading) {
