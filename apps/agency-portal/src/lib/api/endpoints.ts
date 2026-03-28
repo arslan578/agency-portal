@@ -17,6 +17,11 @@ export const API_ENDPOINTS = {
     CLIENT_CREATE: (id: string) => `${BASE}/agency/${id}/clients`,
     CLIENT_UPDATE: (clientId: number) => `${BASE}/clients/${clientId}`,
     CLIENT_DELETE: (clientId: number) => `${BASE}/clients/${clientId}`,
+    CLIENT_HIERARCHY: (id: string, period: string, clientId?: number) => {
+      const q = new URLSearchParams({ period });
+      if (clientId != null) q.set('client_id', String(clientId));
+      return `${BASE}/agency/${id}/clients/hierarchy?${q.toString()}`;
+    },
   },
   CAMPAIGN: {
     LIST: (clientId?: number) => `${BASE}/campaign/campaigns${clientId != null ? `?client_id=${clientId}` : ''}`,

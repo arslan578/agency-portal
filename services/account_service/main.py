@@ -8,7 +8,7 @@ Legacy Account/Brand/License endpoints have been deprecated in favor of Agency/C
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from . import schemas
+from . import schemas, schemas_agency
 from .routers import agency, platform_credentials
 from packages.db.database import get_db
 from services.auth_service import auth
@@ -16,6 +16,16 @@ from packages.db.models import ClientMembership, PlatformAccount, Client
 
 app = FastAPI(title="Kaivo Account Service")
 app.include_router(agency.router, tags=["Agency"])
+# Mount hierarchy on the app router directly (not only on nested agency.APIRouter) so
+# API gateway + OpenAPI always expose GET /agency/{agency_id}/clients/hierarchy.
+app.add_api_route(
+    "/agency/{agency_id}/clients/hierarchy",
+    agency.get_agency_clients_hierarchy,
+    methods=["GET"],
+    response_model=schemas_agency.ClientHierarchyResponse,
+    tags=["Agency"],
+    name="get_agency_clients_hierarchy",
+)
 app.include_router(platform_credentials.router)
 
 

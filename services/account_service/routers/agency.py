@@ -16,6 +16,8 @@ from typing import List, Optional
 from packages.db.database import get_db
 from packages.db.models import Agency, Client, AgencyMembership, AgencyRole, User, AgencyInvite, InviteStatus, Campaign, CampaignStatus
 from services.account_service import schemas_agency
+from services.account_service.agency_access import ensure_agency_scope
+from services.account_service.hierarchy_builder import build_client_hierarchy
 from services.auth_service.dependencies import (
     require_admin,
     require_member_or_above,
@@ -31,9 +33,10 @@ router = APIRouter()
 def get_agency(
     agency_id: int,
     db: Session = Depends(get_db),
-    ctx: Optional[dict] = None
+    ctx: dict = Depends(require_any_member),
 ):
     """Get agency by ID"""
+    ensure_agency_scope(ctx, agency_id)
     agency = db.query(Agency).filter(Agency.id == agency_id).first()
     if not agency:
         raise HTTPException(status_code=404, detail="Agency not found")
@@ -87,6 +90,7 @@ def update_agency(
     ctx: dict = Depends(require_admin)
 ):
     """Update agency settings (Admin only)"""
+    ensure_agency_scope(ctx, agency_id)
     agency = db.query(Agency).filter(Agency.id == agency_id).first()
     if not agency:
         raise HTTPException(status_code=404, detail="Agency not found")
@@ -102,9 +106,11 @@ def update_agency(
 @router.get("/agencies/{agency_id}/members", response_model=List[schemas_agency.MemberOut])
 def list_agency_members(
     agency_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
 ):
     """List all members of an agency"""
+    ensure_agency_scope(ctx, agency_id)
     memberships = db.query(AgencyMembership).filter(
         AgencyMembership.agency_id == agency_id
     ).all()
@@ -137,6 +143,7 @@ def invite_member(
     Creates a pending invite that the user can accept via link.
     If user already exists, they can accept immediately.
     """
+    ensure_agency_scope(ctx, agency_id)
     import secrets
     from datetime import datetime, timedelta
     from packages.db.models import AgencyInvite, InviteStatus
@@ -323,6 +330,7 @@ def list_agency_invites(
     ctx: dict = Depends(require_admin)
 ):
     """List all pending invites for an agency (Admin only)"""
+    ensure_agency_scope(ctx, agency_id)
     from packages.db.models import AgencyInvite, InviteStatus
     
     invites = db.query(AgencyInvite).filter(
@@ -350,6 +358,7 @@ def revoke_invite(
     ctx: dict = Depends(require_admin)
 ):
     """Revoke a pending invite (Admin only)"""
+    ensure_agency_scope(ctx, agency_id)
     from packages.db.models import AgencyInvite, InviteStatus
     
     invite = db.query(AgencyInvite).filter(
@@ -375,6 +384,7 @@ def remove_member(
     ctx: dict = Depends(require_admin)
 ):
     """Remove a member from the agency (Admin only)"""
+    ensure_agency_scope(ctx, agency_id)
     membership = db.query(AgencyMembership).filter(
         AgencyMembership.id == member_id,
         AgencyMembership.agency_id == agency_id
@@ -401,9 +411,11 @@ def remove_member(
 @router.get("/clients", response_model=List[schemas_agency.ClientOut])
 def list_clients_by_agency(
     agency_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
 ):
     """List clients for an agency by query parameter"""
+    ensure_agency_scope(ctx, agency_id)
     clients = db.query(Client).filter(Client.agency_id == agency_id).all()
     return clients
 
@@ -440,12 +452,40 @@ def create_agency(
 
 # --- Agency Client Management ---
 
+# Registered on the FastAPI app in account_service/main.py via add_api_route so the route
+# reliably appears when the gateway does include_router(account_app.router) (nested routers
+# can omit deep routes from OpenAPI / matching in some setups).
+def get_agency_clients_hierarchy(
+    agency_id: int,
+    period: str = "7d",
+    client_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    """
+    Nested clients → platforms → campaigns (ad_sets empty until Phase 4).
+    Metrics are aggregated from usage_records in the given period.
+    """
+    ensure_agency_scope(ctx, agency_id)
+    if client_id is not None:
+        row = db.query(Client).filter(
+            Client.id == client_id,
+            Client.agency_id == agency_id,
+        ).first()
+        if not row:
+            raise HTTPException(status_code=404, detail="Client not found")
+    payload = build_client_hierarchy(db, agency_id, period=period, client_id=client_id)
+    return payload
+
+
 @router.get("/agency/{agency_id}/clients", response_model=List[schemas_agency.ClientOut])
 def list_agency_clients(
     agency_id: int,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
 ):
     """List all clients for an agency."""
+    ensure_agency_scope(ctx, agency_id)
     clients = db.query(Client).filter(Client.agency_id == agency_id).all()
     return clients
 
@@ -458,6 +498,7 @@ def create_client(
     ctx: dict = Depends(require_member_or_above)
 ):
     """Create a new client under an agency (Admin or Member)"""
+    ensure_agency_scope(ctx, agency_id)
     db_client = Client(
         agency_id=agency_id,
         name=client.name,
@@ -489,7 +530,8 @@ def update_client(
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    
+    ensure_agency_scope(ctx, client.agency_id)
+
     if update.name is not None:
         client.name = update.name
     if update.industry is not None:
@@ -516,7 +558,8 @@ def delete_client(
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    
+    ensure_agency_scope(ctx, client.agency_id)
+
     db.delete(client)
     db.commit()
     
@@ -534,7 +577,8 @@ def update_client_markup(
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    
+    ensure_agency_scope(ctx, client.agency_id)
+
     client.markup_percent = markup.markup_percent
     db.commit()
     return {"status": "success", "new_markup": client.markup_percent}
@@ -551,7 +595,8 @@ def update_client_permissions(
     client = db.query(Client).filter(Client.id == client_id).first()
     if not client:
         raise HTTPException(status_code=404, detail="Client not found")
-    
+    ensure_agency_scope(ctx, client.agency_id)
+
     client.is_active = permission.is_active
     db.commit()
     return {"status": "success", "is_active": client.is_active}

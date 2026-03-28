@@ -93,6 +93,78 @@ export const ReportRecordSchema = z.object({
 export type Campaign = z.infer<typeof CampaignSchema>;
 export type ReportRecord = z.infer<typeof ReportRecordSchema>;
 
+export const HierarchyAlertsSchema = z.object({
+  count: z.number(),
+  severity: z.string(),
+});
+
+export const HierarchyMetricsSchema = z.object({
+  spend: z.number(),
+  impressions: z.number(),
+  clicks: z.number(),
+  ctr: z.number(),
+  cpc: z.number(),
+  conversions: z.number(),
+  cost_per_conversion: z.number(),
+  budget: z.number(),
+  pacing: z.number(),
+  score: z.number(),
+  alerts: HierarchyAlertsSchema,
+});
+
+export const HierarchyAdSetSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  metrics: HierarchyMetricsSchema,
+});
+
+export const HierarchyCampaignSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  status: z.string(),
+  metrics: HierarchyMetricsSchema,
+  ad_sets: z.array(HierarchyAdSetSchema).default([]),
+});
+
+export const HierarchyPlatformSchema = z.object({
+  key: z.string(),
+  display_name: z.string(),
+  account_ids: z.array(z.string()).default([]),
+  metrics: HierarchyMetricsSchema,
+  campaigns: z.array(HierarchyCampaignSchema).default([]),
+});
+
+export const HierarchyClientSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  industry: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  is_active: z.boolean().default(true),
+  account_mode: z.string().optional(),
+  platform_count: z.number().default(0),
+  metrics: HierarchyMetricsSchema,
+  platforms: z.array(HierarchyPlatformSchema).default([]),
+});
+
+export const HierarchyCountsSchema = z.object({
+  clients: z.number(),
+  platforms: z.number(),
+  campaigns: z.number(),
+  ad_sets: z.number(),
+});
+
+export const ClientHierarchyResponseSchema = z.object({
+  period: z.string(),
+  clients: z.array(HierarchyClientSchema),
+  totals: HierarchyMetricsSchema,
+  counts: HierarchyCountsSchema,
+});
+
+export type ClientHierarchyResponse = z.infer<typeof ClientHierarchyResponseSchema>;
+export type HierarchyClientRow = z.infer<typeof HierarchyClientSchema>;
+export type HierarchyPlatformRow = z.infer<typeof HierarchyPlatformSchema>;
+export type HierarchyCampaignRow = z.infer<typeof HierarchyCampaignSchema>;
+
 export const AGENCY_ROLES = {
   agency_admin:   { label: 'Admin',   description: 'Full access to all agency features, billing, and team management' },
   agency_manager: { label: 'Manager', description: 'Can manage clients, campaigns, and view reports' },

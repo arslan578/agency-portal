@@ -6,10 +6,10 @@ import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import {
   DashboardSchema, ClientSchema, TeamMemberSchema, InviteSchema,
-  CampaignSchema, ReportRecordSchema,
+  CampaignSchema, ReportRecordSchema, ClientHierarchyResponseSchema,
   validateResponse, validateArray,
   type DashboardData, type Client, type TeamMember, type Invite,
-  type Campaign, type ReportRecord,
+  type Campaign, type ReportRecord, type ClientHierarchyResponse,
 } from '@/lib/api/contracts';
 
 function useAuthHeaders() {
@@ -96,6 +96,33 @@ export function useInvites() {
   );
 
   return { invites: data ?? [], error, isLoading, refresh: mutate };
+}
+
+export function useClientHierarchy(period: string, clientId?: number) {
+  const { accessToken, agencyId } = useAuthHeaders();
+  const key =
+    accessToken && agencyId
+      ? ['clientHierarchy', accessToken, agencyId, period, String(clientId ?? '')]
+      : null;
+
+  const { data, error, isLoading, mutate } = useSWR<ClientHierarchyResponse>(
+    key,
+    async ([, token, agency, p, cidStr]: [string, string, string, string, string]) => {
+      const parsed = cidStr === '' ? NaN : Number(cidStr);
+      const clientIdArg = Number.isFinite(parsed) ? parsed : undefined;
+      const url = API_ENDPOINTS.AGENCY.CLIENT_HIERARCHY(agency, p, clientIdArg);
+      const raw = await apiClient.get<unknown>(url, { accessToken: token, agencyId: agency });
+      const v = validateResponse(ClientHierarchyResponseSchema, raw);
+      if (!v.ok) {
+        console.warn(v.error);
+        return raw as ClientHierarchyResponse;
+      }
+      return v.data;
+    },
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+  );
+
+  return { hierarchy: data, error, isLoading, refresh: mutate };
 }
 
 export function useCampaigns(clientId?: number) {

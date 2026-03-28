@@ -8,14 +8,10 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { ApiErrorBanner } from '@/components/ui/ApiErrorBanner';
-import { useClients, useCampaigns, useApiAuth } from '@/hooks/useAgencyApi';
+import { useClients, useCampaigns, useClientHierarchy, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
-import {
-  MOCK_CAMPAIGNS,
-  MOCK_INSIGHTS,
-} from '@/lib/mock/dashboard';
-import type { Campaign } from '@/lib/api/contracts';
+import type { Campaign, HierarchyClientRow } from '@/lib/api/contracts';
 
 function platformKey(platform: string): string {
   const p = platform.toLowerCase();
@@ -77,17 +73,6 @@ function SeverityBadge({ severity }: { severity: string }) {
   );
 }
 
-function KpiDelta({ value, invert }: { value: number; invert?: boolean }) {
-  const good = invert ? value <= 0 : value >= 0;
-  const cls = good ? 'text-green' : 'text-coral';
-  const sign = value > 0 ? '+' : '';
-  return (
-    <span className={`text-[12px] font-bold font-mono ${cls}`}>
-      {sign}{value.toFixed(1)}%
-    </span>
-  );
-}
-
 function formatUsd(n: number) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 }
@@ -105,32 +90,50 @@ interface DisplayCampaign {
   isReal: boolean;
 }
 
-function deterministicFloat(seed: number, min: number, max: number) {
-  const x = Math.sin(seed * 12.9898) * 43758.5453;
-  const frac = x - Math.floor(x);
-  return min + frac * (max - min);
+function avatarColorFromId(id: number): string {
+  const h = (id * 47) % 360;
+  return `hsl(${h} 55% 42%)`;
 }
 
 function mapCampaignToDisplay(c: Campaign): DisplayCampaign {
   const budget = (c.total_budget_cents ?? 0) / 100;
   const platforms = c.platform_allocations ? Object.keys(c.platform_allocations) : [];
   const platform = platforms.length > 0 ? platforms[0].charAt(0).toUpperCase() + platforms[0].slice(1) : 'Unknown';
-  const spendRatio = deterministicFloat(c.id, 0.6, 0.85);
-  const spend = budget * spendRatio;
-  const roas = deterministicFloat(c.id + 101, 1.5, 4.5);
-  const cpa = deterministicFloat(c.id + 202, 8, 28);
+  const st = (c.status || 'draft').toLowerCase();
   return {
     id: c.id,
     name: c.name || `Campaign #${c.id}`,
     platform,
-    status: c.status || 'draft',
+    status: st,
     budget,
-    spend: Math.round(spend),
-    pacing: budget > 0 ? Math.round((spend / budget) * 100) : 0,
-    roas: +roas.toFixed(2),
-    cpa: +cpa.toFixed(2),
+    spend: 0,
+    pacing: 0,
+    roas: 0,
+    cpa: 0,
     isReal: true,
   };
+}
+
+function flattenHierarchyCampaigns(hc: HierarchyClientRow): DisplayCampaign[] {
+  const out: DisplayCampaign[] = [];
+  for (const p of hc.platforms) {
+    for (const camp of p.campaigns) {
+      const st = (camp.status || 'draft').toLowerCase();
+      out.push({
+        id: camp.id,
+        name: camp.name,
+        platform: p.display_name,
+        status: st,
+        budget: camp.metrics.budget,
+        spend: camp.metrics.spend,
+        pacing: Math.round(camp.metrics.pacing),
+        roas: 0,
+        cpa: camp.metrics.cost_per_conversion,
+        isReal: true,
+      });
+    }
+  }
+  return out;
 }
 
 function CampaignSkeleton() {
@@ -151,42 +154,43 @@ export default function ClientDetailPage() {
 
   const { clients, isLoading: clientsLoading } = useClients();
   const { campaigns: apiCampaigns, error: campaignError, isLoading: campaignsLoading, refresh: refreshCampaigns } = useCampaigns(Number.isNaN(clientId) ? undefined : clientId);
+  const { hierarchy, error: hierarchyError, isLoading: hierarchyLoading, refresh: refreshHierarchy } = useClientHierarchy('7d', Number.isNaN(clientId) ? undefined : clientId);
   const { accessToken, agencyId } = useApiAuth();
 
+  const hc = hierarchy?.clients?.[0];
+
+  const fromList = useMemo(() => clients.find((c) => c.id === clientId), [clients, clientId]);
+
   const client = useMemo(() => {
-    const fromApi = clients.find((c) => c.id === clientId);
-    if (fromApi) {
-      const mock = (MOCK_CAMPAIGNS.filter((m) => m.clientId === clientId));
-      return {
-        id: fromApi.id,
-        name: fromApi.name,
-        type: fromApi.industry || 'Client',
-        initials: fromApi.name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase(),
-        color: '#2a9d8f',
-        score: deterministicFloat(fromApi.id + 303, 75, 90),
-        spend: mock.reduce((s, c) => s + c.spend, 0) || 8000,
-        pacing: 85,
-        alerts: { count: 0, severity: 'ok' },
-      };
-    }
-    return undefined;
-  }, [clients, clientId]);
+    if (!fromList) return undefined;
+    const metrics = hc?.metrics;
+    const parts = fromList.name.split(/\s+/).filter(Boolean);
+    const initials = parts.length >= 2
+      ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+      : fromList.name.slice(0, 2).toUpperCase();
+    return {
+      id: fromList.id,
+      name: fromList.name,
+      type: fromList.industry || 'Client',
+      initials,
+      color: avatarColorFromId(fromList.id),
+      score: metrics?.score ?? 0,
+      spend: metrics?.spend ?? 0,
+      pacing: Math.round(metrics?.pacing ?? 0),
+      alerts: metrics?.alerts ?? { count: 0, severity: 'ok' },
+    };
+  }, [fromList, hc]);
 
   const campaigns: DisplayCampaign[] = useMemo(() => {
-    if (apiCampaigns.length > 0) {
-      return apiCampaigns.map(mapCampaignToDisplay);
-    }
-    return MOCK_CAMPAIGNS.filter((m) => m.clientId === clientId).map((m) => ({ ...m, isReal: false }));
-  }, [apiCampaigns, clientId]);
+    if (hc) return flattenHierarchyCampaigns(hc);
+    if (apiCampaigns.length > 0) return apiCampaigns.map(mapCampaignToDisplay);
+    return [];
+  }, [hc, apiCampaigns]);
 
-  const insights = useMemo(() => {
-    if (!client) return [];
-    const cn = client.name.toLowerCase();
-    return MOCK_INSIGHTS.filter((ins) => {
-      const parts = ins.client.toLowerCase().split(/\s+/);
-      return parts.length > 0 && cn.includes(parts[0]);
-    });
-  }, [client]);
+  const insights = useMemo(
+    () => [] as { id: number; client: string; platform: string; severity: string; text: string; impact: string }[],
+    [],
+  );
 
   const [viewMode, setViewMode] = useState<'agency' | 'client'>('agency');
   const [dismissedInsightIds, setDismissedInsightIds] = useState<Set<number>>(() => new Set());
@@ -240,14 +244,15 @@ export default function ClientDetailPage() {
         : API_ENDPOINTS.CAMPAIGN.START(campaignId);
       await apiClient.post(url, {}, { accessToken, agencyId });
       toast.success(currentStatus === 'active' || currentStatus === 'running' ? 'Campaign paused' : 'Campaign resumed');
-      refreshCampaigns();
+      await refreshCampaigns();
+      await refreshHierarchy();
     } catch (err: unknown) {
       const msg = typeof err === 'object' && err !== null && 'message' in err ? (err as { message: string }).message : 'Failed to update campaign';
       toast.error(msg);
     } finally {
       setPausingId(null);
     }
-  }, [accessToken, agencyId, refreshCampaigns]);
+  }, [accessToken, agencyId, refreshCampaigns, refreshHierarchy]);
 
   if (clientsLoading) {
     return (
@@ -272,7 +277,7 @@ export default function ClientDetailPage() {
             ← Back to Clients
           </Link>
         </div>
-        <DashboardHeader title="Client not found" subtitle="This client may have been removed or the link is invalid." />
+        <DashboardHeader title="Client not found" subtitle="This client is not in your agency or the link is invalid." />
         <main className="flex-1 overflow-auto p-6">
           <div className="bg-white rounded-xl border-2 border-cream-border p-8 max-w-lg">
             <p className="text-[15px] text-text-secondary leading-relaxed">
@@ -342,25 +347,27 @@ export default function ClientDetailPage() {
         {/* KPI row */}
         <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: 'Score', value: client.score.toFixed(1), delta: 2.1 },
-            { label: 'Total spend', value: formatUsd(totalSpend), delta: 4.2 },
-            { label: 'Avg ROAS', value: avgRoas > 0 ? avgRoas.toFixed(2) : '—', delta: avgRoas >= 2.5 ? 3.6 : -1.2 },
-            { label: 'Avg CPA', value: avgCpa > 0 ? formatUsd(avgCpa) : '—', delta: -2.4, invertDelta: true },
+            { label: 'Score', value: client.score.toFixed(1) },
+            { label: 'Total spend', value: formatUsd(totalSpend) },
+            { label: 'Avg ROAS', value: avgRoas > 0 ? avgRoas.toFixed(2) : '—' },
+            { label: 'Avg CPA', value: avgCpa > 0 ? formatUsd(avgCpa) : '—' },
           ].map((kpi) => (
             <div key={kpi.label} className="bg-white rounded-xl border-2 border-cream-border p-5 flex flex-col gap-2">
               <div className="text-[11px] font-bold text-text-muted uppercase tracking-wide">{kpi.label}</div>
               <div className="text-[28px] font-extrabold font-mono text-text-primary leading-none tabular-nums">{kpi.value}</div>
-              {kpi.value !== '—' && <KpiDelta value={kpi.delta} invert={kpi.invertDelta} />}
             </div>
           ))}
         </section>
 
         {/* Campaign error */}
-        {campaignError && (
+        {(hierarchyError || campaignError) && (
           <ApiErrorBanner
-            error={campaignError}
-            onRetry={() => refreshCampaigns()}
-            title="Failed to load campaigns"
+            error={hierarchyError || campaignError}
+            onRetry={() => {
+              void refreshHierarchy();
+              void refreshCampaigns();
+            }}
+            title="Failed to load client data"
           />
         )}
 
@@ -370,13 +377,18 @@ export default function ClientDetailPage() {
             <div>
               <h2 className="text-[14px] font-extrabold text-text-primary">Campaigns</h2>
               <p className="text-[12px] text-text-muted font-medium mt-0.5">
-                {campaigns.some((c) => c.isReal) ? 'Live data from API' : 'Mock data'} · {viewMode === 'agency' ? 'Agency' : 'Client'} view
+                {hc ? 'Metrics from usage (hierarchy API)' : apiCampaigns.length > 0 ? 'Campaign list from API' : 'No campaign data yet'}
+                {' · '}
+                {viewMode === 'agency' ? 'Agency' : 'Client'} view
               </p>
             </div>
-            {campaigns.some((c) => c.isReal) && (
+            {(hc || apiCampaigns.length > 0) && (
               <button
                 type="button"
-                onClick={() => refreshCampaigns()}
+                onClick={() => {
+                  void refreshHierarchy();
+                  void refreshCampaigns();
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border-2 border-cream-border bg-white text-text-primary hover:border-teal hover:text-teal transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
@@ -386,7 +398,7 @@ export default function ClientDetailPage() {
               </button>
             )}
           </div>
-          {campaignsLoading ? (
+          {(hierarchyLoading && !hc) || (!hc && campaignsLoading) ? (
             <CampaignSkeleton />
           ) : (
             <div className="overflow-x-auto">
