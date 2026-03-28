@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import {
   UserPlus, Trash2, Mail, Loader2, ShieldCheck, Users, X, Clock,
 } from 'lucide-react';
@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function TeamPage() {
-  const { data: session, status } = useSession();
+  const { status } = useRequireAuth();
+  const { data: session } = useSession();
   const { members, error: membersError, isLoading: membersLoading, refresh: refreshMembers } = useMembers();
   const { invites, error: invitesError, isLoading: invitesLoading, refresh: refreshInvites } = useInvites();
   const { accessToken, agencyId } = useApiAuth();
@@ -30,7 +31,7 @@ export default function TeamPage() {
   const [cancellingId, setCancellingId] = useState<number | null>(null);
 
   if (status === 'loading') return <TeamSkeleton />;
-  if (status === 'unauthenticated') redirect('/login');
+  if (status !== 'authenticated') return null;
 
   const isAdmin = session?.user?.agencyRole === 'agency_admin';
 

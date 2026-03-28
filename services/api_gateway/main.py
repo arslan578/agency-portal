@@ -358,9 +358,11 @@ if os.getenv("TEST_MODE", "false").lower() != "true":
     from services.reporting_service.main import app as reporting_app
     from services.i18n_service.main import app as i18n_app
     from integrations.shopify.api.main import router as shopify_router
+    from services.admin_service.main import app as admin_app
 
     app.include_router(auth_app.router, prefix="/auth", tags=["Auth"])
     # Agency routes live on account_app (includes agency.router); do not mount agency.router again — duplicate routes can break matching.
+    app.include_router(admin_app.router, prefix="/admin", tags=["Admin"])
     app.include_router(account_app.router, tags=["Accounts"])
     app.include_router(agent_app.router, tags=["Agent"])
     app.include_router(audience_app.router, tags=["Audiences"])

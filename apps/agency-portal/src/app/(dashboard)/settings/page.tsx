@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useDashboard, useMembers, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
@@ -191,6 +191,7 @@ function ToggleSwitch({
 }
 
 export default function SettingsPage() {
+  useRequireAuth();
   const { data: session, status, update: updateSession } = useSession();
   const { data: dashboard, isLoading: dashboardLoading, refresh: refreshDashboard } =
     useDashboard();
@@ -278,7 +279,7 @@ export default function SettingsPage() {
     );
   }
 
-  if (status === 'unauthenticated') redirect('/login');
+  if (status !== 'authenticated') return null;
 
   async function handleAgencySave() {
     if (!accessToken || !agencyId) {

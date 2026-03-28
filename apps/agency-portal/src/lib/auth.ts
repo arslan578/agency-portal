@@ -56,6 +56,8 @@ async function fetchBackendProfile(accessToken: string) {
     agencyRole: userResponse.data.agency_role,
     agencyName: userResponse.data.agency_name,
     tier: userResponse.data.tier,
+    isSuperuser: userResponse.data.is_superuser === true,
+    needsPassword: userResponse.data.has_password === false,
   };
 }
 
@@ -91,6 +93,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         } catch (error) {
           logger.authError("Credentials authorize failed", {
             email: credentials?.email,
+            error: error instanceof Error ? error.message : String(error),
+          });
+          return null;
+        }
+      },
+    }),
+    Credentials({
+      id: "magic-link",
+      name: "Magic Link",
+      credentials: {
+        token: { label: "Token", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.token) return null;
+
+        try {
+          logger.authInfo("Magic link authorize attempt");
+          const response = await axios.get(
+            `${AUTH_BASE_URL}/verify-token?token=${encodeURIComponent(credentials.token as string)}`
+          );
+
+          if (response.data?.access_token) {
+            return await fetchBackendProfile(response.data.access_token);
+          }
+          return null;
+        } catch (error) {
+          logger.authError("Magic link authorize failed", {
             error: error instanceof Error ? error.message : String(error),
           });
           return null;

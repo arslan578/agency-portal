@@ -3,6 +3,15 @@ const BASE = process.env.NEXT_PUBLIC_API_URL || 'https://kaivo-backend.onrender.
 export const API_ENDPOINTS = {
   AUTH: {
     PROFILE: `${BASE}/auth/profile`,
+    VERIFY_TOKEN: (token: string) => `${BASE}/auth/verify-token?token=${encodeURIComponent(token)}`,
+    SET_PASSWORD: `${BASE}/auth/set-password`,
+    LOGOUT: `${BASE}/auth/logout`,
+  },
+  ADMIN: {
+    INVITE: `${BASE}/admin/invite`,
+    INVITES: `${BASE}/admin/invites`,
+    RESEND_INVITE: `${BASE}/admin/resend-invite`,
+    AGENCIES: `${BASE}/admin/agencies`,
   },
   AGENCY: {
     GET: (id: string) => `${BASE}/agencies/${id}`,

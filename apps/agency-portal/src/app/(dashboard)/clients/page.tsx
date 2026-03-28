@@ -1,8 +1,7 @@
 'use client';
 
 import { Fragment, useMemo, useState } from 'react';
-import { useSession } from 'next-auth/react';
-import { redirect } from 'next/navigation';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Link from 'next/link';
 import { useClientHierarchy, useClients, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient, type ApiError } from '@/lib/api/client';
@@ -141,7 +140,7 @@ function MetricsRowCells({
 const inputClass = 'h-[40px] px-3 border-2 border-cream-border rounded-[10px] bg-cream text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-teal/25 focus:border-teal';
 
 export default function ClientsPage() {
-  const { status } = useSession();
+  const { status } = useRequireAuth();
   const { clients: apiClients, isLoading: clientsLoading, refresh: refreshClients } = useClients();
   const { accessToken, agencyId } = useApiAuth();
   const [period, setPeriod] = useState<Period>('7d');
@@ -213,7 +212,7 @@ export default function ClientsPage() {
   const counts = effectiveHierarchy?.counts;
 
   if (status === 'loading') return <ClientsSkeleton />;
-  if (status === 'unauthenticated') redirect('/login');
+  if (status !== 'authenticated') return null;
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
