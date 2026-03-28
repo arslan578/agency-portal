@@ -1,0 +1,14 @@
+
+This is the requirements for the Agency dashboard...30k foot level:
+
+Milestone 1: Agency portal foundation and authenticated routing
+Set up agency.getkaivo.com, connect auth/session flow, wire protected routes, global layout, navigation shell, feature flags, and initial observability. Deliver via GitHub PR with tests and reviewer notes.
+
+Milestone 2: Workspace, client, and team management integration
+Connect workspace/client switching, brand or account listing, team member management, and permissions views to backend services. Include loading, empty, and error states plus contract validation and tests.
+
+Milestone 3: Campaigns and reporting integration
+Connect campaigns list, campaign details, filters, status views, and reporting modules to backend data surfaces. Include stable API handling, observability, and review-ready PR.
+
+Milestone 4: Settings, hardening, QA, and production readiness
+Complete settings views, final frontend-to-backend cleanup, hardening, deterministic tests, documentation, and final PR for review and merge approval.
