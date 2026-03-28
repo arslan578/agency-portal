@@ -348,7 +348,6 @@ def retry_with_exponential_backoff(
 if os.getenv("TEST_MODE", "false").lower() != "true":
     from services.auth_service.main import app as auth_app
     from services.account_service.main import app as account_app
-    from services.account_service.routers.agency import router as agency_router
     from services.agent_service.main import app as agent_app
     from services.audience_service.main import app as audience_app
     from services.billing_service.main import app as billing_app
@@ -362,9 +361,9 @@ if os.getenv("TEST_MODE", "false").lower() != "true":
     from services.admin_service.main import app as admin_app
 
     app.include_router(auth_app.router, prefix="/auth", tags=["Auth"])
+    # Agency routes live on account_app (includes agency.router); do not mount agency.router again — duplicate routes can break matching.
     app.include_router(admin_app.router, prefix="/admin", tags=["Admin"])
     app.include_router(account_app.router, tags=["Accounts"])
-    app.include_router(agency_router, tags=["Agency"])
     app.include_router(agent_app.router, tags=["Agent"])
     app.include_router(audience_app.router, tags=["Audiences"])
     app.include_router(billing_app.router, tags=["Billing"])

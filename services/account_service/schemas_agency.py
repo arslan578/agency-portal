@@ -6,7 +6,7 @@ It includes compatibility logic to support legacy field names (client_name, mark
 used by older tests and internal calls.
 """
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from decimal import Decimal
 from packages.db.models import AgencyRole, ClientRole
@@ -119,3 +119,72 @@ class MarkupUpdate(BaseModel):
     Schema for updating client markup settings.
     """
     markup_percent: Decimal
+
+
+# --- Client hierarchy (dashboard tree) ---
+
+class HierarchyAlerts(BaseModel):
+    count: int = 0
+    severity: str = "ok"
+
+
+class HierarchyMetrics(BaseModel):
+    spend: float = 0
+    impressions: int = 0
+    clicks: int = 0
+    ctr: float = 0
+    cpc: float = 0
+    conversions: int = 0
+    cost_per_conversion: float = 0
+    budget: float = 0
+    pacing: float = 0
+    score: float = 50
+    alerts: HierarchyAlerts = Field(default_factory=HierarchyAlerts)
+
+
+class HierarchyAdSet(BaseModel):
+    id: str
+    name: str
+    metrics: HierarchyMetrics
+
+
+class HierarchyCampaign(BaseModel):
+    id: int
+    name: str
+    status: str
+    metrics: HierarchyMetrics
+    ad_sets: List[HierarchyAdSet] = Field(default_factory=list)
+
+
+class HierarchyPlatform(BaseModel):
+    key: str
+    display_name: str
+    account_ids: List[str] = Field(default_factory=list)
+    metrics: HierarchyMetrics
+    campaigns: List[HierarchyCampaign] = Field(default_factory=list)
+
+
+class HierarchyClient(BaseModel):
+    id: int
+    name: str
+    industry: Optional[str] = None
+    website: Optional[str] = None
+    is_active: bool = True
+    account_mode: Optional[str] = "kaivo_managed"
+    platform_count: int = 0
+    metrics: HierarchyMetrics
+    platforms: List[HierarchyPlatform] = Field(default_factory=list)
+
+
+class HierarchyCounts(BaseModel):
+    clients: int = 0
+    platforms: int = 0
+    campaigns: int = 0
+    ad_sets: int = 0
+
+
+class ClientHierarchyResponse(BaseModel):
+    period: str
+    clients: List[HierarchyClient]
+    totals: HierarchyMetrics
+    counts: HierarchyCounts
