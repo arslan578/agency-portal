@@ -1,0 +1,12 @@
+{
+    "mappings": {
+        "LINK_CLICKS": "LINK_CLICKS",
+        "IMPRESSIONS": "IMPRESSIONS",
+        "REACH": "REACH",
+        "APP_INSTALLS": "APP_INSTALLS",
+        "CONVERSIONS": "OFFSITE_CONVERSIONS",
+        "ENGAGEMENT": "POST_ENGAGEMENT",
+        "VIDEO_VIEWS": "THRUPLAY",
+        "LANDING_PAGE_VIEWS": "LANDING_PAGE_VIEWS"
+    }
+}

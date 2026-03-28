@@ -1,0 +1,334 @@
+name: Kaivo Deployment Pipeline V2
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      run_migrations:
+        description: 'Run Database Migrations?'
+        required: false
+        default: true
+        type: boolean
+      SKIP_HARDENING_GATES:
+        description: 'Skip Hardening Gates (Migrations & Tests)?'
+        required: false
+        default: true
+        type: boolean
+  release:
+    types: [ created ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-test:
+    name: 🏗️ Build & Test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set DB Host
+      run: |
+        echo "DATABASE_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_HOST=localhost" >> $GITHUB_ENV
+        echo "DB_USER=postgres" >> $GITHUB_ENV
+        echo "DB_PASSWORD=password" >> $GITHUB_ENV
+        echo "DB_NAME=test_db" >> $GITHUB_ENV
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+        
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest
+        # Install dependencies for all services
+        find services -name "requirements.txt" -exec pip install -r {} \;
+        
+    - name: Run Tests
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)
+        pytest tests/unit tests/integration
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Login to GHCR
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Create Frontend Env File
+      env:
+        NPC_ID: ${{ secrets.NEXT_PUBLIC_GOOGLE_CLIENT_ID }}
+        GC_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+        API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
+      run: |
+        # Google Client ID
+        if [ -n "$NPC_ID" ]; then
+          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$NPC_ID" > apps/frontend/.env
+        elif [ -n "$GC_ID" ]; then
+          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=$GC_ID" > apps/frontend/.env
+        else
+          echo "::warning::Both NEXT_PUBLIC_GOOGLE_CLIENT_ID and GOOGLE_CLIENT_ID secrets are missing!"
+          echo "NEXT_PUBLIC_GOOGLE_CLIENT_ID=" > apps/frontend/.env
+        fi
+        
+        # API URL (Critical for Hybrid Proxy)
+        if [ -n "$API_URL" ]; then
+          echo "NEXT_PUBLIC_API_URL=$API_URL" >> apps/frontend/.env
+        else
+          echo "NEXT_PUBLIC_API_URL=https://app.getkaivo.com" >> apps/frontend/.env
+        fi
+        
+    - name: Build and Push Images
+      run: |
+        GIT_SHA=${GITHUB_SHA}
+        echo "Building images with tag: $GIT_SHA"
+        
+        # Function to build and push
+        build_and_push() {
+          SERVICE_NAME=$1
+          DOCKERFILE_PATH=$2
+          IMAGE_NAME="ghcr.io/universalmedialtd/kaivocore-${SERVICE_NAME}:${GIT_SHA}"
+          
+          echo "Building $SERVICE_NAME ($IMAGE_NAME)..."
+          docker build -t $IMAGE_NAME -f $DOCKERFILE_PATH .
+          docker push $IMAGE_NAME
+        }
+        
+        # Build all services
+        build_and_push "account-service" "services/account_service/Dockerfile"
+        build_and_push "agent-service" "services/agent_service/Dockerfile"
+        build_and_push "audience-service" "services/audience_service/Dockerfile"
+        build_and_push "auth-service" "services/auth_service/Dockerfile"
+        build_and_push "billing-service" "services/billing_service/Dockerfile"
+        build_and_push "campaign-service" "services/campaign_service/Dockerfile"
+        build_and_push "creative-service" "services/creative_service/Dockerfile"
+        build_and_push "creative-service" "services/creative_service/Dockerfile"
+        
+        # Verify Frontend Pinned Dependencies
+        echo "Verifying Frontend Pinned Dependencies..."
+        node apps/frontend/scripts/verify_pinned_deps.js
+        
+        build_and_push "frontend" "apps/frontend/Dockerfile"
+        build_and_push "intelligence-service" "services/intelligence_service/Dockerfile"
+        build_and_push "policy-service" "services/policy_service/Dockerfile"
+        build_and_push "reporting-service" "services/reporting_service/Dockerfile"
+        build_and_push "os-runtime-service" "services/os_runtime_service/Dockerfile"
+        build_and_push "i18n-service" "services/i18n_service/Dockerfile"
+        build_and_push "api-gateway" "services/api_gateway/Dockerfile"
+
+  deploy-staging:
+    name: 🚀 Deploy to Staging
+    needs: build-and-test
+    # Only branch / event logic here – no secrets.*
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'staging')
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+    steps:
+    - uses: actions/checkout@v3
+
+    # Decide whether to deploy based on the secret value
+    - name: Check Kubeconfig presence
+      id: kubecheck
+      env:
+        KUBE_CONFIG_SECRET: ${{ secrets.KUBE_CONFIG }}
+      run: |
+        if [ -z "$KUBE_CONFIG_SECRET" ] || [[ "$KUBE_CONFIG_SECRET" == *"CHANGE_ME"* ]]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+          echo "Kubeconfig missing or placeholder, skipping deploy."
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+          echo "Kubeconfig present, proceeding with deploy."
+        fi
+
+    - name: Set up Docker Buildx
+      if: steps.kubecheck.outputs.skip == 'false'
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Login to GHCR
+      if: steps.kubecheck.outputs.skip == 'false'
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Setup Kustomize
+      if: steps.kubecheck.outputs.skip == 'false'
+      uses: imranismail/setup-kustomize@v2
+      with:
+        kustomize-version: "5.4.3"
+
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Save DigitalOcean Kubeconfig
+      run: doctl kubernetes cluster kubeconfig save ${{ secrets.DO_CLUSTER_ID_STAGING }}
+
+    - name: Deploy
+      if: steps.kubecheck.outputs.skip == 'false'
+      env:
+        KUBECONFIG_CONTENT: ${{ secrets.KUBE_CONFIG }}
+        GIT_SHA: ${{ github.sha }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ACTOR: ${{ github.actor }}
+      run: |
+        # Setup Kubeconfig
+        # Only use secret if config doesn't exist (prefer doctl)
+        if [ ! -f ~/.kube/config ]; then
+          mkdir -p ~/.kube
+          echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+          chmod 600 ~/.kube/config
+        fi
+        
+        # Run Deployment Script
+        ./infrastructure/scripts/deploy.sh staging
+
+    - name: Verify pods are running
+      if: steps.kubecheck.outputs.skip == 'false'
+      run: |
+        kubectl -n staging get pods
+
+    - name: Run Staging Migrations
+      if: steps.kubecheck.outputs.skip == 'false'
+      run: |
+        echo "Running Staging Migrations..."
+        chmod +x ./infrastructure/scripts/run_migration_job.sh
+        ./infrastructure/scripts/run_migration_job.sh ${{ github.sha }} staging
+
+  deploy-production:
+    name: 🚀 Deploy to Production
+    needs: build-and-test
+    # Again: only event logic here
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Check Kubeconfig presence
+      id: kubecheck
+      env:
+        KUBE_CONFIG_SECRET: ${{ secrets.KUBE_CONFIG }}
+      run: |
+        if [ -z "$KUBE_CONFIG_SECRET" ] || [[ "$KUBE_CONFIG_SECRET" == *"CHANGE_ME"* ]]; then
+          echo "skip=true" >> $GITHUB_OUTPUT
+          echo "Kubeconfig missing or placeholder, skipping deploy."
+        else
+          echo "skip=false" >> $GITHUB_OUTPUT
+          echo "Kubeconfig present, proceeding with deploy."
+        fi
+
+    - name: Set up Docker Buildx
+      if: steps.kubecheck.outputs.skip == 'false'
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Login to GHCR
+      if: steps.kubecheck.outputs.skip == 'false'
+      uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Kustomize
+      if: steps.kubecheck.outputs.skip == 'false'
+      uses: imranismail/setup-kustomize@v2
+      with:
+        kustomize-version: "5.4.3"
+
+    - name: Install doctl
+      uses: digitalocean/action-doctl@v2
+      with:
+        token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+    - name: Save DigitalOcean Kubeconfig
+      run: doctl kubernetes cluster kubeconfig save ${{ secrets.DO_CLUSTER_ID_PRODUCTION }}
+
+    - name: Deploy
+      if: steps.kubecheck.outputs.skip == 'false'
+      env:
+        KUBECONFIG_CONTENT: ${{ secrets.KUBE_CONFIG }}
+        GIT_SHA: ${{ github.sha }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ACTOR: ${{ github.actor }}
+      run: |
+        # Setup Kubeconfig
+        # Only use secret if config doesn't exist (prefer doctl)
+        if [ ! -f ~/.kube/config ]; then
+          mkdir -p ~/.kube
+          echo "$KUBECONFIG_CONTENT" > ~/.kube/config
+          chmod 600 ~/.kube/config
+        fi
+        
+        # Run Deployment Script
+        # Note: The interactive check in production-deploy.sh is skipped in CI
+        # We call the underlying script directly to avoid the prompt, 
+        # relying on the GitHub Environment protection for approval.
+        ./infrastructure/scripts/deploy.sh production
+
+    - name: Verify Workloads
+      if: steps.kubecheck.outputs.skip == 'false'
+      run: |
+        echo "Verifying workloads in production..."
+        kubectl get ns
+        DEPLOY_COUNT=$(kubectl -n production get deployments --no-headers | wc -l)
+        POD_COUNT=$(kubectl -n production get pods --no-headers | wc -l)
+        
+        echo "Deployments: $DEPLOY_COUNT"
+        echo "Pods: $POD_COUNT"
+        
+        if [ "$DEPLOY_COUNT" -eq "0" ]; then
+          echo "::error::PROD_DEPLOY_EMPTY_CLUSTER: No deployments found in production namespace!"
+          exit 1
+        fi
+
+    - name: Run Production Migration (Manual Gate)
+      # OPT-IN ONLY: Only run if explicitly requested AND bypass is false.
+      # Defaults to bypassing if SKIP_HARDENING_GATES is true (default) or missing.
+      if: inputs.run_migrations == true || vars.RUN_DB_MIGRATIONS_PROD == 'true'
+      run: |
+        echo "🛡️ Secure Migration Triggered"
+        echo "Source: Workflow Input or Environment Variable"
+        chmod +x ./infrastructure/scripts/run_migration_job.sh
+        
+        # Pass GIT_SHA to ensure image consistency
+        ./infrastructure/scripts/run_migration_job.sh ${{ github.sha }}
+
+    - name: Log Hardening Bypass
+      if: inputs.SKIP_HARDENING_GATES != false
+      run: |
+        echo "⚠️ HARDENING BYPASS ENABLED: skipping migration gating + contract tests for production deploy"

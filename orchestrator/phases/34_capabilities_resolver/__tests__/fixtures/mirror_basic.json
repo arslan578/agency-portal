@@ -1,0 +1,78 @@
+{
+    "policy_version": "1.0.0",
+    "rules": {
+        "budget": {
+            "min_total": 1000,
+            "max_total": 100000
+        },
+        "venues": {
+            "YOUTUBE": {
+                "enabled": true,
+                "required_creative_types": [
+                    "VIDEO"
+                ],
+                "required_audience_types": [
+                    "INTEREST"
+                ],
+                "sequencing": {
+                    "allowed_roles": [
+                        "PRIMARY"
+                    ]
+                }
+            },
+            "FACEBOOK": {
+                "enabled": true,
+                "required_creative_types": [
+                    "IMAGE",
+                    "VIDEO"
+                ],
+                "required_audience_types": [
+                    "INTEREST",
+                    "DEMOGRAPHIC"
+                ],
+                "sequencing": {
+                    "allowed_roles": [
+                        "PRIMARY",
+                        "SUPPORTING"
+                    ]
+                }
+            },
+            "TIKTOK": {
+                "enabled": false,
+                "required_creative_types": [
+                    "VIDEO_SHORT"
+                ],
+                "required_audience_types": [
+                    "INTEREST"
+                ]
+            }
+        },
+        "compatibility_matrix": {
+            "objective_to_venue": {
+                "AWARENESS": [
+                    "YOUTUBE",
+                    "FACEBOOK"
+                ],
+                "CONVERSION": [
+                    "FACEBOOK",
+                    "TIKTOK"
+                ]
+            }
+        },
+        "connector_rules": {
+            "YOUTUBE": {
+                "min_payload_fields": [
+                    "campaign_id"
+                ],
+                "readiness_requirements": [
+                    "api_key"
+                ]
+            },
+            "FACEBOOK": {
+                "min_payload_fields": [
+                    "ad_account_id"
+                ]
+            }
+        }
+    }
+}

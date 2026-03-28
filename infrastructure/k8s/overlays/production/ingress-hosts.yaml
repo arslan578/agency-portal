@@ -1,0 +1,388 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kaivo-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    - host: app.getkaivo.com
+      http:
+        paths:
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+
+          # --- API Routes (Parity with api.getkaivo.com) ---
+          # Disabled to prevent collision with Frontend UI routes (e.g. /auth/signin, /account, /reporting)
+          # API consumers should use /api/* or api.getkaivo.com
+          
+          # - path: /auth(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: auth-service
+          #       port:
+          #         number: 80
+          # - path: /account(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: account-service
+          #       port:
+          #         number: 80
+          # - path: /campaign(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: campaign-service
+          #       port:
+          #         number: 80
+          # - path: /creative(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: creative-service
+          #       port:
+          #         number: 80
+          # - path: /audience(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: audience-service
+          #       port:
+          #         number: 80
+          # - path: /reporting(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: reporting-service
+          #       port:
+          #         number: 80
+          # - path: /policy(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: policy-service
+          #       port:
+          #         number: 80
+          # - path: /intelligence(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: intelligence-service
+          #       port:
+          #         number: 80
+          # - path: /billing(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: billing-service
+          #       port:
+          #         number: 80
+          # - path: /agent(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: agent-service
+          #       port:
+          #         number: 80
+          # - path: /i18n(/|$)(.*)
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: i18n-service
+          #       port:
+          #         number: 80
+          
+          # Generic fallback for /api/SERVICE style requests
+          - path: /api/auth(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+          - path: /api/account(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 80
+          - path: /api/campaign(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: campaign-service
+                port:
+                  number: 80
+          - path: /api/billing(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: billing-service
+                port:
+                  number: 80
+          - path: /api/agent(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: agent-service
+                port:
+                  number: 80
+          - path: /api/reporting(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: reporting-service
+                port:
+                  number: 80
+          - path: /api/intelligence(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: intelligence-service
+                port:
+                  number: 80
+          - path: /api/policy(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: policy-service
+                port:
+                  number: 80
+          - path: /api/creative(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: creative-service
+                port:
+                  number: 80
+          - path: /api/audience(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: audience-service
+                port:
+                  number: 80
+          - path: /api/i18n(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: i18n-service
+                port:
+                  number: 80
+          # Capabilities (API Gateway)
+          # Capabilities (API Gateway)
+          # Use /()(capabilities.*) to preserve /capabilities in the rewrite target /$2
+          - path: /()(capabilities.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+          - path: /api/capabilities(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+    - host: agency.getkaivo.com
+      http:
+        paths:
+          # Agency Portal (all routes, including NextAuth /api/auth/*, must go to agency-portal)
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: agency-portal
+                port:
+                  number: 80
+    - host: api.getkaivo.com
+      http:
+        paths:
+          - path: /auth(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+          - path: /account(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 80
+          - path: /campaign(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: campaign-service
+                port:
+                  number: 80
+          - path: /creative(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: creative-service
+                port:
+                  number: 80
+          - path: /audience(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: audience-service
+                port:
+                  number: 80
+          - path: /reporting(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: reporting-service
+                port:
+                  number: 80
+          - path: /policy(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: policy-service
+                port:
+                  number: 80
+          - path: /intelligence(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: intelligence-service
+                port:
+                  number: 80
+          - path: /billing(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: billing-service
+                port:
+                  number: 80
+          - path: /agent(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: agent-service
+                port:
+                  number: 80
+          - path: /i18n(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: i18n-service
+                port:
+                  number: 80
+          # Generic fallback for /api/SERVICE style requests
+          - path: /api/auth(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+          - path: /api/account(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 80
+          - path: /api/campaign(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: campaign-service
+                port:
+                  number: 80
+          - path: /api/billing(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: billing-service
+                port:
+                  number: 80
+          - path: /api/agent(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: agent-service
+                port:
+                  number: 80
+          - path: /api/reporting(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: reporting-service
+                port:
+                  number: 80
+          - path: /api/intelligence(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: intelligence-service
+                port:
+                  number: 80
+          - path: /api/policy(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: policy-service
+                port:
+                  number: 80
+          - path: /api/creative(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: creative-service
+                port:
+                  number: 80
+          - path: /api/audience(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: audience-service
+                port:
+                  number: 80
+          - path: /api/i18n(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: i18n-service
+                port:
+                  number: 80
+          # Capabilities (API Gateway)
+          # Capabilities (API Gateway)
+          # Use /()(capabilities.*) to preserve /capabilities in the rewrite target /$2
+          - path: /()(capabilities.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+          - path: /api/capabilities(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - app.getkaivo.com
+        - api.getkaivo.com
+        - agency.getkaivo.com
+      secretName: kaivo-tls

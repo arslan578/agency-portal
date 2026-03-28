@@ -1,0 +1,8 @@
+{
+    "allowed_types": [
+        "SINGLE_IMAGE",
+        "SINGLE_VIDEO",
+        "CAROUSEL",
+        "COLLECTION"
+    ]
+}

@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+pydantic
+openai
+sqlalchemy
+httpx
+structlog
+prometheus_client
+redis
+python-dotenv

@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: i18n-service
+spec:
+  selector:
+    app: i18n-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: i18n-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: i18n-service
+  template:
+    metadata:
+      labels:
+        app: i18n-service
+    spec:
+      containers:
+        - name: i18n-service
+          image: kaivo-i18n-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: GOOGLE_TRANSLATE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: GOOGLE_TRANSLATE_API_KEY
+                  optional: true

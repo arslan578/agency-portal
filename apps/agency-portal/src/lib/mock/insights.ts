@@ -1,0 +1,273 @@
+export interface InsightImpactMetric {
+  label: string;
+  value: string;
+  color: 'red' | 'green' | 'teal' | 'amber' | 'purple';
+}
+
+export interface MockInsight {
+  id: number;
+  categories: string[];
+  clientKey: string;
+  clientName: string;
+  platform: string;
+  platformTag: string;
+  categoryIcon: string;
+  categoryLabel: string;
+  priority: 'critical' | 'high' | 'opportunity' | 'anomaly';
+  accentColor: string;
+  iconBg: string;
+  icon: string;
+  title: string;
+  description: string;
+  impactMetrics: InsightImpactMetric[];
+  applyLabel: string;
+  reviewLabel: string;
+  timeAgo: string;
+}
+
+export const MOCK_INSIGHTS_FULL: MockInsight[] = [
+  {
+    id: 1,
+    categories: ['critical', 'creative'],
+    clientKey: 'harbor',
+    clientName: 'Harbor Coffee Co.',
+    platform: 'TikTok',
+    platformTag: 'T TikTok',
+    categoryIcon: '🎬',
+    categoryLabel: 'Creative',
+    priority: 'critical',
+    accentColor: 'var(--color-red)',
+    iconBg: 'bg-red-light',
+    icon: '🎬',
+    title: 'TikTok creative fatigue — Summer Vibes frequency at 4.2x and CTR falling',
+    description: "Harbor Coffee's TikTok campaign has hit 4.2x frequency. CTR has dropped from 2.1% to 1.1% over 5 days with no creative changes. CPM is up 38%. The audience has seen this ad too many times — performance will continue to deteriorate without a creative refresh.",
+    impactMetrics: [
+      { label: 'Frequency', value: '4.2x', color: 'red' },
+      { label: 'CTR drop', value: '-52%', color: 'red' },
+      { label: 'Wasted spend/week', value: '~$840', color: 'red' },
+      { label: 'Est. ROAS recovery', value: '+14–18%', color: 'green' },
+    ],
+    applyLabel: '✓ Pause Creative',
+    reviewLabel: 'View Creative',
+    timeAgo: '18 mins ago',
+  },
+  {
+    id: 2,
+    categories: ['critical', 'creative'],
+    clientKey: 'forge',
+    clientName: 'Forge Supplements',
+    platform: 'YouTube',
+    platformTag: '▶ YouTube',
+    categoryIcon: '🎬',
+    categoryLabel: 'Creative',
+    priority: 'critical',
+    accentColor: 'var(--color-red)',
+    iconBg: 'bg-red-light',
+    icon: '📉',
+    title: 'YouTube view-through rate dropped 22% — Protein Launch pre-roll losing effectiveness',
+    description: "Forge Supplements' YouTube pre-roll CTR has fallen from 1.4% to 0.8% since Monday. View-through rate is down 22%. The pre-roll hook is not stopping the skip — 91% of viewers skip before 5 seconds. Continuing to run this creative is burning budget with minimal return.",
+    impactMetrics: [
+      { label: 'Current CTR', value: '0.8%', color: 'red' },
+      { label: 'Skip rate', value: '91%', color: 'red' },
+      { label: 'Wasted spend/week', value: '~$1,120', color: 'red' },
+      { label: 'Est. CTR recovery', value: '+8–12%', color: 'green' },
+    ],
+    applyLabel: '✓ Pause Pre-roll',
+    reviewLabel: 'View Creative',
+    timeAgo: '1 hr ago',
+  },
+  {
+    id: 3,
+    categories: ['critical', 'budget'],
+    clientKey: 'harbor',
+    clientName: 'Harbor Coffee Co.',
+    platform: 'Meta',
+    platformTag: 'f Meta',
+    categoryIcon: '💰',
+    categoryLabel: 'Budget',
+    priority: 'critical',
+    accentColor: 'var(--color-red)',
+    iconBg: 'bg-red-light',
+    icon: '💸',
+    title: 'Meta Summer Sale campaign CPC at $4.62 — 2.8x account average, video completion at 12%',
+    description: "Harbor Coffee's Meta awareness campaign is severely underperforming. CPC is $4.62 against an account average of $1.64. Video completion is at 12%, down from 34% four weeks ago. The creative hook is not holding attention. Every day this runs is wasted spend at near-zero conversion rate.",
+    impactMetrics: [
+      { label: 'CPC', value: '$4.62', color: 'red' },
+      { label: 'Video completion', value: '12%', color: 'red' },
+      { label: 'Daily wasted spend', value: '~$180', color: 'red' },
+      { label: 'Weekly recovery', value: '$1,260', color: 'green' },
+    ],
+    applyLabel: '✓ Pause Campaign',
+    reviewLabel: 'View Campaign',
+    timeAgo: '2 hrs ago',
+  },
+  {
+    id: 4,
+    categories: ['opportunity', 'budget'],
+    clientKey: 'nova',
+    clientName: 'Nova Skincare',
+    platform: 'Meta',
+    platformTag: 'f Meta',
+    categoryIcon: '💰',
+    categoryLabel: 'Budget',
+    priority: 'opportunity',
+    accentColor: 'var(--color-teal)',
+    iconBg: 'bg-teal-light',
+    icon: '🚀',
+    title: 'Nova Skincare Meta Lookalike 1% converting at $9.81 — significant headroom to scale',
+    description: "Nova Skincare's Lookalike 1% ad set is performing exceptionally — $9.81 cost per conversion with frequency still at 1.6x. The audience pool is 2.4M users and the campaign is only reaching 12% of it. Increasing the daily budget from $200 to $340 will capture more conversions before the window closes.",
+    impactMetrics: [
+      { label: 'Cost / conv.', value: '$9.81', color: 'green' },
+      { label: 'Frequency', value: '1.6x', color: 'green' },
+      { label: 'Budget increase', value: '+$140/day', color: 'teal' },
+      { label: 'Est. extra conv./mo', value: '+180', color: 'green' },
+    ],
+    applyLabel: '✓ Scale to $340/day',
+    reviewLabel: 'Review Ad Set',
+    timeAgo: '3 hrs ago',
+  },
+  {
+    id: 5,
+    categories: ['opportunity'],
+    clientKey: 'peaks',
+    clientName: 'Peaks Outdoor',
+    platform: 'Meta',
+    platformTag: 'f Meta',
+    categoryIcon: '🎯',
+    categoryLabel: 'Audience',
+    priority: 'opportunity',
+    accentColor: 'var(--color-teal)',
+    iconBg: 'bg-teal-light',
+    icon: '🎯',
+    title: 'Peaks Outdoor retargeting underpacing — audience pool too narrow at 28k users',
+    description: "Peaks Outdoor's Meta retargeting campaign is only pacing at 82%. The retargeting pool is 28,000 users — too small for the $90/day budget to deploy effectively. Expanding the window from 30 to 60 days will double the pool to ~56,000 users and resolve the underpacing without any budget change.",
+    impactMetrics: [
+      { label: 'Current pacing', value: '82%', color: 'amber' },
+      { label: 'Pool size', value: '28k', color: 'amber' },
+      { label: 'After expansion', value: '~56k', color: 'green' },
+      { label: 'Est. pacing fix', value: '95%+', color: 'green' },
+    ],
+    applyLabel: '✓ Expand to 60 Days',
+    reviewLabel: 'Review Audience',
+    timeAgo: '4 hrs ago',
+  },
+  {
+    id: 6,
+    categories: ['opportunity'],
+    clientKey: 'luxe',
+    clientName: 'Luxe Threads',
+    platform: 'Google Ads',
+    platformTag: 'G Google Ads',
+    categoryIcon: '🔍',
+    categoryLabel: 'Search',
+    priority: 'opportunity',
+    accentColor: 'var(--color-teal)',
+    iconBg: 'bg-teal-light',
+    icon: '🔍',
+    title: 'Luxe Threads Google impression share dropped 18% — competitor bidding window opening',
+    description: "A competitor appears to be pulling back on Luxe Threads' branded search terms — CPC has dropped $0.40 this week and impression share is available. Increasing bids 12% on exact match keywords would capture ~340 additional clicks per week at a lower average CPC than last month.",
+    impactMetrics: [
+      { label: 'CPC drop', value: '-$0.40', color: 'green' },
+      { label: 'Impression share lost', value: '18%', color: 'amber' },
+      { label: 'Bid increase', value: '+12%', color: 'teal' },
+      { label: 'Est. extra clicks/week', value: '+340', color: 'green' },
+    ],
+    applyLabel: '✓ Increase Bids 12%',
+    reviewLabel: 'Review Keywords',
+    timeAgo: '5 hrs ago',
+  },
+  {
+    id: 7,
+    categories: ['opportunity', 'creative'],
+    clientKey: 'solstice',
+    clientName: 'Solstice Home',
+    platform: 'Meta',
+    platformTag: 'f Meta',
+    categoryIcon: '🎬',
+    categoryLabel: 'Creative',
+    priority: 'high',
+    accentColor: 'var(--color-amber)',
+    iconBg: 'bg-amber-light',
+    icon: '⭐',
+    title: 'Solstice Home video completion at 68% — well above portfolio average, scale before fatigue',
+    description: "Solstice Home's Meta video creative is completing at 68% — the portfolio average is 45%. This creative is resonating strongly. Frequency is still at 1.4x with significant audience headroom remaining. Allocating more budget now will maximise return before the creative naturally fatigues in 2–3 weeks.",
+    impactMetrics: [
+      { label: 'Completion rate', value: '68%', color: 'green' },
+      { label: 'Frequency', value: '1.4x', color: 'green' },
+      { label: 'Recommended increase', value: '+$80/day', color: 'teal' },
+      { label: 'Est. extra conv./mo', value: '+62', color: 'green' },
+    ],
+    applyLabel: '✓ Scale Budget',
+    reviewLabel: 'View Creative',
+    timeAgo: '6 hrs ago',
+  },
+  {
+    id: 8,
+    categories: ['creative'],
+    clientKey: 'harbor',
+    clientName: 'Harbor Coffee Co.',
+    platform: 'Meta',
+    platformTag: 'f Meta',
+    categoryIcon: '🎬',
+    categoryLabel: 'Creative',
+    priority: 'high',
+    accentColor: 'var(--color-amber)',
+    iconBg: 'bg-amber-light',
+    icon: '⚠️',
+    title: 'Harbor Coffee Loyalty Rewards frequency at 3.8x — creative refresh needed within 4 days',
+    description: "The Loyalty Rewards retargeting campaign has reached 3.8x frequency. At this rate it will hit 4.5x within 4 days. Hook retention is still holding at 62% meaning the creative is not yet fatigued, but acting now avoids a CTR cliff. A simple refresh of the last 5 seconds will extend the creative's life by 2–3 weeks.",
+    impactMetrics: [
+      { label: 'Current frequency', value: '3.8x', color: 'amber' },
+      { label: 'Days to 4.5x', value: '~4 days', color: 'amber' },
+      { label: 'Est. CTR if unacted', value: '~0.8%', color: 'red' },
+      { label: 'Fix complexity', value: 'Low', color: 'green' },
+    ],
+    applyLabel: '✓ Flag for Refresh',
+    reviewLabel: 'View Ad Set',
+    timeAgo: '8 hrs ago',
+  },
+  {
+    id: 9,
+    categories: ['anomaly'],
+    clientKey: 'forge',
+    clientName: 'Forge Supplements',
+    platform: 'LinkedIn',
+    platformTag: 'in LinkedIn',
+    categoryIcon: '🚨',
+    categoryLabel: 'Anomaly',
+    priority: 'anomaly',
+    accentColor: 'var(--color-purple)',
+    iconBg: 'bg-purple-light',
+    icon: '🔔',
+    title: 'Forge Supplements LinkedIn impressions spiked 340% overnight — possible invalid traffic',
+    description: "Forge Supplements' LinkedIn campaign saw a 340% impression spike between 2am and 5am with zero corresponding clicks or conversions. This pattern is consistent with bot or invalid traffic. Kaivo recommends pausing the LinkedIn placement immediately and flagging for LinkedIn's invalid traffic review process.",
+    impactMetrics: [
+      { label: 'Impression spike', value: '+340%', color: 'purple' },
+      { label: 'Click rate during spike', value: '0%', color: 'red' },
+      { label: 'Spend at risk', value: '$420', color: 'amber' },
+      { label: 'Confidence', value: 'High', color: 'purple' },
+    ],
+    applyLabel: '✓ Pause LinkedIn',
+    reviewLabel: 'View Traffic Data',
+    timeAgo: '12 hrs ago',
+  },
+];
+
+export const INSIGHT_FILTER_TABS = [
+  { key: 'all', label: 'All', count: 9 },
+  { key: 'critical', label: 'Critical', count: 3 },
+  { key: 'creative', label: 'Creative', count: 3 },
+  { key: 'budget', label: 'Budget', count: 2 },
+  { key: 'opportunity', label: 'Opportunities', count: 4 },
+  { key: 'anomaly', label: 'Anomalies', count: 1 },
+] as const;
+
+export const INSIGHT_CLIENTS = [
+  { key: 'all', label: 'All Clients' },
+  { key: 'harbor', label: 'Harbor Coffee Co.' },
+  { key: 'nova', label: 'Nova Skincare' },
+  { key: 'peaks', label: 'Peaks Outdoor' },
+  { key: 'forge', label: 'Forge Supplements' },
+  { key: 'luxe', label: 'Luxe Threads' },
+  { key: 'solstice', label: 'Solstice Home' },
+] as const;

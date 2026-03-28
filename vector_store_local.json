@@ -1,0 +1,13 @@
+[
+  {
+    "id": "local_test_001",
+    "document_id": "local_doc",
+    "chunk_index": 0,
+    "embedding": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "text": "Local storage test"
+  }
+]

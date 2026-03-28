@@ -1,0 +1,31 @@
+{
+    "contract_version": "input_contract_v1",
+    "correlation_id": "string",
+    "idempotency_key": "string",
+    "shop_domain": "string",
+    "product": {
+        "shopify_product_id": "string",
+        "title": "string",
+        "description_html": "string",
+        "primary_image_url": "string",
+        "image_urls": [
+            "string"
+        ],
+        "product_url": "string",
+        "variants": [
+            {
+                "variant_id": "string",
+                "price": "number",
+                "sku": "string",
+                "inventory_quantity": "number"
+            }
+        ]
+    },
+    "presets": {
+        "goal": "SALES | TRAFFIC | AWARENESS",
+        "daily_budget_usd": "number",
+        "channels": "DEFAULT_MIX"
+    },
+    "requested_at": "string",
+    "forbidden_fields": []
+}

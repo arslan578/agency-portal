@@ -1,0 +1,1659 @@
+﻿node.exe : PASS 
+lib/i18n.test.ts
+At C:\Users\Lenovo\App
+Data\Roaming\npm\pnpm.
+ps1:24 char:5
++     & "node$exe"  "$
+basedir/node_modules/p
+npm/bin/pnpm.cjs" 
+$args
++     ~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (PASS lib/i   
+ 18n.test.ts:Strin    
+g) [], RemoteExce    
+ption
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+  ΓùÅ Console
+
+    console.error
+      Failed to fetch 
+languages Error: 
+Network error or 
+SyntaxError
+          at 
+Object.<anonymous> (C:
+\Users\Lenovo\Desktop\
+Software-Stories\Djang
+o\KaivoCore\apps\front
+end\lib\i18n.test.ts:3
+6:60)
+          at Promise.f
+inally.completed (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:1557:28)
+          at new 
+Promise (<anonymous>)
+          at 
+callAsyncCircusFn (C:\
+Users\Lenovo\Desktop\S
+oftware-Stories\Django
+\KaivoCore\apps\fronte
+nd\node_modules\.pnpm\
+jest-circus@30.2.0\nod
+e_modules\jest-circus\
+build\jestAdapterInit.
+js:1497:10)
+          at 
+_callCircusTest (C:\Us
+ers\Lenovo\Desktop\Sof
+tware-Stories\Django\K
+aivoCore\apps\frontend
+\node_modules\.pnpm\je
+st-circus@30.2.0\node_
+modules\jest-circus\bu
+ild\jestAdapterInit.js
+:1007:40)
+          at processTi
+cksAndRejections (node
+:internal/process/task
+_queues:103:5)
+          at _runTest 
+(C:\Users\Lenovo\Deskt
+op\Software-Stories\Dj
+ango\KaivoCore\apps\fr
+ontend\node_modules\.p
+npm\jest-circus@30.2.0
+\node_modules\jest-cir
+cus\build\jestAdapterI
+nit.js:947:3)
+          at C:\Users\
+Lenovo\Desktop\Softwar
+e-Stories\Django\Kaivo
+Core\apps\frontend\nod
+e_modules\.pnpm\jest-c
+ircus@30.2.0\node_modu
+les\jest-circus\build\
+jestAdapterInit.js:849
+:7
+          at _runTests
+ForDescribeBlock (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:862:11)
+          at _runTests
+ForDescribeBlock (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:857:11)
+          at _runTests
+ForDescribeBlock (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:857:11)
+          at run (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:761:3)
+          at runAndTra
+nsformResultsToJestFor
+mat (C:\Users\Lenovo\D
+esktop\Software-Storie
+s\Django\KaivoCore\app
+s\frontend\node_module
+s\.pnpm\jest-circus@30
+.2.0\node_modules\jest
+-circus\build\jestAdap
+terInit.js:1918:21)
+          at 
+jestAdapter (C:\Users\
+Lenovo\Desktop\Softwar
+e-Stories\Django\Kaivo
+Core\apps\frontend\nod
+e_modules\.pnpm\jest-c
+ircus@30.2.0\node_modu
+les\jest-circus\build\
+runner.js:101:19)
+          at 
+runTestInternal (C:\Us
+ers\Lenovo\Desktop\Sof
+tware-Stories\Django\K
+aivoCore\apps\frontend
+\node_modules\.pnpm\je
+st-runner@30.2.0\node_
+modules\jest-runner\bu
+ild\testWorker.js:275:
+16)
+          at runTest (
+C:\Users\Lenovo\Deskto
+p\Software-Stories\Dja
+ngo\KaivoCore\apps\fro
+ntend\node_modules\.pn
+pm\jest-runner@30.2.0\
+node_modules\jest-runn
+er\build\testWorker.js
+:343:7)
+          at 
+Object.worker (C:\User
+s\Lenovo\Desktop\Softw
+are-Stories\Django\Kai
+voCore\apps\frontend\n
+ode_modules\.pnpm\jest
+-runner@30.2.0\node_mo
+dules\jest-runner\buil
+d\testWorker.js:497:12
+)
+
+    [0m [90m 27 
+|[39m             
+[36mreturn[39m res[
+33m.[39mlanguages 
+[33m||[39m 
+[][33m;[39m
+     [90m 28 |[39m  
+       } 
+[36mcatch[39m (e) {
+    [31m[1m>[22m[3
+9m[90m 29 |[39m     
+        console[33m.
+[39merror([32m"Failed
+ to fetch languages"[
+39m[33m,[39m 
+e)[33m;[39m
+     [90m    |[39m  
+                   
+[31m[1m^[22m[39m
+     [90m 30 |[39m  
+           [90m// 
+Fallback to English 
+if API fails 
+(critical for UI to 
+render)[39m
+     [90m 31 |[39m  
+           
+[36mreturn[39m [{ 
+code[33m:[39m [32m"
+en"[39m[33m,[39m 
+name[33m:[39m 
+[32m"English"[39m 
+}][33m;[39m
+     [90m 32 |[39m  
+       }[0m
+
+      at Object.error 
+[as getLanguages] 
+(lib/i18n.ts:29:21)
+      at 
+Object.<anonymous> (li
+b/i18n.test.ts:38:28)
+
+PASS app/integrations/
+shopify/_components/us
+eShopifyHost.test.ts
+PASS app/integrations/
+shopify/_components/Sh
+opifyAppBridgeProvider
+.test.tsx
+  ΓùÅ Console
+
+    console.warn
+      [ShopifyAppBridg
+eProvider] Host 
+parameter missing 
+after grace period.
+
+    [0m [90m 16 
+|[39m         
+[36mif[39m 
+([33m![39mhost) {
+     [90m 17 |[39m  
+           timer 
+[33m=[39m 
+setTimeout(() 
+[33m=>[39m {
+    [31m[1m>[22m[3
+9m[90m 18 |[39m     
+            console[3
+3m.[39mwarn([32m'[Sh
+opifyAppBridgeProvider
+] Host parameter 
+missing after grace pe
+riod.'[39m)[33m;[39
+m
+     [90m    |[39m  
+                      
+ [31m[1m^[22m[39m
+     [90m 19 |[39m  
+               setShow
+Warning([36mtrue[39m
+)[33m;[39m
+     [90m 20 |[39m  
+           
+}[33m,[39m [35m750
+[39m)[33m;[39m
+     [90m 21 |[39m  
+       } 
+[36melse[39m {[0m
+
+      at warn (app/int
+egrations/shopify/_com
+ponents/ShopifyAppBrid
+geProvider.tsx:18:25)
+      at callTimer (no
+de_modules/.pnpm/@sino
+njs+fake-timers@13.0.5
+/node_modules/@sinonjs
+/fake-timers/src/fake-
+timers-src.js:806:24)
+      at doTickInner (
+node_modules/.pnpm/@si
+nonjs+fake-timers@13.0
+.5/node_modules/@sinon
+js/fake-timers/src/fak
+e-timers-src.js:1413:2
+9)
+      at doTick (node_
+modules/.pnpm/@sinonjs
++fake-timers@13.0.5/no
+de_modules/@sinonjs/fa
+ke-timers/src/fake-tim
+ers-src.js:1494:20)
+      at Object.tick (
+node_modules/.pnpm/@si
+nonjs+fake-timers@13.0
+.5/node_modules/@sinon
+js/fake-timers/src/fak
+e-timers-src.js:1502:2
+0)
+      at FakeTimers.ad
+vanceTimersByTime (nod
+e_modules/.pnpm/@jest+
+fake-timers@30.2.0/nod
+e_modules/@jest/fake-t
+imers/build/index.js:5
+76:19)
+      at 
+advanceTimersByTime (a
+pp/integrations/shopif
+y/_components/ShopifyA
+ppBridgeProvider.test.
+tsx:96:18)
+      at act (node_mod
+ules/.pnpm/react@18.3.
+1/node_modules/react/c
+js/react.development.j
+s:2512:16)
+      at 
+Object.<anonymous> (ap
+p/integrations/shopify
+/_components/ShopifyAp
+pBridgeProvider.test.t
+sx:95:12)
+
+PASS components/layout
+/AppSidebar.test.tsx
+FAIL app/(app)/reporti
+ng/__tests__/page.test
+.tsx
+  ΓùÅ ReportingPage 
+Resilience ΓÇ║ 
+renders spinner when 
+loading campaigns
+
+    expect(received).t
+oBeInTheDocument()
+
+    received value 
+must be an 
+HTMLElement or an 
+SVGElement.
+    Received has 
+value: null
+
+    [0m [90m 79 
+|[39m         
+[90m// eslint-disable
+-next-line testing-lib
+rary/no-node-access, t
+esting-library/no-cont
+ainer[39m
+     [90m 80 |[39m  
+       
+[36mconst[39m 
+spinner [33m=[39m co
+ntainer[33m.[39mquer
+ySelector([32m'.anima
+te-spin'[39m)[33m;[
+39m
+    [31m[1m>[22m[3
+9m[90m 81 |[39m     
+    expect(spinner)[3
+3m.[39mtoBeInTheDocum
+ent()[33m;[39m
+     [90m    |[39m  
+                      
+ [31m[1m^[22m[39m
+     [90m 82 |[39m  
+   })[33m;[39m
+     [90m 83 |[39m
+     [90m 84 |[39m  
+   test([32m'renders 
+dashboard when 
+campaigns loaded'[39m
+[33m,[39m 
+[36masync[39m () 
+[33m=>[39m {[0m
+
+      at __EXTERNAL_MA
+TCHER_TRAP__ (node_mod
+ules/.pnpm/expect@30.2
+.0/node_modules/expect
+/build/index.js:2240:2
+2)
+      at Object.throwi
+ngMatcher [as 
+toBeInTheDocument] (no
+de_modules/.pnpm/expec
+t@30.2.0/node_modules/
+expect/build/index.js:
+2241:6)
+      at Object.toBeIn
+TheDocument (C:\Users\
+Lenovo\Desktop\Softwar
+e-Stories\Django\Kaivo
+Core\apps\frontend\app
+\(app)../../../../../.
+./../../reporting/__te
+sts__/page.test.tsx:81
+:25)
+
+FAIL app/(app)/campaig
+ns/__tests__/page.test
+.tsx
+  ΓùÅ Console
+
+    console.error
+      Failed to fetch 
+campaigns: Error: 
+Service Unavailable
+          at 
+Object.<anonymous> (C:
+\Users\Lenovo\Desktop\
+Software-Stories\Djang
+o\KaivoCore\apps\front
+end\app\(app)\campaign
+s\__tests__\page.test.
+tsx:52:56)
+          at Promise.f
+inally.completed (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:1557:28)
+          at new 
+Promise (<anonymous>)
+          at 
+callAsyncCircusFn (C:\
+Users\Lenovo\Desktop\S
+oftware-Stories\Django
+\KaivoCore\apps\fronte
+nd\node_modules\.pnpm\
+jest-circus@30.2.0\nod
+e_modules\jest-circus\
+build\jestAdapterInit.
+js:1497:10)
+          at 
+_callCircusTest (C:\Us
+ers\Lenovo\Desktop\Sof
+tware-Stories\Django\K
+aivoCore\apps\frontend
+\node_modules\.pnpm\je
+st-circus@30.2.0\node_
+modules\jest-circus\bu
+ild\jestAdapterInit.js
+:1007:40)
+          at _runTest 
+(C:\Users\Lenovo\Deskt
+op\Software-Stories\Dj
+ango\KaivoCore\apps\fr
+ontend\node_modules\.p
+npm\jest-circus@30.2.0
+\node_modules\jest-cir
+cus\build\jestAdapterI
+nit.js:947:3)
+          at C:\Users\
+Lenovo\Desktop\Softwar
+e-Stories\Django\Kaivo
+Core\apps\frontend\nod
+e_modules\.pnpm\jest-c
+ircus@30.2.0\node_modu
+les\jest-circus\build\
+jestAdapterInit.js:849
+:7
+          at _runTests
+ForDescribeBlock (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:862:11)
+          at _runTests
+ForDescribeBlock (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:857:11)
+          at run (C:\U
+sers\Lenovo\Desktop\So
+ftware-Stories\Django\
+KaivoCore\apps\fronten
+d\node_modules\.pnpm\j
+est-circus@30.2.0\node
+_modules\jest-circus\b
+uild\jestAdapterInit.j
+s:761:3)
+          at runAndTra
+nsformResultsToJestFor
+mat (C:\Users\Lenovo\D
+esktop\Software-Storie
+s\Django\KaivoCore\app
+s\frontend\node_module
+s\.pnpm\jest-circus@30
+.2.0\node_modules\jest
+-circus\build\jestAdap
+terInit.js:1918:21)
+          at 
+jestAdapter (C:\Users\
+Lenovo\Desktop\Softwar
+e-Stories\Django\Kaivo
+Core\apps\frontend\nod
+e_modules\.pnpm\jest-c
+ircus@30.2.0\node_modu
+les\jest-circus\build\
+runner.js:101:19)
+          at 
+runTestInternal (C:\Us
+ers\Lenovo\Desktop\Sof
+tware-Stories\Django\K
+aivoCore\apps\frontend
+\node_modules\.pnpm\je
+st-runner@30.2.0\node_
+modules\jest-runner\bu
+ild\testWorker.js:275:
+16)
+          at runTest (
+C:\Users\Lenovo\Deskto
+p\Software-Stories\Dja
+ngo\KaivoCore\apps\fro
+ntend\node_modules\.pn
+pm\jest-runner@30.2.0\
+node_modules\jest-runn
+er\build\testWorker.js
+:343:7)
+          at 
+Object.worker (C:\User
+s\Lenovo\Desktop\Softw
+are-Stories\Django\Kai
+voCore\apps\frontend\n
+ode_modules\.pnpm\jest
+-runner@30.2.0\node_mo
+dules\jest-runner\buil
+d\testWorker.js:497:12
+)
+
+    [0m [90m 89 
+|[39m             set
+Campaigns(asArray(data
+))[33m;[39m
+     [90m 90 |[39m  
+       } 
+[36mcatch[39m 
+(error[33m:[39m 
+any) {
+    [31m[1m>[22m[3
+9m[90m 91 |[39m     
+        console[33m.
+[39merror([32m'Failed
+ to fetch campaigns:'
+[39m[33m,[39m 
+error)[33m;[39m
+     [90m    |[39m  
+                   
+[31m[1m^[22m[39m
+     [90m 92 |[39m  
+           setCampaign
+s([])[33m;[39m
+     [90m 93 |[39m  
+           setError(er
+ror[33m.[39mmessage 
+[33m||[39m 
+[32m'Service unavaila
+ble'[39m)[33m;[39m
+     [90m 94 |[39m  
+       } 
+[36mfinally[39m 
+{[0m
+
+      at error (C:\Use
+rs\Lenovo\Desktop\Soft
+ware-Stories\Django\Ka
+ivoCore\apps\frontend\
+app\(app)../../../../.
+./../../../campaigns/p
+age.tsx:91:21)
+
+  ΓùÅ CampaignsPage 
+Resilience ΓÇ║ 
+renders empty state 
+safely when API 
+returns non-array 
+(object)
+
+    Found multiple 
+elements with the 
+text: /No campaigns 
+found/i
+
+    Here are the 
+matching elements:
+
+    Ignored nodes: 
+comments, script, 
+style
+    [36m<h3[39m
+      [33mclass[39m=
+[32m"text-xl 
+font-bold 
+text-foreground 
+mb-2"[39m
+    [36m>[39m
+      [0mNo 
+campaigns found[0m
+    [36m</h3>[39m
+
+    Ignored nodes: 
+comments, script, 
+style
+    [36m<h3[39m
+      [33mclass[39m=
+[32m"text-xl 
+font-bold 
+text-foreground 
+mb-2"[39m
+    [36m>[39m
+      [0mNo 
+campaigns found[0m
+    [36m</h3>[39m
+
+    (If this is 
+intentional, then use 
+the `*AllBy*` variant 
+of the query (like 
+`queryAllByText`, 
+`getAllByText`, or 
+`findAllByText`)).
+
+    Ignored nodes: 
+comments, script, 
+style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[
+39m=[32m"p-8 
+max-w-7xl 
+mx-auto"[39m
+        [36m>[39m
+          
+[36m<div[39m
+            [33mclass
+[39m=[32m"flex 
+justify-between 
+items-center 
+mb-8"[39m
+          [36m>[39m
+            
+[36m<div>[39m
+              
+[36m<h1[39m
+                [33mc
+lass[39m=[32m"text-3
+xl font-bold"[39m
+              
+[36m>[39m
+                
+[0mCampaigns[0m
+              
+[36m</h1>[39m
+              
+[36m<p[39m
+                [33mc
+lass[39m=[32m"text-g
+ray-400 mt-1"[39m
+              
+[36m>[39m
+                
+[0mManage and 
+optimize your active 
+campaigns[0m
+              
+[36m</p>[39m
+            
+[36m</div>[39m
+            
+[36m<button[39m
+              [33mcla
+ss[39m=[32m"inline-f
+lex items-center 
+justify-center 
+rounded-lg text-sm 
+font-medium 
+transition-all 
+duration-300 focus-vis
+ible:outline-none 
+focus-visible:ring-2 f
+ocus-visible:ring-ring
+ focus-visible:ring-of
+fset-2 disabled:pointe
+r-events-none 
+disabled:opacity-50 
+active:scale-95 
+bg-primary text-primar
+y-foreground 
+hover:bg-primary/90 
+border 
+border-transparent 
+h-10 px-6 py-2 
+gap-2"[39m
+            
+[36m>[39m
+              
+[36m<svg[39m
+                [33mc
+lass[39m=[32m"h-4 
+w-4"[39m
+                [33mf
+ill[39m=[32m"none"[
+39m
+                [33mh
+eight[39m=[32m"24"[
+39m
+                [33ms
+troke[39m=[32m"curre
+ntColor"[39m
+                [33ms
+troke-linecap[39m=[3
+2m"round"[39m
+                [33ms
+troke-linejoin[39m=[
+32m"round"[39m
+                [33ms
+troke-width[39m=[32m
+"2"[39m
+                [33mv
+iewBox[39m=[32m"0 0 
+24 24"[39m
+                [33mw
+idth[39m=[32m"24"[3
+9m
+                [33mx
+mlns[39m=[32m"http:/
+/www.w3.org/2000/svg"
+[39m
+              
+[36m>[39m
+                
+[36m<path[39m
+                  
+[33md[39m=[32m"M5 
+12h14"[39m
+                
+[36m/>[39m
+                
+[36m<path[39m
+                  
+[33md[39m=[32m"M12 
+5v14"[39m
+                
+[36m/>[39m
+              
+[36m</svg>[39m
+              
+[0mCreate New[0m
+            
+[36m</button>[39m
+          
+[36m</div>[39m
+          
+[36m<div[39m
+            [33mclass
+[39m=[32m"grid 
+grid-cols-1 
+md:grid-cols-4 gap-4 
+mb-8"[39m
+          [36m>[39m
+            
+[36m<div[39m
+              [33mcla
+ss[39m=[32m"rounded-
+lg border bg-card 
+text-card-foreground 
+shadow-sm 
+transition-all 
+border-kaivo-aqua/40 d
+ark:border-border"[39
+m
+            
+[36m>[39m
+              
+[36m<div[39m
+                [33mc
+lass[39m=[32m"p-8 
+flex items-center 
+justify-between"[39m
+              
+[36m>[39m
+                
+[36m<div>[39m
+                  
+[36m<p[39m
+                    [
+33mclass[39m=[32m"te
+xt-sm font-medium 
+text-gray-400"[39m
+                  
+[36m>[39m
+                    
+[0mTotal Active[0m
+                  
+[36m</p>[39m
+                  
+[36m<h3[39m
+                    [
+33mclass[39m=[32m"te
+xt-2xl font-bold 
+mt-1"[39m
+                  
+[36m>[39m
+                    
+[0m0[0m
+                  
+[36m</h3>[39m
+                
+[36m</div>[39m
+                
+[36m<div[39m
+                  [33
+mclass[39m=[32m"p-3 
+rounded-full 
+bg-muted/50 
+text-green-500"[39m
+                
+[36m>[39m
+                  
+[36m<svg[39m
+                    [
+33mclass[39m=[32m"h-
+5 w-5"[39m
+                    [
+33mfill[39m=[32m"non
+e"[39m
+                    [
+33mheight[39m=[32m"2
+4"[39m
+                    [
+33mstroke[39m=[32m"c
+urrentColor"[39m
+                    [
+33mstroke-linecap[39m
+=[32m"round"[39m
+                    [
+33mstroke-linejoin[39
+m=[32m"round"[39m
+                    [
+33mstroke-width[39m=
+[32m"2"[39m
+                    [
+33mviewBox[39m=[32m"
+0 0 24 24"[39m
+                    [
+33mwidth[39m=[32m"24
+"[39m
+                    [
+33mxmlns[39m=[32m"ht
+tp://www.w3.org/2000/s
+vg"[39m
+                  
+[36m>[39m
+                    
+[36m<polyline[39m
+                      
+[33mpoints[39m=[32m
+"22 7 13.5 15.5 8.5 
+10.5 2 17"[39m
+                    
+[36m/>[39m
+                    
+[36m<polyline[39m
+                      
+[33mpoints[39m=[32m
+"16 7 22 7 22 13"[39m
+                    
+[36m/>[39m
+                  
+[36m</svg>[39m
+                
+[36m</div>[39m
+              
+[36m</div>[39m
+            
+[36m</div>[39m
+            
+[36m<div[39m
+              [33mcla
+ss[39m=[32m"rounded-
+lg border bg-card 
+text-card-foreground 
+shadow-sm 
+transition-all 
+border-kaivo-aqua/40 d
+ark:border-border"[39
+m
+            
+[36m>[39m
+              
+[36m<div[39m
+                [33mc
+lass[39m=[32m"p-8 
+flex items-center 
+justify-between"[39m
+              
+[36m>[39m
+                
+[36m<div>[39m
+                  
+[36m<p[39m
+                    [
+33mclass[39m=[32m"te
+xt-sm font-medium 
+text-gray-400"[39m
+                  
+[36m>[39m
+                    
+[0mTotal Spend[0m
+                  
+[36m</p>[39m
+                  
+[36m<h3[39m
+                    [
+33mclass[39m=[32m"te
+xt-2xl font-bold 
+mt-1"[39m
+                  
+[36m>[39m
+                    
+[0m$0.00[0m
+                  
+[36m</h3>[39m
+                
+[36m</div>[39m
+                
+[36m<div[39m
+                  [33
+mclass[39m=[32m"p-3 
+rounded-full 
+bg-muted/50 
+text-blue-500"[39m
+                
+[36m>[39m
+                  
+[36m<svg[39m
+                    [
+33mclass[39m=[32m"h-
+5 w-5"[39m
+                    [
+33mfill[39m=[32m"non
+e"[39m
+                    [
+33mheight[39m=[32m"2
+4"[39m
+                    [
+33mstroke[39m=[32m"c
+urrentColor"[39m
+                    [
+33mstroke-linecap[39m
+=[32m"round"[39m
+                    [
+33mstroke-linejoin[39
+m=[32m"round"[39m
+                    [
+33mstroke-width[39m=
+[32m"2"[39m
+                    [
+33mviewBox[39m=[32m"
+0 0 24 24"[39m
+                    [
+33mwidth[39m=[32m"24
+"[39m
+                    [
+33mxmlns[39m=[32m"ht
+tp://www.w3.org/2000/s
+vg"[39m
+                  
+[36m>[39m
+                    
+[36m<line[39m
+                      
+[33mx1[39m=[32m"12"
+[39m
+                      
+[33mx2[39m=[32m"12"
+[39m
+                      
+[33my1[39m=[32m"2"
+[39m
+                      
+[33my2[39m=[32m"22"
+[39m
+                    
+[36m/>[39m
+                    
+[36m<path[39m
+                      
+[33md[39m=[32m"M17 
+5H9.5a3.5 3.5 0 0 0 0 
+7h5a3.5 3.5 0 0 1 0 
+7H6"[39m
+                    
+[36m/>[39m
+                  
+[36m</svg>[39m
+                
+[36m</div>[39m
+              
+[36m</div>[39m
+            
+[36m</div>[39m
+            
+[36m<div[39m
+              [33mcla
+ss[39m=[32m"rounded-
+lg border bg-card 
+text-card-foreground 
+shadow-sm 
+transition-all 
+border-kaivo-aqua/40 d
+ark:border-border"[39
+m
+            
+[36m>[39m
+              
+[36m<div[39m
+                [33mc
+lass[39m=[32m"p-8 
+flex items-center 
+justify-between"[39m
+              
+[36m>[39m
+                
+[36m<div>[39m
+                  
+[36m<p[39m
+                    [
+33mclass[39m=[32m"te
+xt-sm font-medium 
+text-gray-400"[39m
+                  
+[36m>[39m
+                    
+[0mAvg. CPM[0m
+                  
+[36m</p>[39m
+                  
+[36m<h3[39m
+                    [
+33mclass[39m=[32m"te
+xt-2xl font-bold 
+mt-1"[39m
+                  
+[36m>[39m
+                    
+[0m-[0m
+                  
+[36m</h3>[39m
+                
+[36m</div>[39m
+                
+[36m<div[39m
+                  [33
+mclass[39m=[32m"p-3 
+rounded-full 
+bg-muted/50 
+text-purple-500"[39m
+                
+[36m>[39m
+                  
+[36m<svg[39m
+                    [
+33mclass[39m=[32m"h-
+5 w-5"[39m
+                    [
+33mfill[39m=[32m"non
+e"[39m
+                    
+[33mheight[39m...
+
+    [0m [90m 38 
+|[39m
+     [90m 39 |[39m  
+       [90m// Wait 
+for loading to 
+finish[39m
+    [31m[1m>[22m[3
+9m[90m 40 |[39m     
+    [36mawait[39m 
+waitFor(() 
+[33m=>[39m {
+     [90m    |[39m  
+                    
+[31m[1m^[22m[39m
+     [90m 41 |[39m  
+           
+[36mconst[39m 
+emptyMessage 
+[33m=[39m screen[33
+m.[39mgetByText([35m
+/No campaigns found/i
+[39m)[33m;[39m
+     [90m 42 |[39m  
+           expect(empt
+yMessage)[33m.[39mto
+BeInTheDocument()[33m
+;[39m
+     [90m 43 |[39m  
+       
+})[33m;[39m[0m
+
+      at 
+waitForWrapper (node_m
+odules/.pnpm/@testing-
+library+dom@10.4.1/nod
+e_modules/@testing-lib
+rary/dom/dist/wait-for
+.js:163:27)
+      at 
+Object.<anonymous> (C:
+\Users\Lenovo\Desktop\
+Software-Stories\Djang
+o\KaivoCore\apps\front
+end\app\(app)../../../
+../../../../../campaig
+ns/__tests__/page.test
+.tsx:40:22)
+
+  ΓùÅ CampaignsPage 
+Resilience ΓÇ║ 
+renders error banner 
+when API throws
+
+    Unable to find an 
+element with the 
+text: /Failed to load 
+campaigns: Service 
+Unavailable/i. This 
+could be because the 
+text is broken up by 
+multiple elements. In 
+this case, you can 
+provide a function 
+for your text matcher 
+to make your matcher 
+more flexible.
+
+    Ignored nodes: 
+comments, script, 
+style
+    [36m<body>[39m
+      [36m<div>[39m
+        [36m<div[39m
+          [33mclass[
+39m=[32m"p-8 
+max-w-7xl 
+mx-auto"[39m
+        [36m>[39m
+          
+[36m<div[39m
+            [33mclass
+[39m=[32m"flex 
+justify-between 
+items-center 
+mb-8"[39m
+          [36m>[39m
+            
+[36m<div>[39m
+              
+[36m<h1[39m
+                [33mc
+lass[39m=[32m"text-3
+xl font-bold"[39m
+              
+[36m>[39m
+                
+[0mCampaigns[0m
+              
+[36m</h1>[39m
+              
+[36m<p[39m
+                [33mc
+lass[39m=[32m"text-g
+ray-400 mt-1"[39m
+              
+[36m>[39m
+                
+[0mManage and 
+optimize your active 
+campaigns[0m
+              
+[36m</p>[39m
+            
+[36m</div>[39m
+            
+[36m<button[39m
+              [33mcla
+ss[39m=[32m"inline-f
+lex items-center 
+justify-center 
+rounded-lg text-sm 
+font-medium 
+transition-all 
+duration-300 focus-vis
+ible:outline-none 
+focus-visible:ring-2 f
+ocus-visible:ring-ring
+ focus-visible:ring-of
+fset-2 disabled:pointe
+r-events-none 
+disabled:opacity-50 
+active:scale-95 
+bg-primary text-primar
+y-foreground 
+hover:bg-primary/90 
+border 
+border-transparent 
+h-10 px-6 py-2 
+gap-2"[39m
+            
+[36m>[39m
+              
+[36m<svg[39m
+                [33mc
+lass[39m=[32m"h-4 
+w-4"[39m
+                [33mf
+ill[39m=[32m"none"[
+39m
+                [33mh
+eight[39m=[32m"24"[
+39m
+                [33ms
+troke[39m=[32m"curre
+ntColor"[39m
+                [33ms
+troke-linecap[39m=[3
+2m"round"[39m
+                [33ms
+troke-linejoin[39m=[
+32m"round"[39m
+                [33ms
+troke-width[39m=[32m
+"2"[39m
+                [33mv
+iewBox[39m=[32m"0 0 
+24 24"[39m
+                [33mw
+idth[39m=[32m"24"[3
+9m
+                [33mx
+mlns[39m=[32m"http:/
+/www.w3.org/2000/svg"
+[39m
+              
+[36m>[39m
+                
+[36m<path[39m
+                  
+[33md[39m=[32m"M5 
+12h14"[39m
+                
+[36m/>[39m
+                
+[36m<path[39m
+                  
+[33md[39m=[32m"M12 
+5v14"[39m
+                
+[36m/>[39m
+              
+[36m</svg>[39m
+              
+[0mCreate New[0m
+            
+[36m</button>[39m
+          
+[36m</div>[39m
+          
+[36m<div[39m
+            [33mclass
+[39m=[32m"rounded-lg
+ border 
+text-card-foreground 
+shadow-sm 
+transition-all 
+dark:border-border 
+border-red-500/20 
+bg-red-500/5 
+mb-8"[39m
+          [36m>[39m
+            
+[36m<div[39m
+              [33mcla
+ss[39m=[32m"p-6"[39
+m
+            
+[36m>[39m
+              
+[36m<div[39m
+                [33mc
+lass[39m=[32m"flex 
+items-start 
+gap-4"[39m
+              
+[36m>[39m
+                
+[36m<div[39m
+                  [33
+mclass[39m=[32m"flex
+-shrink-0"[39m
+                
+[36m>[39m
+                  
+[36m<div[39m
+                    [
+33mclass[39m=[32m"h-
+10 w-10 rounded-full 
+bg-red-500/20 flex 
+items-center 
+justify-center"[39m
+                  
+[36m>[39m
+                    
+[36m<svg[39m
+                      
+[33mclass[39m=[32m"
+h-5 w-5 
+text-red-400"[39m
+                      
+[33mfill[39m=[32m"n
+one"[39m
+                      
+[33mheight[39m=[32m
+"24"[39m
+                      
+[33mstroke[39m=[32m
+"currentColor"[39m
+                      
+[33mstroke-linecap[3
+9m=[32m"round"[39m
+                      
+[33mstroke-linejoin[
+39m=[32m"round"[39m
+                      
+[33mstroke-width[39m
+=[32m"2"[39m
+                      
+[33mviewBox[39m=[32
+m"0 0 24 24"[39m
+                      
+[33mwidth[39m=[32m"
+24"[39m
+                      
+[33mxmlns[39m=[32m"
+http://www.w3.org/2000
+/svg"[39m
+                    
+[36m>[39m
+                      
+[36m<circle[39m
+                      
+  [33mcx[39m=[32m"1
+2"[39m
+                      
+  [33mcy[39m=[32m"1
+2"[39m
+                      
+  [33mr[39m=[32m"10
+"[39m
+                      
+[36m/>[39m
+                      
+[36m<line[39m
+                      
+  [33mx1[39m=[32m"1
+2"[39m
+                      
+  [33mx2[39m=[32m"1
+2"[39m
+                      
+  [33my1[39m=[32m"8
+"[39m
+                      
+  [33my2[39m=[32m"1
+2"[39m
+                      
+[36m/>[39m
+                      
+[36m<line[39m
+                      
+  [33mx1[39m=[32m"1
+2"[39m
+                      
+  [33mx2[39m=[32m"1
+2.01"[39m
+                      
+  [33my1[39m=[32m"1
+6"[39m
+                      
+  [33my2[39m=[32m"1
+6"[39m
+                      
+[36m/>[39m
+                    
+[36m</svg>[39m
+                  
+[36m</div>[39m
+                
+[36m</div>[39m
+                
+[36m<div[39m
+                  [33
+mclass[39m=[32m"flex
+-1 min-w-0"[39m
+                
+[36m>[39m
+                  
+[36m<h3[39m
+                    [
+33mclass[39m=[32m"te
+xt-lg font-semibold 
+text-red-400 
+mb-2"[39m
+                  
+[36m>[39m
+                    
+[0mFailed to load 
+campaigns[0m
+                  
+[36m</h3>[39m
+                  
+[36m<p[39m
+                    [
+33mclass[39m=[32m"te
+xt-gray-300 mb-4"[39m
+                  
+[36m>[39m
+                    
+[0mService 
+Unavailable[0m
+                  
+[36m</p>[39m
+                  
+[36m<button[39m
+                    [
+33mclass[39m=[32m"in
+line-flex 
+items-center 
+justify-center 
+text-sm font-medium 
+transition-all 
+duration-300 focus-vis
+ible:outline-none 
+focus-visible:ring-2 f
+ocus-visible:ring-ring
+ focus-visible:ring-of
+fset-2 disabled:pointe
+r-events-none 
+disabled:opacity-50 
+active:scale-95 
+border border-border 
+bg-transparent 
+hover:bg-accent 
+text-foreground h-9 
+rounded-md px-3"[39m
+                  
+[36m>[39m
+                    
+[36m<svg[39m
+                      
+[33mclass[39m=[32m"
+h-4 w-4 mr-2"[39m
+                      
+[33mfill[39m=[32m"n
+one"[39m
+                      
+[33mheight[39m=[32m
+"24"[39m
+                      
+[33mstroke[39m=[32m
+"currentColor"[39m
+                      
+[33mstroke-linecap[3
+9m=[32m"round"[39m
+                      
+[33mstroke-linejoin[
+39m=[32m"round"[39m
+                      
+[33mstroke-width[39m
+=[32m"2"[39m
+                      
+[33mviewBox[39m=[32
+m"0 0 24 24"[39m
+                      
+[33mwidth[39m=[32m"
+24"[39m
+                      
+[33mxmlns[39m=[32m"
+http://www.w3.org/2000
+/svg"[39m
+                    
+[36m>[39m
+                      
+[36m<path[39m
+                      
+  
+[33md[39m=[32m"M3 
+12a9 9 0 0 1 9-9 9.75 
+9.75 0 0 1 6.74 
+2.74L21 8"[39m
+                      
+[36m/>[39m
+                      
+[36m<path[39m
+                      
+  
+[33md[39m=[32m"M21 
+3v5h-5"[39m
+                      
+[36m/>[39m
+                      
+[36m<path[39m
+                      
+  
+[33md[39m=[32m"M21 
+12a9 9 0 0 1-9 9 9.75 
+9.75 0 0 
+1-6.74-2.74L3 16"[39m
+                      
+[36m/>[39m
+                      
+[36m<path[39m
+                      
+  
+[33md[39m=[32m"M8 
+16H3v5"[39m
+                      
+[36m/>[39m
+                    
+[36m</svg>[39m
+                    
+[0mRetry[0m
+                  
+[36m</button>[39m
+                
+[36m</div>[39m
+              
+[36m</div>[39m
+            
+[36m</div>[39m
+          
+[36m</div>[39m
+          
+[36m<div[39m
+            [33mclass
+[39m=[32m"grid 
+grid-cols-1 
+md:grid-cols-4 gap-4 
+mb-8"[39m
+          [36m>[39m
+            
+[36m<div[39m
+              [33mcla
+ss[39m=[32m"rounded-
+lg border bg-card 
+text-card-foreground 
+shadow-sm 
+transition-all 
+border-kaivo-aqua/40 d
+ark:border-border"[39
+m
+            
+[36m>[39m
+              
+[36m<div[39m
+                [33mc
+lass[39m=[32m"p-8 
+flex items-center 
+justify-between"[39m
+              
+[36m>[39m
+                
+[36m<div>[39m
+                  
+[36m<p[39m
+                    [
+33mclass[39m=[32m"te
+xt-sm font-medium 
+text-gray-40...
+
+    [0m [90m 54 
+|[39m         render(
+[33m<[39m[33mCampai
+gnsPage[39m [33m/[3
+9m[33m>[39m)[33m;[
+39m
+     [90m 55 |[39m
+    [31m[1m>[22m[3
+9m[90m 56 |[39m     
+    [36mawait[39m 
+waitFor(() 
+[33m=>[39m {
+     [90m    |[39m  
+                    
+[31m[1m^[22m[39m
+     [90m 57 |[39m  
+           
+[36mconst[39m 
+errorMsg [33m=[39m s
+creen[33m.[39mgetByT
+ext([35m/Failed to 
+load campaigns: 
+Service Unavailable/i
+[39m)[33m;[39m
+     [90m 58 |[39m  
+           expect(erro
+rMsg)[33m.[39mtoBeIn
+TheDocument()[33m;[3
+9m
+     [90m 59 |[39m  
+       
+})[33m;[39m[0m
+
+      at 
+waitForWrapper (node_m
+odules/.pnpm/@testing-
+library+dom@10.4.1/nod
+e_modules/@testing-lib
+rary/dom/dist/wait-for
+.js:163:27)
+      at 
+Object.<anonymous> (C:
+\Users\Lenovo\Desktop\
+Software-Stories\Djang
+o\KaivoCore\apps\front
+end\app\(app)../../../
+../../../../../campaig
+ns/__tests__/page.test
+.tsx:56:22)
+
+Test Suites: 2 
+failed, 4 passed, 6 
+total
+Tests:       3 
+failed, 18 passed, 21 
+total
+Snapshots:   0 total
+Time:        6.798 s
+Ran all test suites.

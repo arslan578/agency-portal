@@ -1,0 +1,39 @@
+{
+    "venues": [
+        {
+            "venue_key": "YOUTUBE",
+            "enabled": true,
+            "objectives_supported": [
+                "AWARENESS",
+                "CONSIDERATION"
+            ],
+            "status": "ENABLED"
+        },
+        {
+            "venue_key": "FACEBOOK",
+            "enabled": true,
+            "objectives_supported": [
+                "AWARENESS",
+                "CONVERSION"
+            ],
+            "status": "ENABLED"
+        },
+        {
+            "venue_key": "TIKTOK",
+            "enabled": true,
+            "objectives_supported": [
+                "AWARENESS",
+                "REMARKETING"
+            ],
+            "status": "ENABLED"
+        },
+        {
+            "venue_key": "GOOGLE",
+            "enabled": true,
+            "objectives_supported": [
+                "CONVERSION"
+            ],
+            "status": "ENABLED"
+        }
+    ]
+}

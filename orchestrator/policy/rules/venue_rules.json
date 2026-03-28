@@ -1,0 +1,118 @@
+{
+    "YOUTUBE": {
+        "enabled": true,
+        "compatible_objectives": [
+            "AWARENESS",
+            "CONSIDERATION"
+        ],
+        "required_creative_types": [
+            "VIDEO"
+        ],
+        "required_audience_types": [
+            "INTEREST",
+            "DEMOGRAPHIC"
+        ],
+        "pacing_allowed": true,
+        "capability_profile": {
+            "supports_multilingual": true,
+            "supports_variants": true,
+            "supports_tracking": true,
+            "supports_custom_objectives": false
+        },
+        "sequencing": {
+            "requires_primary": false,
+            "allowed_roles": [
+                "PRIMARY",
+                "SUPPORTING"
+            ]
+        }
+    },
+    "TIKTOK": {
+        "enabled": true,
+        "compatible_objectives": [
+            "AWARENESS",
+            "CONVERSION"
+        ],
+        "required_creative_types": [
+            "VIDEO_SHORT"
+        ],
+        "required_audience_types": [
+            "INTEREST"
+        ],
+        "pacing_allowed": true,
+        "capability_profile": {
+            "supports_multilingual": false,
+            "supports_variants": true,
+            "supports_tracking": true,
+            "supports_custom_objectives": false
+        },
+        "sequencing": {
+            "requires_primary": false,
+            "allowed_roles": [
+                "PRIMARY",
+                "SUPPORTING"
+            ]
+        }
+    },
+    "META": {
+        "enabled": true,
+        "compatible_objectives": [
+            "AWARENESS",
+            "CONSIDERATION",
+            "CONVERSION"
+        ],
+        "required_creative_types": [
+            "IMAGE",
+            "VIDEO"
+        ],
+        "required_audience_types": [
+            "INTEREST",
+            "DEMOGRAPHIC",
+            "CUSTOM"
+        ],
+        "pacing_allowed": true,
+        "capability_profile": {
+            "supports_multilingual": true,
+            "supports_variants": true,
+            "supports_tracking": true,
+            "supports_custom_objectives": true
+        },
+        "sequencing": {
+            "requires_primary": false,
+            "allowed_roles": [
+                "PRIMARY",
+                "SUPPORTING",
+                "REMARKETING"
+            ]
+        }
+    },
+    "LINKEDIN": {
+        "enabled": true,
+        "compatible_objectives": [
+            "CONSIDERATION",
+            "CONVERSION"
+        ],
+        "required_creative_types": [
+            "IMAGE",
+            "TEXT"
+        ],
+        "required_audience_types": [
+            "PROFESSIONAL",
+            "DEMOGRAPHIC"
+        ],
+        "pacing_allowed": true,
+        "capability_profile": {
+            "supports_multilingual": true,
+            "supports_variants": false,
+            "supports_tracking": true,
+            "supports_custom_objectives": false
+        },
+        "sequencing": {
+            "requires_primary": false,
+            "allowed_roles": [
+                "PRIMARY",
+                "SUPPORTING"
+            ]
+        }
+    }
+}

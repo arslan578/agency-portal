@@ -1,0 +1,8 @@
+{
+    "contract_version": "output_contract_v1",
+    "error_code": "string",
+    "error_message": "string",
+    "retryable": "boolean",
+    "correlation_id": "string",
+    "forbidden_fields": []
+}

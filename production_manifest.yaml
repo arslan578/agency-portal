@@ -1,0 +1,541 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: account-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: account-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agent-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: agent-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: audience-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: audience-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: auth-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: billing-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: billing-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: campaign-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: campaign-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: creative-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: creative-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 3000
+  selector:
+    app: frontend
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: intelligence-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: intelligence-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: policy-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: policy-service
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporting-service
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8000
+  selector:
+    app: reporting-service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: account-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: account-service
+  template:
+    metadata:
+      labels:
+        app: account-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-account-service:latest
+        name: account-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agent-service
+  template:
+    metadata:
+      labels:
+        app: agent-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-agent-service:latest
+        name: agent-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audience-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audience-service
+  template:
+    metadata:
+      labels:
+        app: audience-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-audience-service:latest
+        name: audience-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-service
+  template:
+    metadata:
+      labels:
+        app: auth-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-auth-service:latest
+        name: auth-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: billing-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: billing-service
+  template:
+    metadata:
+      labels:
+        app: billing-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: STRIPE_SECRET_KEY
+              name: kaivo-secrets
+        image: kaivo-billing-service:latest
+        name: billing-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campaign-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: campaign-service
+  template:
+    metadata:
+      labels:
+        app: campaign-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-campaign-service:latest
+        name: campaign-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: creative-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: creative-service
+  template:
+    metadata:
+      labels:
+        app: creative-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-creative-service:latest
+        name: creative-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - env:
+        - name: NEXT_PUBLIC_API_URL
+          value: https://getkaivo.com
+        image: kaivo-frontend:latest
+        name: frontend
+        ports:
+        - containerPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intelligence-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: intelligence-service
+  template:
+    metadata:
+      labels:
+        app: intelligence-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: OPENAI_API_KEY
+              name: kaivo-secrets
+        image: kaivo-intelligence-service:latest
+        name: intelligence-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: policy-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: policy-service
+  template:
+    metadata:
+      labels:
+        app: policy-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-policy-service:latest
+        name: policy-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting-service
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporting-service
+  template:
+    metadata:
+      labels:
+        app: reporting-service
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              key: DATABASE_URL
+              name: kaivo-secrets
+        image: kaivo-reporting-service:latest
+        name: reporting-service
+        ports:
+        - containerPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    kubernetes.io/ingress.class: nginx
+  name: kaivo-ingress
+  namespace: production
+spec:
+  rules:
+  - host: getkaivo.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: frontend
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+      - backend:
+          service:
+            name: auth-service
+            port:
+              number: 80
+        path: /api/auth
+        pathType: Prefix
+      - backend:
+          service:
+            name: account-service
+            port:
+              number: 80
+        path: /api/account
+        pathType: Prefix
+      - backend:
+          service:
+            name: campaign-service
+            port:
+              number: 80
+        path: /api/campaign
+        pathType: Prefix
+      - backend:
+          service:
+            name: creative-service
+            port:
+              number: 80
+        path: /api/creative
+        pathType: Prefix
+      - backend:
+          service:
+            name: audience-service
+            port:
+              number: 80
+        path: /api/audience
+        pathType: Prefix
+      - backend:
+          service:
+            name: reporting-service
+            port:
+              number: 80
+        path: /api/reporting
+        pathType: Prefix
+      - backend:
+          service:
+            name: policy-service
+            port:
+              number: 80
+        path: /api/policy
+        pathType: Prefix
+      - backend:
+          service:
+            name: intelligence-service
+            port:
+              number: 80
+        path: /api/intelligence
+        pathType: Prefix
+      - backend:
+          service:
+            name: billing-service
+            port:
+              number: 80
+        path: /api/billing
+        pathType: Prefix
+      - backend:
+          service:
+            name: agent-service
+            port:
+              number: 80
+        path: /api/agent
+        pathType: Prefix
+  tls:
+  - hosts:
+    - getkaivo.com
+    secretName: kaivo-tls

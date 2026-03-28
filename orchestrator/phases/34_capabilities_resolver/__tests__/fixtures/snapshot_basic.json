@@ -1,0 +1,18 @@
+{
+    "version": "1.0.0",
+    "request_context": {
+        "campaign_goal": {
+            "type": "AWARENESS"
+        }
+    },
+    "plan": {
+        "venues": [
+            {
+                "venue_key": "YOUTUBE"
+            },
+            {
+                "venue_key": "FACEBOOK"
+            }
+        ]
+    }
+}

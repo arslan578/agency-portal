@@ -1,0 +1,7 @@
+{
+    "contract_version": "output_contract_v1",
+    "shop_domain": "string",
+    "status": "DISCONNECTED",
+    "correlation_id": "string",
+    "forbidden_fields": []
+}

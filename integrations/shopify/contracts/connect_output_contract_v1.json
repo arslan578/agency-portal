@@ -1,0 +1,8 @@
+{
+    "contract_version": "output_contract_v1",
+    "workspace_id": "string",
+    "shop_domain": "string",
+    "status": "CONNECTED",
+    "correlation_id": "string",
+    "forbidden_fields": []
+}

@@ -1,0 +1,8 @@
+{
+    "contract_version": "output_contract_v1",
+    "kaivo_campaign_id": "string",
+    "status": "DRAFT_CREATED | SUBMITTED",
+    "correlation_id": "string",
+    "created_at": "string",
+    "forbidden_fields": []
+}

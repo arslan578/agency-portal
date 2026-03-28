@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: audience-service
+spec:
+  selector:
+    app: audience-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: audience-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: audience-service
+  template:
+    metadata:
+      labels:
+        app: audience-service
+    spec:
+      containers:
+        - name: audience-service
+          image: kaivo-audience-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: DATABASE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reporting-service
+spec:
+  selector:
+    app: reporting-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reporting-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: reporting-service
+  template:
+    metadata:
+      labels:
+        app: reporting-service
+    spec:
+      containers:
+        - name: reporting-service
+          image: kaivo-reporting-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: DATABASE_URL

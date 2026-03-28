@@ -1,0 +1,7 @@
+{
+    "contract_version": "input_contract_v1",
+    "shop_domain": "string",
+    "shopify_app_installation_id": "string",
+    "requested_at": "string",
+    "forbidden_fields": []
+}

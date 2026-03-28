@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: agency-portal
+spec:
+  selector:
+    app: agency-portal
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agency-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: agency-portal
+  template:
+    metadata:
+      labels:
+        app: agency-portal
+    spec:
+      containers:
+        - name: agency-portal
+          image: kaivo-agency-portal:latest
+          ports:
+            - containerPort: 3000
+          env:
+            # Auth base URL for credentials flow + refresh.
+            # IMPORTANT: This must point to the Auth Service (or to a host/path that routes to it),
+            # and MUST NOT collide with NextAuth's own /api/auth/* routes on agency.getkaivo.com.
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://app.getkaivo.com/api/auth" # Placeholder, overridden in overlays
+            - name: NEXTAUTH_URL
+              value: "https://agency.getkaivo.com" # Placeholder, overridden in overlays
+            - name: AUTH_SECRET
+              value: "CHANGE_ME" # Must be set to a strong secret in staging/prod

@@ -1,0 +1,56 @@
+services:
+  # API Gateway Service
+  - type: web
+    name: kaivocore-api
+    env: docker
+    dockerfilePath: ./services/api_gateway/Dockerfile
+    dockerContext: .
+    plan: starter
+    region: oregon
+    branch: kaivo-v2
+    envVars:
+      - key: DATABASE_URL
+        sync: false  # Set this in Render dashboard
+      - key: REDIS_URL
+        sync: false  # Set this in Render dashboard
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: NEXTAUTH_SECRET
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: NEXTAUTH_URL
+        value: https://kaivocore.pages.dev
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://kaivocore.pages.dev
+      - key: NEXT_PUBLIC_API_URL
+        fromService:
+          type: web
+          name: kaivocore-api
+          property: host
+      - key: R2_ENDPOINT
+        sync: false
+      - key: R2_ACCESS_KEY_ID
+        sync: false
+      - key: R2_SECRET_ACCESS_KEY
+        sync: false
+      - key: R2_BUCKET_PRODUCT_DOCS
+        value: kaivo-product-docs
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://kaivocore.pages.dev,https://app.getkaivo.com
+
+databases:
+  # PostgreSQL Database
+  - name: kaivocore-db
+    databaseName: kaivo
+    plan: starter
+    region: oregon
+
+  # Redis Instance
+  - name: kaivocore-redis
+    plan: starter
+    region: oregon

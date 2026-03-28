@@ -1,0 +1,162 @@
+{
+    "examples": [
+        {
+            "description": "Happy path - Simple YouTube adaptation",
+            "input": {
+                "execution_id": "exec_123",
+                "phase": "60",
+                "feature_flags": {
+                    "FF_AGENT_EXECUTION_PLAN_ADAPTER": true
+                },
+                "context": {
+                    "tenant_id": "tenant_1",
+                    "workspace_id": "ws_1",
+                    "brand_id": "brand_1",
+                    "trace_domain": "agent_api.v1",
+                    "locale": "en-US",
+                    "timezone": "America/Los_Angeles",
+                    "request_source": "chatgpt_plugin"
+                },
+                "agent_request": {
+                    "agent_id": "agent_abc",
+                    "agent_session_id": "sess_123",
+                    "agent_version": "1.2.0",
+                    "intent_type": "CREATE_OR_UPDATE_CAMPAIGN",
+                    "raw_instructions": "Spend $5k this month on YouTube.",
+                    "requested_actions": [
+                        {
+                            "action_id": "a1",
+                            "venue": "YOUTUBE",
+                            "objective": "CONVERSIONS",
+                            "budget": {
+                                "currency": "USD",
+                                "amount": 5000
+                            },
+                            "time_window": {
+                                "start": "2025-01-01T00:00:00Z",
+                                "end": "2025-01-31T23:59:59Z"
+                            },
+                            "constraints": {
+                                "max_cpm": 15.0
+                            }
+                        }
+                    ],
+                    "client_hints": {}
+                },
+                "safety_snapshot": {
+                    "safety_zone": {
+                        "max_parallel_connectors": 4,
+                        "max_budget_per_venue": {
+                            "YOUTUBE": 10000
+                        }
+                    },
+                    "forbidden_actions": []
+                },
+                "optimizer_guard_snapshot": {
+                    "optimizer_plan": null
+                },
+                "policy_snapshot": {
+                    "policy_version": "pol_v5",
+                    "ruleset_id": "rs_2025_01",
+                    "hard_blocks": [],
+                    "soft_limits": []
+                },
+                "capability_index_snapshot": {
+                    "connectors": {
+                        "conn_youtube_1": {
+                            "venue": "YOUTUBE",
+                            "status": "HEALTHY",
+                            "capabilities": {
+                                "supports_conversions": true
+                            }
+                        }
+                    }
+                },
+                "rate_limit_snapshot": {
+                    "tenant_bucket": {
+                        "remaining_requests": 90
+                    },
+                    "agent_bucket": {
+                        "remaining_requests": 10
+                    },
+                    "per_venue_budgets": {
+                        "YOUTUBE": {
+                            "remaining_monthly_spend": 15000,
+                            "currency": "USD"
+                        }
+                    }
+                }
+            },
+            "output": {
+                "execution_id": "exec_123",
+                "phase": "60",
+                "feature_flags": {
+                    "FF_AGENT_EXECUTION_PLAN_ADAPTER": true
+                },
+                "ok": true,
+                "status": "ADAPTED",
+                "adapter_decision": {
+                    "decision_code": "PLAN_ACCEPTED",
+                    "reasons": [
+                        "REQUEST_WITHIN_POLICY",
+                        "REQUEST_WITHIN_SAFETY_ZONE",
+                        "REQUEST_WITHIN_RATE_LIMITS"
+                    ]
+                },
+                "agent_request_projection": {
+                    "intent_type": "CREATE_OR_UPDATE_CAMPAIGN",
+                    "normalized_objectives": {},
+                    "requested_budget": {
+                        "currency": "USD",
+                        "amount": 5000
+                    },
+                    "requested_venues": [
+                        "YOUTUBE"
+                    ]
+                },
+                "adapted_execution_plan": {
+                    "plan_id": "agent_exec_123",
+                    "source": "AGENT_REQUEST",
+                    "trace_domain": "agent_api.v1",
+                    "actions": [
+                        {
+                            "action_id": "a1",
+                            "connector_id": "conn_youtube_1",
+                            "venue": "YOUTUBE",
+                            "objective": "CONVERSIONS",
+                            "budget": {
+                                "currency": "USD",
+                                "amount": 5000
+                            },
+                            "time_window": {
+                                "start": "2025-01-01T00:00:00Z",
+                                "end": "2025-01-31T23:59:59Z"
+                            },
+                            "constraints": {
+                                "max_cpm": 15
+                            },
+                            "safety_tags": [
+                                "WITHIN_SAFETY_ZONE",
+                                "NOT_FORBIDDEN"
+                            ],
+                            "policy_tags": [
+                                "VENUE_ALLOWED"
+                            ]
+                        }
+                    ],
+                    "safety_binding": {
+                        "safety_zone_id": "hz_123",
+                        "max_parallel_connectors": 4
+                    },
+                    "policy_binding": {
+                        "policy_version": "pol_v5"
+                    },
+                    "rate_limit_binding": {
+                        "tenant_bucket_consumed": 1,
+                        "agent_bucket_consumed": 1
+                    }
+                }
+            }
+        }
+    ]
+}

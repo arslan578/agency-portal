@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+sqlalchemy
+redis
+python-dotenv
+httpx
+structlog
+prometheus_client
+google-ads>=24.0.0
+PyJWT==2.10.1  # For Shopify session token verification
+bingads

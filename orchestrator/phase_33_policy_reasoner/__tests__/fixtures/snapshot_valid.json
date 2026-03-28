@@ -1,0 +1,12 @@
+{
+    "version": "1.0.0",
+    "request_context": {
+        "campaign_goal": {
+            "type": "AWARENESS"
+        },
+        "budget_parameters": {
+            "total_budget": 5000,
+            "currency": "USD"
+        }
+    }
+}

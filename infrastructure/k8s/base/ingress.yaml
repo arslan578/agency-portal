@@ -1,0 +1,93 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kaivo-ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+spec:
+  rules:
+    - host: getkaivo.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+          - path: /api/auth
+            pathType: Prefix
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+          - path: /api/account
+            pathType: Prefix
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 80
+          - path: /api/campaign
+            pathType: Prefix
+            backend:
+              service:
+                name: campaign-service
+                port:
+                  number: 80
+          - path: /api/creative
+            pathType: Prefix
+            backend:
+              service:
+                name: creative-service
+                port:
+                  number: 80
+          - path: /api/audience
+            pathType: Prefix
+            backend:
+              service:
+                name: audience-service
+                port:
+                  number: 80
+          - path: /api/reporting
+            pathType: Prefix
+            backend:
+              service:
+                name: reporting-service
+                port:
+                  number: 80
+          - path: /api/policy
+            pathType: Prefix
+            backend:
+              service:
+                name: policy-service
+                port:
+                  number: 80
+          - path: /api/intelligence
+            pathType: Prefix
+            backend:
+              service:
+                name: intelligence-service
+                port:
+                  number: 80
+          - path: /api/billing
+            pathType: Prefix
+            backend:
+              service:
+                name: billing-service
+                port:
+                  number: 80
+          - path: /api/agent
+            pathType: Prefix
+            backend:
+              service:
+                name: agent-service
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - getkaivo.com
+      secretName: kaivo-tls

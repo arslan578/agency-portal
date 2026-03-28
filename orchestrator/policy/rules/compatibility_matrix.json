@@ -1,0 +1,53 @@
+{
+    "objective_to_venue": {
+        "AWARENESS": [
+            "YOUTUBE",
+            "TIKTOK",
+            "META"
+        ],
+        "CONSIDERATION": [
+            "YOUTUBE",
+            "META",
+            "LINKEDIN"
+        ],
+        "CONVERSION": [
+            "TIKTOK",
+            "META",
+            "LINKEDIN"
+        ]
+    },
+    "creative_to_venue": {
+        "VIDEO": [
+            "YOUTUBE",
+            "META"
+        ],
+        "VIDEO_SHORT": [
+            "TIKTOK"
+        ],
+        "IMAGE": [
+            "META",
+            "LINKEDIN"
+        ],
+        "TEXT": [
+            "LINKEDIN"
+        ]
+    },
+    "audience_to_venue": {
+        "INTEREST": [
+            "YOUTUBE",
+            "TIKTOK",
+            "META"
+        ],
+        "DEMOGRAPHIC": [
+            "YOUTUBE",
+            "META",
+            "LINKEDIN"
+        ],
+        "PROFESSIONAL": [
+            "LINKEDIN"
+        ],
+        "CUSTOM": [
+            "META"
+        ]
+    }
+}

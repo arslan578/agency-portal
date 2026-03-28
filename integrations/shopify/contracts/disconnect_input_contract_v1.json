@@ -1,0 +1,6 @@
+{
+    "contract_version": "input_contract_v1",
+    "shop_domain": "string",
+    "requested_at": "string",
+    "forbidden_fields": []
+}

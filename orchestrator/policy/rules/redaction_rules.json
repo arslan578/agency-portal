@@ -1,0 +1,137 @@
+{
+    "default_rule_set": "GLOBAL_DEFAULT",
+    "rule_sets": {
+        "GLOBAL_DEFAULT": [
+            {
+                "rule_id": "REDACT_PII_EMAIL",
+                "reason_code": "PII_EMAIL",
+                "match": {
+                    "field_names": [
+                        "email",
+                        "email_address"
+                    ],
+                    "value_types": [
+                        "string"
+                    ]
+                },
+                "views": [
+                    "log",
+                    "snapshot",
+                    "metrics"
+                ],
+                "action": "REDACT_VALUE"
+            },
+            {
+                "rule_id": "REDACT_ACCESS_TOKENS",
+                "reason_code": "SECRET_TOKEN",
+                "match": {
+                    "field_names": [
+                        "access_token",
+                        "refresh_token",
+                        "api_key"
+                    ]
+                },
+                "views": [
+                    "log",
+                    "snapshot",
+                    "metrics"
+                ],
+                "action": "REDACT_VALUE"
+            }
+        ],
+        "TENANT_SPECIFIC_LOGS_ONLY": [
+            {
+                "rule_id": "REDACT_BRAND_NAME",
+                "reason_code": "SENSITIVE_BRAND",
+                "match": {
+                    "field_names": [
+                        "brand_name",
+                        "campaign_name"
+                    ],
+                    "value_types": [
+                        "string"
+                    ]
+                },
+                "views": [
+                    "log"
+                ],
+                "action": "REDACT_VALUE"
+            }
+        ],
+        "WORKSPACE_SPECIFIC_SNAPSHOTS_ONLY": [
+            {
+                "rule_id": "REDACT_USER_ID",
+                "reason_code": "SENSITIVE_USER",
+                "match": {
+                    "field_names": [
+                        "user_id",
+                        "uid"
+                    ],
+                    "value_types": [
+                        "string",
+                        "number"
+                    ]
+                },
+                "views": [
+                    "snapshot"
+                ],
+                "action": "REDACT_VALUE"
+            }
+        ],
+        "STRICT_SECRETS": [
+            {
+                "rule_id": "REDACT_ALL_TOKENS",
+                "reason_code": "STRICT_SECRET",
+                "match": {
+                    "field_names": [
+                        "access_token",
+                        "refresh_token",
+                        "api_key",
+                        "secret",
+                        "password"
+                    ],
+                    "value_types": [
+                        "string"
+                    ]
+                },
+                "views": [
+                    "log",
+                    "snapshot",
+                    "metrics"
+                ],
+                "action": "REDACT_VALUE"
+            }
+        ],
+        "DEEP_PII": [
+            {
+                "rule_id": "REDACT_NESTED_PII",
+                "reason_code": "NESTED_PII",
+                "match": {
+                    "field_names": [
+                        "ssn",
+                        "credit_card"
+                    ],
+                    "value_types": [
+                        "string",
+                        "number"
+                    ]
+                },
+                "views": [
+                    "log",
+                    "snapshot",
+                    "metrics"
+                ],
+                "action": "REDACT_VALUE"
+            }
+        ],
+        "NO_OP": []
+    },
+    "routing": {
+        "TENANT:public::WS:null::BRAND:null": "GLOBAL_DEFAULT",
+        "TENANT:tenant-B": "TENANT_SPECIFIC_LOGS_ONLY",
+        "TENANT:tenant-C": "WORKSPACE_SPECIFIC_SNAPSHOTS_ONLY",
+        "TENANT:tenant-D": "STRICT_SECRETS",
+        "TENANT:tenant-E": "DEEP_PII",
+        "TENANT:tenant-F": "NO_OP"
+    }
+}

@@ -1,0 +1,10 @@
+{
+    "allowed_categories": [
+        "CREDIT",
+        "EMPLOYMENT",
+        "HOUSING",
+        "ISSUES_ELECTIONS_POLITICS",
+        "NONE",
+        "ONLINE_GAMBLING_AND_GAMING"
+    ]
+}

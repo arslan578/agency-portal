@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  template:
+    spec:
+      containers:
+        - name: frontend
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://app.getkaivo.com"
+            - name: KAIVO_ENV
+              value: "production"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agency-portal
+spec:
+  template:
+    spec:
+      containers:
+        - name: agency-portal
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://app.getkaivo.com/api/auth"
+            - name: NEXTAUTH_URL
+              value: "https://agency.getkaivo.com"
+            - name: AUTH_SECRET
+              value: "CHANGE_ME_PRODUCTION"

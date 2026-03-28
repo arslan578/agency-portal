@@ -1,0 +1,836 @@
+{
+    "connector_id": "google_ads",
+    "version": "1.0.0",
+    "backplane_contract_version": "connector_backplane_v1",
+    "os_registry_contract": {
+        "input_contract_version": "os_65_connector_contract_input_v1",
+        "output_contract_version": "os_65_connector_contract_output_v1"
+    },
+    "intent_name": "connector_google_ads",
+    "feature_flag": "FF_CONNECTOR_GOOGLE_ADS",
+    "capability_hash": "<TO_BE_COMPUTED_BY_BUILD_PIPELINE>",
+    "lifecycle_status": "ACTIVE",
+    "supported_environments": [
+        "SANDBOX",
+        "PRODUCTION"
+    ],
+    "owner": "kaivo_core_connectors",
+    "description": "Google Ads connector surfaces Search, Display, YouTube, Performance Max, Discovery, Local, and App campaigns through the Kaivo connector backplane with deterministic IO, safety integration, and replay compatible envelopes.",
+    "backplane_fields": {
+        "request_builder_input_shape_ref": "google_ads_request_contract_v1",
+        "normalized_response_shape_ref": "google_ads_response_contract_v1",
+        "error_mapping_table_ref": "google_ads_error_mapping_v1",
+        "routing_flags_ref": "google_ads_routing_profile_v1",
+        "capability_table_ref": "google_ads_capability_table_v1",
+        "state_reconciliation_metadata_ref": "google_ads_state_meta_v1"
+    },
+    "capabilities": {
+        "channels": [
+            "SEARCH",
+            "DISPLAY",
+            "YOUTUBE",
+            "DISCOVERY",
+            "PERFORMANCE_MAX",
+            "LOCAL",
+            "APP"
+        ],
+        "campaign_types": [
+            {
+                "id": "SEARCH_STANDARD",
+                "name": "Search Standard",
+                "channel": "SEARCH",
+                "google_campaign_type": "SEARCH",
+                "surfaces": [
+                    "GOOGLE_SEARCH",
+                    "SEARCH_PARTNERS"
+                ],
+                "allowed_objectives": [
+                    "LEADS",
+                    "SALES",
+                    "WEBSITE_TRAFFIC"
+                ],
+                "allowed_bidding_strategies": [
+                    "MAXIMIZE_CONVERSIONS",
+                    "TARGET_CPA",
+                    "MAXIMIZE_CLICKS",
+                    "TARGET_ROAS"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "DISPLAY_STANDARD",
+                "name": "Display Standard",
+                "channel": "DISPLAY",
+                "google_campaign_type": "DISPLAY",
+                "surfaces": [
+                    "DISPLAY_NETWORK",
+                    "YOUTUBE",
+                    "DISCOVERY"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS",
+                    "CONSIDERATION",
+                    "SALES",
+                    "LEADS"
+                ],
+                "allowed_bidding_strategies": [
+                    "MAXIMIZE_CONVERSIONS",
+                    "TARGET_CPA",
+                    "MAXIMIZE_CLICKS",
+                    "TARGET_ROAS"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "YOUTUBE_IN_STREAM",
+                "name": "YouTube In Stream",
+                "channel": "YOUTUBE",
+                "google_campaign_type": "VIDEO",
+                "surfaces": [
+                    "YOUTUBE_IN_STREAM",
+                    "YOUTUBE_WATCH",
+                    "YOUTUBE_PARTNERS"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS",
+                    "CONSIDERATION",
+                    "SALES",
+                    "LEADS"
+                ],
+                "allowed_bidding_strategies": [
+                    "TARGET_CPA",
+                    "TARGET_CPM",
+                    "MAXIMIZE_CONVERSIONS",
+                    "MAXIMIZE_REACH"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "YOUTUBE_SHORTS",
+                "name": "YouTube Shorts",
+                "channel": "YOUTUBE",
+                "google_campaign_type": "VIDEO",
+                "surfaces": [
+                    "YOUTUBE_SHORTS"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS",
+                    "CONSIDERATION"
+                ],
+                "allowed_bidding_strategies": [
+                    "TARGET_CPM",
+                    "MAXIMIZE_REACH"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "DISCOVERY_STANDARD",
+                "name": "Discovery",
+                "channel": "DISCOVERY",
+                "google_campaign_type": "DISCOVERY",
+                "surfaces": [
+                    "DISCOVER_FEED",
+                    "GMAIL",
+                    "YOUTUBE_HOME"
+                ],
+                "allowed_objectives": [
+                    "SALES",
+                    "LEADS",
+                    "CONSIDERATION"
+                ],
+                "allowed_bidding_strategies": [
+                    "MAXIMIZE_CONVERSIONS",
+                    "TARGET_CPA",
+                    "TARGET_ROAS"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "PERFORMANCE_MAX",
+                "name": "Performance Max",
+                "channel": "PERFORMANCE_MAX",
+                "google_campaign_type": "PERFORMANCE_MAX",
+                "surfaces": [
+                    "SEARCH",
+                    "DISPLAY",
+                    "YOUTUBE",
+                    "DISCOVERY",
+                    "MAPS",
+                    "GMAIL"
+                ],
+                "allowed_objectives": [
+                    "SALES",
+                    "LEADS",
+                    "ONLINE_SALES",
+                    "OFFLINE_SALES"
+                ],
+                "allowed_bidding_strategies": [
+                    "MAXIMIZE_CONVERSIONS",
+                    "TARGET_CPA",
+                    "TARGET_ROAS"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "asset_group_required": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "LOCAL",
+                "name": "Local",
+                "channel": "LOCAL",
+                "google_campaign_type": "LOCAL",
+                "surfaces": [
+                    "MAPS",
+                    "SEARCH",
+                    "DISPLAY",
+                    "YOUTUBE"
+                ],
+                "allowed_objectives": [
+                    "STORE_VISITS",
+                    "LOCAL_ACTIONS"
+                ],
+                "allowed_bidding_strategies": [
+                    "MAXIMIZE_CONVERSIONS",
+                    "TARGET_CPA"
+                ],
+                "status": "SUPPORTED_PHASE_2",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "APP",
+                "name": "App",
+                "channel": "APP",
+                "google_campaign_type": "APP",
+                "surfaces": [
+                    "SEARCH",
+                    "DISPLAY",
+                    "YOUTUBE",
+                    "DISCOVERY"
+                ],
+                "allowed_objectives": [
+                    "APP_INSTALLS",
+                    "IN_APP_ACTIONS"
+                ],
+                "allowed_bidding_strategies": [
+                    "TARGET_CPA",
+                    "MAXIMIZE_CONVERSIONS"
+                ],
+                "status": "SUPPORTED_PHASE_2",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            }
+        ],
+        "bidding_strategies": [
+            {
+                "id": "MAXIMIZE_CONVERSIONS",
+                "name": "Maximize Conversions",
+                "type": "AUTOMATED",
+                "requires_target_value": false,
+                "supported_channels": [
+                    "SEARCH",
+                    "DISPLAY",
+                    "YOUTUBE",
+                    "DISCOVERY",
+                    "PERFORMANCE_MAX",
+                    "LOCAL",
+                    "APP"
+                ]
+            },
+            {
+                "id": "TARGET_CPA",
+                "name": "Target CPA",
+                "type": "AUTOMATED",
+                "requires_target_value": true,
+                "target_metric": "COST_PER_ACTION",
+                "supported_channels": [
+                    "SEARCH",
+                    "DISPLAY",
+                    "YOUTUBE",
+                    "DISCOVERY",
+                    "PERFORMANCE_MAX",
+                    "LOCAL",
+                    "APP"
+                ]
+            },
+            {
+                "id": "MAXIMIZE_CLICKS",
+                "name": "Maximize Clicks",
+                "type": "AUTOMATED",
+                "requires_target_value": false,
+                "supported_channels": [
+                    "SEARCH",
+                    "DISPLAY"
+                ]
+            },
+            {
+                "id": "TARGET_ROAS",
+                "name": "Target ROAS",
+                "type": "AUTOMATED",
+                "requires_target_value": true,
+                "target_metric": "RETURN_ON_AD_SPEND",
+                "supported_channels": [
+                    "SEARCH",
+                    "DISPLAY",
+                    "YOUTUBE",
+                    "DISCOVERY",
+                    "PERFORMANCE_MAX"
+                ]
+            },
+            {
+                "id": "TARGET_CPM",
+                "name": "Target CPM",
+                "type": "AUTOMATED",
+                "requires_target_value": true,
+                "target_metric": "COST_PER_MILLE",
+                "supported_channels": [
+                    "YOUTUBE"
+                ]
+            },
+            {
+                "id": "MAXIMIZE_REACH",
+                "name": "Maximize Reach",
+                "type": "AUTOMATED",
+                "requires_target_value": false,
+                "supported_channels": [
+                    "YOUTUBE"
+                ]
+            }
+        ],
+        "targeting": {
+            "segments": [
+                {
+                    "id": "KEYWORD",
+                    "name": "Keyword",
+                    "channels": [
+                        "SEARCH"
+                    ],
+                    "required_for_campaign_types": [
+                        "SEARCH_STANDARD"
+                    ],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "AUDIENCE_SIGNAL",
+                    "name": "Audience Signal",
+                    "channels": [
+                        "PERFORMANCE_MAX",
+                        "DISCOVERY",
+                        "DISPLAY",
+                        "YOUTUBE"
+                    ],
+                    "required_for_campaign_types": [
+                        "PERFORMANCE_MAX"
+                    ],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "PLACEMENT",
+                    "name": "Placement",
+                    "channels": [
+                        "DISPLAY",
+                        "YOUTUBE"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "CUSTOM_SEGMENT",
+                    "name": "Custom Segment",
+                    "channels": [
+                        "SEARCH",
+                        "DISPLAY",
+                        "YOUTUBE",
+                        "DISCOVERY"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "LOCATION",
+                    "name": "Location",
+                    "channels": [
+                        "SEARCH",
+                        "DISPLAY",
+                        "YOUTUBE",
+                        "DISCOVERY",
+                        "PERFORMANCE_MAX",
+                        "LOCAL",
+                        "APP"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "DEVICE",
+                    "name": "Device",
+                    "channels": [
+                        "SEARCH",
+                        "DISPLAY",
+                        "YOUTUBE",
+                        "DISCOVERY",
+                        "PERFORMANCE_MAX",
+                        "LOCAL",
+                        "APP"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "SCHEDULE",
+                    "name": "Ad Schedule",
+                    "channels": [
+                        "SEARCH",
+                        "DISPLAY",
+                        "YOUTUBE",
+                        "DISCOVERY",
+                        "PERFORMANCE_MAX",
+                        "LOCAL",
+                        "APP"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": false
+                }
+            ]
+        },
+        "creative_formats": [
+            {
+                "id": "TEXT_EXPANDED",
+                "name": "Text Search Ad",
+                "channels": [
+                    "SEARCH"
+                ],
+                "required_assets": [
+                    "HEADLINES",
+                    "DESCRIPTIONS",
+                    "FINAL_URL"
+                ],
+                "optional_assets": [
+                    "PATH_1",
+                    "PATH_2"
+                ]
+            },
+            {
+                "id": "RESPONSIVE_SEARCH",
+                "name": "Responsive Search Ad",
+                "channels": [
+                    "SEARCH"
+                ],
+                "required_assets": [
+                    "HEADLINES",
+                    "DESCRIPTIONS",
+                    "FINAL_URL"
+                ],
+                "optional_assets": [
+                    "BUSINESS_NAME",
+                    "PATH_1",
+                    "PATH_2"
+                ]
+            },
+            {
+                "id": "RESPONSIVE_DISPLAY",
+                "name": "Responsive Display",
+                "channels": [
+                    "DISPLAY",
+                    "DISCOVERY"
+                ],
+                "required_assets": [
+                    "HEADLINES",
+                    "DESCRIPTIONS",
+                    "IMAGES",
+                    "FINAL_URL"
+                ],
+                "optional_assets": [
+                    "LOGO",
+                    "LONG_HEADLINE",
+                    "CALL_TO_ACTION_TEXT"
+                ]
+            },
+            {
+                "id": "VIDEO_IN_STREAM",
+                "name": "YouTube In Stream Video",
+                "channels": [
+                    "YOUTUBE"
+                ],
+                "required_assets": [
+                    "VIDEO_ASSET",
+                    "FINAL_URL"
+                ],
+                "optional_assets": [
+                    "COMPANION_BANNER",
+                    "CALL_TO_ACTION_TEXT",
+                    "HEADLINE"
+                ]
+            },
+            {
+                "id": "VIDEO_SHORTS_VERTICAL",
+                "name": "YouTube Shorts Vertical Video",
+                "channels": [
+                    "YOUTUBE"
+                ],
+                "required_assets": [
+                    "VERTICAL_VIDEO_ASSET"
+                ],
+                "optional_assets": [
+                    "OVERLAY_TEXT",
+                    "CALL_TO_ACTION_TEXT"
+                ]
+            },
+            {
+                "id": "P_MAX_ASSET_GROUP",
+                "name": "Performance Max Asset Group",
+                "channels": [
+                    "PERFORMANCE_MAX"
+                ],
+                "required_assets": [
+                    "HEADLINES",
+                    "DESCRIPTIONS",
+                    "IMAGES"
+                ],
+                "optional_assets": [
+                    "LOGO",
+                    "LONG_HEADLINE",
+                    "CALL_TO_ACTION_TEXT",
+                    "VIDEO_ASSET",
+                    "BUSINESS_NAME"
+                ]
+            }
+        ]
+    },
+    "constraints": {
+        "budget": {
+            "policies": [
+                {
+                    "id": "MIN_DAILY_BUDGET",
+                    "scope": "CAMPAIGN",
+                    "unit": "MAJOR_CURRENCY",
+                    "expression": "budget_per_day >= platform_min_daily_budget",
+                    "enforced_by": [
+                        "policy_mirror",
+                        "safety_horizon"
+                    ],
+                    "source": "GOOGLE_POLICY"
+                },
+                {
+                    "id": "MAX_LIFETIME_BUDGET",
+                    "scope": "CAMPAIGN",
+                    "unit": "MAJOR_CURRENCY",
+                    "expression": "total_budget <= kaivo_workspace_budget_ceiling",
+                    "enforced_by": [
+                        "workspace_manager",
+                        "safety_horizon"
+                    ],
+                    "source": "KAIVO_POLICY"
+                }
+            ]
+        },
+        "regions": {
+            "allowed_regions_ref": "google_ads_allowed_regions_v1",
+            "restricted_regions_ref": "google_ads_restricted_regions_v1"
+        },
+        "categories": {
+            "sensitive_categories": [
+                "POLITICAL",
+                "HEALTH",
+                "ALCOHOL",
+                "FINANCIAL_SERVICES",
+                "GAMBLING",
+                "ADULT_CONTENT"
+            ],
+            "requires_identity_verification": [
+                "POLITICAL",
+                "ELECTION_RELATED",
+                "CREDIT",
+                "HOUSING",
+                "EMPLOYMENT"
+            ],
+            "policy_mirror_table_ref": "google_ads_policy_categories_v1"
+        },
+        "required_fields": {
+            "CAMPAIGN_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_name",
+                "campaign_type",
+                "channel",
+                "objective",
+                "bidding_strategy",
+                "daily_budget",
+                "currency",
+                "geo_targets"
+            ],
+            "AD_GROUP_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_id",
+                "ad_group_name",
+                "channel",
+                "bidding_strategy",
+                "initial_cpc_or_cpa_if_applicable"
+            ],
+            "AD_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_id",
+                "ad_group_id",
+                "creative_format_id",
+                "assets"
+            ]
+        },
+        "forbidden_fields": [
+            "raw_personally_identifiable_information",
+            "plaintext_credit_card_data",
+            "plaintext_passwords",
+            "unhashed_user_identifiers"
+        ],
+        "not_yet_supported_features": [
+            "OFFLINE_CONVERSION_UPLOAD",
+            "CALL_ONLY_ADS",
+            "SMART_CAMPAIGNS",
+            "SHOPPING_CAMPAIGNS"
+        ]
+    },
+    "io_schema": {
+        "request_contract": {
+            "id": "google_ads_request_contract_v1",
+            "required_fields": [
+                "execution_id",
+                "tenant_context",
+                "workspace_context",
+                "connector_id",
+                "operation",
+                "payload",
+                "feature_flags",
+                "requested_backplane_contract_version"
+            ],
+            "forbidden_fields": [
+                "_debug",
+                "debug_info",
+                "internal_only"
+            ],
+            "operations": [
+                {
+                    "operation": "CREATE_CAMPAIGN",
+                    "google_api_method_ref": "google.ads.googleads.vN.services.CampaignService.MutateCampaigns",
+                    "payload_shape_ref": "google_ads_create_campaign_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_external_reference)"
+                },
+                {
+                    "operation": "CREATE_AD_GROUP",
+                    "google_api_method_ref": "google.ads.googleads.vN.services.AdGroupService.MutateAdGroups",
+                    "payload_shape_ref": "google_ads_create_ad_group_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, ad_group_external_reference)"
+                },
+                {
+                    "operation": "CREATE_AD",
+                    "google_api_method_ref": "google.ads.googleads.vN.services.AdGroupAdService.MutateAdGroupAds",
+                    "payload_shape_ref": "google_ads_create_ad_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, ad_external_reference)"
+                },
+                {
+                    "operation": "MUTATE_BUDGET",
+                    "google_api_method_ref": "google.ads.googleads.vN.services.CampaignBudgetService.MutateCampaignBudgets",
+                    "payload_shape_ref": "google_ads_mutate_budget_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_id, change_vector)"
+                },
+                {
+                    "operation": "PAUSE_CAMPAIGN",
+                    "google_api_method_ref": "google.ads.googleads.vN.services.CampaignService.MutateCampaigns",
+                    "payload_shape_ref": "google_ads_pause_campaign_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_id, target_status)"
+                }
+            ]
+        },
+        "response_contract": {
+            "id": "google_ads_response_contract_v1",
+            "required_fields": [
+                "execution_id",
+                "tenant_context",
+                "workspace_context",
+                "connector_id",
+                "operation",
+                "status",
+                "normalized_payload",
+                "raw_connector_payload_ref",
+                "error",
+                "retry_advice",
+                "rate_limit_observation"
+            ],
+            "forbidden_fields": [
+                "_debug",
+                "debug_info",
+                "internal_only"
+            ],
+            "status_values": [
+                "SUCCESS",
+                "PARTIAL_SUCCESS",
+                "RETRYABLE_ERROR",
+                "NON_RETRYABLE_ERROR"
+            ],
+            "normalized_payload_shape_ref": "google_ads_normalized_entity_shapes_v1"
+        },
+        "error_mapping": {
+            "id": "google_ads_error_mapping_v1",
+            "domains": [
+                {
+                    "google_domain": "AUTHENTICATION_ERROR",
+                    "mapped_category": "AUTH",
+                    "default_retry_policy": "NO_RETRY"
+                },
+                {
+                    "google_domain": "RATE_LIMIT_ERROR",
+                    "mapped_category": "RATE_LIMIT",
+                    "default_retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "google_domain": "QUOTA_ERROR",
+                    "mapped_category": "QUOTA",
+                    "default_retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "google_domain": "POLICY_FINDING_ERROR",
+                    "mapped_category": "POLICY",
+                    "default_retry_policy": "NO_RETRY"
+                },
+                {
+                    "google_domain": "INTERNAL_ERROR",
+                    "mapped_category": "CONNECTOR_INTERNAL",
+                    "default_retry_policy": "RETRY_WITH_JITTER"
+                }
+            ],
+            "kaivo_error_codes": [
+                {
+                    "code": "GOOGLE_AUTH_FAILED",
+                    "category": "AUTH",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "GOOGLE_RATE_LIMITED",
+                    "category": "RATE_LIMIT",
+                    "retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "code": "GOOGLE_POLICY_VIOLATION",
+                    "category": "POLICY",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "GOOGLE_INVALID_REQUEST",
+                    "category": "REQUEST",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "GOOGLE_INTERNAL_ERROR",
+                    "category": "CONNECTOR_INTERNAL",
+                    "retry_policy": "RETRY_WITH_JITTER"
+                }
+            ]
+        },
+        "retry_logic": {
+            "policies": [
+                {
+                    "id": "RETRY_WITH_BACKOFF",
+                    "max_attempts": 5,
+                    "backoff_strategy": "EXPONENTIAL",
+                    "initial_delay_ms": 500,
+                    "max_delay_ms": 30000
+                },
+                {
+                    "id": "RETRY_WITH_JITTER",
+                    "max_attempts": 3,
+                    "backoff_strategy": "EXPONENTIAL_JITTER",
+                    "initial_delay_ms": 250,
+                    "max_delay_ms": 15000
+                },
+                {
+                    "id": "NO_RETRY",
+                    "max_attempts": 1,
+                    "backoff_strategy": "NONE",
+                    "initial_delay_ms": 0,
+                    "max_delay_ms": 0
+                }
+            ],
+            "safe_abort_conditions": [
+                "AUTH",
+                "POLICY",
+                "INVALID_REQUEST"
+            ]
+        }
+    },
+    "routing": {
+        "profile_id": "google_ads_routing_profile_v1",
+        "default_endpoint": "https://googleads.googleapis.com",
+        "supports_batching": true,
+        "max_batch_size": 50,
+        "concurrency_limits": {
+            "per_workspace_max_in_flight": 10,
+            "per_tenant_max_in_flight": 50
+        },
+        "rate_limit_hint": {
+            "tokens_per_second_soft_ceiling": 5,
+            "burst_size_soft_ceiling": 10
+        },
+        "timeout_ms": {
+            "connect_timeout_ms": 3000,
+            "read_timeout_ms": 60000
+        }
+    },
+    "safety_profile": {
+        "risk_weight": "HIGH",
+        "quota_consumption_model_ref": "google_ads_quota_model_v1",
+        "connector_health_signals_ref": "google_ads_health_signals_v1",
+        "safety_horizon_bindings": {
+            "uses_policy_mirror": true,
+            "uses_safety_horizon": true,
+            "uses_rate_limit_forecaster": true,
+            "uses_capability_drift_model": true
+        }
+    },
+    "knowledge_sources": {
+        "policy_mirror_table_ref": "google_ads_policy_mirror_v1",
+        "capability_source": "GOOGLE_API_DISCOVERY_AND_MANUAL_VERIFICATION",
+        "documentation_urls": [
+            "https://developers.google.com/google-ads/api/docs/start"
+        ]
+    },
+    "metadata": {
+        "created_at": "2025-12-08T00:00:00Z",
+        "updated_at": "2025-12-08T00:00:00Z",
+        "created_by": "kaivo_system",
+        "updated_by": "kaivo_system"
+    }
+}

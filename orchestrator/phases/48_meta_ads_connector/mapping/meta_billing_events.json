@@ -1,0 +1,10 @@
+{
+    "allowed_events": [
+        "APP_INSTALLS",
+        "IMPRESSIONS",
+        "LINK_CLICKS",
+        "OFFSITE_CONVERSIONS",
+        "POST_ENGAGEMENT",
+        "THRUPLAY"
+    ]
+}

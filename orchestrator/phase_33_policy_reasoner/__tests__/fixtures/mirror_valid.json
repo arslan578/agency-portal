@@ -1,0 +1,58 @@
+{
+    "policy_version": "1.0.0",
+    "rules": {
+        "budget": {
+            "min_total": 1000,
+            "max_total": 1000000
+        },
+        "venues": {
+            "YOUTUBE": {
+                "enabled": true,
+                "required_creative_types": [
+                    "VIDEO"
+                ],
+                "required_audience_types": [
+                    "INTEREST"
+                ],
+                "sequencing": {
+                    "allowed_roles": [
+                        "PRIMARY"
+                    ]
+                }
+            },
+            "TIKTOK": {
+                "enabled": false,
+                "required_creative_types": [
+                    "VIDEO_SHORT"
+                ],
+                "required_audience_types": [
+                    "INTEREST"
+                ],
+                "sequencing": {
+                    "allowed_roles": [
+                        "SUPPORTING"
+                    ]
+                }
+            }
+        },
+        "compatibility_matrix": {
+            "objective_to_venue": {
+                "AWARENESS": [
+                    "YOUTUBE",
+                    "TIKTOK"
+                ],
+                "CONVERSION": [
+                    "TIKTOK"
+                ]
+            }
+        },
+        "connector_rules": {
+            "YOUTUBE": {
+                "min_payload_fields": [
+                    "id"
+                ],
+                "readiness_requirements": []
+            }
+        }
+    }
+}

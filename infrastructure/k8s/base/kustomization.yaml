@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - core-services.yaml
+  - campaign-creative.yaml
+  - audience-reporting.yaml
+  - policy-intelligence.yaml
+  - billing-agent.yaml
+  - frontend.yaml
+  - agency-portal.yaml
+  - ingress.yaml
+  - service-account.yaml
+  - os-runtime.yaml
+  - i18n.yaml
+  - api-gateway.yaml

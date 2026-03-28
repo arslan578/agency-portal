@@ -1,0 +1,77 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
+from packages.db.database import get_db
+from packages.db.models import Agency, Client, ClientMembership, User
+from services.account_service import schemas_agency
+
+router = APIRouter()
+
+# --- Dependencies ---
+# In a real implementation, this would verify the JWT and check the user's role in the agency
+def require_agency_admin(agency_id: int, db: Session = Depends(get_db)):
+    # Placeholder for auth logic
+    # user = get_current_user()
+    # membership = db.query(AgencyMembership).filter(user_id=user.id, agency_id=agency_id).first()
+    # if not membership or membership.role != AgencyRole.ADMIN:
+    #     raise HTTPException(status_code=403, detail="Agency Admin required")
+    pass
+
+# --- Agency Client Management ---
+
+@router.get("/agency/{agency_id}/clients", response_model=List[schemas_agency.ClientOut])
+def list_agency_clients(agency_id: int, db: Session = Depends(get_db)):
+    """
+    List all clients for an agency.
+    """
+    clients = db.query(Client).filter(Client.agency_id == agency_id).all()
+    return clients
+
+@router.post("/agency/{agency_id}/clients", response_model=schemas_agency.ClientOut)
+def create_client(agency_id: int, client: schemas_agency.ClientCreate, db: Session = Depends(get_db)):
+    """
+    Create a new client under an agency.
+    """
+    db_client = Client(
+        agency_id=agency_id,
+        name=client.name,
+        industry=client.industry,
+        website=client.website,
+        markup_percent=client.markup_percent,
+        is_active=client.is_active
+    )
+    db.add(db_client)
+    db.commit()
+    db.refresh(db_client)
+    return db_client
+
+@router.post("/agency/clients/{client_id}/markup")
+def update_client_markup(client_id: int, markup: schemas_agency.MarkupUpdate, db: Session = Depends(get_db)):
+    """
+    Update the markup percentage for a specific client.
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+        
+    # Check permissions (pseudo-code)
+    # require_agency_admin(client.agency_id)
+    
+    client.markup_percent = markup.markup_percent
+    db.commit()
+    return {"status": "success", "new_markup": client.markup_percent}
+
+@router.post("/agency/clients/{client_id}/permissions")
+def update_client_permissions(client_id: int, permission: schemas_agency.PermissionUpdate, db: Session = Depends(get_db)):
+    """
+    Update client permissions (e.g., active status, default roles).
+    """
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+        
+    client.is_active = permission.is_active
+    # Logic for role mapping updates would go here
+    
+    db.commit()
+    return {"status": "success", "is_active": client.is_active}

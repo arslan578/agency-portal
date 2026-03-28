@@ -1,0 +1,54 @@
+{
+    "YOUTUBE": {
+        "min_payload_fields": [
+            "video_id",
+            "title",
+            "description"
+        ],
+        "forbidden_fields": [
+            "competitor_keywords"
+        ],
+        "readiness_requirements": [
+            "channel_verified",
+            "payment_method_valid"
+        ]
+    },
+    "TIKTOK": {
+        "min_payload_fields": [
+            "video_url",
+            "caption"
+        ],
+        "forbidden_fields": [
+            "political_content"
+        ],
+        "readiness_requirements": [
+            "ad_account_active"
+        ]
+    },
+    "META": {
+        "min_payload_fields": [
+            "creative_asset_id",
+            "headline",
+            "primary_text"
+        ],
+        "forbidden_fields": [
+            "discriminatory_targeting"
+        ],
+        "readiness_requirements": [
+            "page_published",
+            "ad_account_active"
+        ]
+    },
+    "LINKEDIN": {
+        "min_payload_fields": [
+            "urn",
+            "text"
+        ],
+        "forbidden_fields": [
+            "personal_attributes"
+        ],
+        "readiness_requirements": [
+            "company_page_admin"
+        ]
+    }
+}

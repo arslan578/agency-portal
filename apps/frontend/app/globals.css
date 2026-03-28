@@ -1,0 +1,413 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Font Variables */
+  --font-inter: 'Inter', sans-serif;
+  --font-cassio: 'Playfair Display', serif;
+
+  /* Light Mode Palette (Default) */
+  --background-rgb: 250, 250, 250;
+  /* Off-white background */
+  --foreground-rgb: 15, 23, 42;
+  /* Dark slate for text */
+
+  /* Kaivo Brand Colors (Tropical Oasis) */
+  --kaivo-teal: #009688;
+  /* Primary Brand Color (TEAL) */
+  --kaivo-coral: #FF7043;
+  /* Accent Brand Color (CORAL) */
+
+  /* Modern Palette Mapping */
+  /* Tropical Oasis Palette Mapping */
+  --kaivo-teal-deep: #007B5F;
+  --kaivo-teal-medium: #009688;
+  --kaivo-aqua: #4DB6AC;
+
+  --kaivo-amber: #FFB74D;
+  /* Retained from Oasis */
+
+  /* Accent usage */
+  --kaivo-accent: var(--kaivo-coral);
+
+  /* Extended Teal Scale */
+  --kaivo-teal-50: #E6F5F1;
+  --kaivo-teal-100: #B2E5D9;
+  --kaivo-teal-200: #80D5C6;
+  --kaivo-teal-300: #4DB6AC;
+  /* Same as aqua */
+  --kaivo-teal-500: #009688;
+  /* Same as medium */
+  --kaivo-teal-700: #007B5F;
+  /* Same as deep */
+  --kaivo-teal-900: #004D40;
+
+  /* Legacy (for backwards compatibility) */
+  --kaivo-teal-rgb: 0, 150, 136;
+  --kaivo-blue-rgb: 77, 182, 172;
+
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-shine: rgba(255, 255, 255, 0.95);
+
+  /* Light mode text colors */
+  --text-primary: #0F172A;
+  /* Dark slate */
+  --text-secondary: #1E293B;
+  /* Medium slate */
+  --text-muted: #64748B;
+  /* Gray slate */
+
+  /* RGB versions for Tailwind */
+  --text-primary-rgb: 15, 23, 42;
+  --text-secondary-rgb: 30, 41, 59;
+  --text-muted-rgb: 100, 116, 139;
+
+  /* Spacing Scale */
+  --space-xs: 0.5rem;
+  --space-sm: 0.75rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* Semantic theme tokens (CEO spec - light mode) */
+  --background: 255 255 255;
+  --foreground: 15 23 42;
+  --card: 255 255 255;
+  --card-foreground: 15 23 42;
+  --muted: 241 245 249;
+  --muted-foreground: 100 116 139;
+  --border: 77 182 172;
+  /* #4DB6AC - CEO spec card border */
+  --input: 226 232 240;
+  --ring: 0 123 95;
+  /* #007B5F - primary focus ring */
+  --primary: 0 123 95;
+  --primary-foreground: 255 255 255;
+  --secondary-ui: 0 150 136;
+  --secondary-ui-foreground: 0 150 136;
+  --accent: 230 245 241;
+  /* teal-50 tinted bg */
+  --accent-foreground: 0 123 95;
+  --destructive: 255 112 67;
+  --destructive-foreground: 255 255 255;
+}
+
+/* Dark Mode Overrides */
+.dark {
+  --background-rgb: 11, 15, 25;
+  /* Deep Space Blue */
+  --foreground-rgb: 250, 250, 250;
+  /* Bright White for maximum contrast */
+
+  /* Brighter Tropical Oasis colors for dark mode */
+  /* Brighter Tropical Oasis colors for dark mode */
+  --kaivo-teal-deep: #007B5F;
+  /* Deep Teal */
+  --kaivo-teal-medium: #009688;
+  /* Medium Teal */
+  --kaivo-aqua: #4DB6AC;
+  /* Light Teal */
+  --kaivo-amber: #FFB74D;
+  /* Amber */
+  --kaivo-coral: #FF7043;
+  /* Coral */
+
+  --kaivo-teal-rgb: 0, 150, 136;
+  /* Teal RGB */
+  --kaivo-blue-rgb: 77, 182, 172;
+  /* Aqua RGB */
+
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --glass-shine: rgba(255, 255, 255, 0.1);
+
+  /* Dark mode text colors */
+  --text-primary: #FAFAFA;
+  /* Bright white */
+  --text-secondary: #E2E8F0;
+  /* Light gray */
+  --text-muted: #CBD5E1;
+  /* Medium gray */
+
+  /* RGB versions for Tailwind */
+  --text-primary-rgb: 250, 250, 250;
+  --text-secondary-rgb: 226, 232, 240;
+  --text-muted-rgb: 203, 213, 225;
+
+  /* Semantic theme tokens (CEO spec - dark mode) */
+  --background: 11 15 25;
+  --foreground: 250 250 250;
+  --card: 20 27 45;
+  --card-foreground: 250 250 250;
+  --muted: 30 41 59;
+  --muted-foreground: 203 213 225;
+  --border: 30 41 59;
+  --input: 30 41 59;
+  --ring: 77 182 172;
+  --primary: 0 123 95;
+  --primary-foreground: 255 255 255;
+  --secondary-ui: 0 150 136;
+  --secondary-ui-foreground: 255 255 255;
+  --accent: 20 27 45;
+  --accent-foreground: 77 182 172;
+  --destructive: 255 112 67;
+  --destructive-foreground: 255 255 255;
+}
+
+body {
+  color: rgb(var(--foreground));
+  background: rgb(var(--background));
+  overflow-x: hidden;
+}
+
+/* Enhanced text styles for better contrast - REMOVED OVERLY BROAD RULES */
+/* These were overriding explicit Tailwind utilities like text-white */
+@layer base {
+
+  /* Only override utility class targets, not all elements */
+  .text-muted {
+    color: var(--text-muted) !important;
+  }
+
+  /* Light mode specific overrides for card/panel content ONLY */
+  body:not(.dark) .glass-panel:not([class*="text-"]),
+  body:not(.dark) [class*="bg-white"]:not([class*="text-"]),
+  body:not(.dark) [class*="bg-gray"]:not([class*="text-"]) {
+    color: #0F172A;
+  }
+
+  body:not(.dark) .glass-card h1:not([class*="text-"]),
+  body:not(.dark) .glass-card h2:not([class*="text-"]),
+  body:not(.dark) .glass-card h3:not([class*="text-"]),
+  body:not(.dark) .glass-card h4:not([class*="text-"]),
+  body:not(.dark) .glass-panel h1:not([class*="text-"]),
+  body:not(.dark) .glass-panel h2:not([class*="text-"]),
+  body:not(.dark) .glass-panel h3:not([class*="text-"]),
+  body:not(.dark) .glass-panel h4:not([class*="text-"]) {
+    color: #0F172A;
+  }
+
+  /* Ensure proper text colors for utility classes */
+  .text-primary {
+    color: #0F172A;
+  }
+
+  .dark .text-primary {
+    color: #FAFAFA;
+  }
+
+  .text-secondary {
+    color: #1E293B;
+  }
+
+  .dark .text-secondary {
+    color: #E2E8F0;
+  }
+
+  .text-muted-custom {
+    color: #64748B;
+  }
+
+  .dark .text-muted-custom {
+    color: #CBD5E1;
+  }
+}
+
+/* Glassmorphism Utilities - Theme-aware */
+body:not(.dark) .glass-panel {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(77, 182, 172, 0.4);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.08);
+}
+
+.dark .glass-panel {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+.glass-panel {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.3s ease;
+}
+
+/* Cards - Theme-aware (light: white + teal border, dark: dark glass) */
+body:not(.dark) .glass-card {
+  background: #ffffff;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(77, 182, 172, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+body:not(.dark) .glass-card:hover {
+  border-color: rgba(77, 182, 172, 0.7);
+  box-shadow: 0 8px 30px rgba(77, 182, 172, 0.15);
+  transform: translateY(-2px);
+}
+
+.dark .glass-card {
+  background: #141B2D;
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  transition: all 0.3s ease;
+}
+
+.dark .glass-card:hover {
+  border-color: rgba(0, 212, 157, 0.3);
+  box-shadow: 0 0 25px rgba(0, 212, 157, 0.15);
+  transform: translateY(-2px);
+}
+
+.glass-card {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all 0.3s ease;
+}
+
+/* Animated Background Gradient */
+.bg-gradient-animate {
+  background: radial-gradient(circle at 50% 0%, rgba(var(--kaivo-teal-rgb), 0.12), transparent 50%),
+    radial-gradient(circle at 0% 50%, rgba(var(--kaivo-blue-rgb), 0.08), transparent 50%);
+  animation: pulse-glow 8s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+/* Custom Scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Ensure all input text is visible */
+input,
+textarea,
+select {
+  color: var(--text-primary) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.7;
+}
+
+/* Fix for inputs inside glass cards - theme-aware */
+.dark .glass-card input,
+.dark .glass-card textarea,
+.dark .glass-card select {
+  color: #FAFAFA !important;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dark .glass-card input::placeholder,
+.dark .glass-card textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+body:not(.dark) .glass-card input,
+body:not(.dark) .glass-card textarea,
+body:not(.dark) .glass-card select {
+  color: #0F172A !important;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(77, 182, 172, 0.3);
+}
+
+body:not(.dark) .glass-card input::placeholder,
+body:not(.dark) .glass-card textarea::placeholder {
+  color: rgba(15, 23, 42, 0.5) !important;
+}
+
+/* Force text colors inside glass-card - theme-aware */
+.dark .glass-card label,
+.dark .glass-card .text-foreground,
+.dark .glass-card .text-kaivo-text-primary,
+.dark .glass-card h1,
+.dark .glass-card h2,
+.dark .glass-card h3,
+.dark .glass-card h4,
+.dark .glass-card h5,
+.dark .glass-card h6 {
+  color: #FAFAFA !important;
+}
+
+.dark .glass-card .text-muted-foreground,
+.dark .glass-card .text-kaivo-text-secondary,
+.dark .glass-card .text-kaivo-text-muted {
+  color: #CBD5E1 !important;
+}
+
+body:not(.dark) .glass-card label,
+body:not(.dark) .glass-card .text-foreground,
+body:not(.dark) .glass-card .text-kaivo-text-primary,
+body:not(.dark) .glass-card h1,
+body:not(.dark) .glass-card h2,
+body:not(.dark) .glass-card h3,
+body:not(.dark) .glass-card h4,
+body:not(.dark) .glass-card h5,
+body:not(.dark) .glass-card h6 {
+  color: #0F172A !important;
+}
+
+body:not(.dark) .glass-card .text-muted-foreground,
+body:not(.dark) .glass-card .text-kaivo-text-secondary,
+body:not(.dark) .glass-card .text-kaivo-text-muted {
+  color: #64748B !important;
+}
+
+/* Shopify Polaris Overrides - Robust Theme Support */
+/* Scoped to .shopify-scope to avoid affecting main app */
+/* Uses Polaris tokens (v12+) to adapt to Light/Dark mode automatically */
+
+.shopify-scope input,
+.shopify-scope select,
+.shopify-scope textarea,
+.shopify-scope .Polaris-TextField__Input,
+.shopify-scope .Polaris-Select__Input {
+  color: var(--p-color-text-default, #202223) !important;
+  background-color: transparent !important;
+}
+
+/* Ensure backdrop adapts (Light=White, Dark=DarkGrey) */
+.shopify-scope .Polaris-TextField__Backdrop {
+  background-color: var(--p-color-bg-surface, #ffffff) !important;
+}
+
+/* Fix for Select inputs content */
+.shopify-scope .Polaris-Select__Content {
+  color: var(--p-color-text-default, #202223) !important;
+}
+
+/* Fix placeholders to use Polaris muted text */
+.shopify-scope input::placeholder,
+.shopify-scope textarea::placeholder {
+  color: var(--p-color-text-secondary, #6D7175) !important;
+}

@@ -1,0 +1,22 @@
+{
+    "mappings": {
+        "CAMPAIGN": {
+            "name": "name",
+            "status": "status",
+            "budget_id": "campaign_budget",
+            "target_cpa": "target_cpa.target_cpa_micros",
+            "start_date": "start_date",
+            "end_date": "end_date"
+        },
+        "AD_GROUP": {
+            "name": "name",
+            "status": "status",
+            "campaign_id": "campaign"
+        },
+        "AD": {
+            "final_urls": "final_urls",
+            "headlines": "responsive_search_ad.headlines",
+            "descriptions": "responsive_search_ad.descriptions"
+        }
+    }
+}

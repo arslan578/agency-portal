@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #f4efe6;
+  --color-foreground: #1a1a2e;
+
+  --color-cream: #f4efe6;
+  --color-cream-dark: #ece6db;
+  --color-cream-border: #ddd6c8;
+
+  --color-teal: #2a9d8f;
+  --color-teal-dark: #1f7a6e;
+  --color-teal-light: #e8f5f3;
+
+  --color-coral: #e76f51;
+  --color-coral-light: #fdf0ec;
+  --color-coral-dark: #c85a3d;
+
+  --color-text-primary: #1a1a2e;
+  --color-text-secondary: #5a5a72;
+  --color-text-muted: #9a9aaa;
+
+  --color-green: #2d9e5a;
+  --color-green-light: #e8f7ef;
+
+  --color-amber: #d4860a;
+  --color-amber-light: #fef3dc;
+
+  --color-red: #d94040;
+  --color-red-light: #fdeaea;
+
+  --color-purple: #5c54c8;
+  --color-purple-light: #eeeeff;
+
+  --color-white: #ffffff;
+  --color-card: #ffffff;
+  --color-card-foreground: #1a1a2e;
+
+  --color-muted: #f4efe6;
+  --color-muted-foreground: #9a9aaa;
+
+  --color-border: #ddd6c8;
+  --color-input: #ddd6c8;
+  --color-ring: #2a9d8f;
+
+  --color-primary: #2a9d8f;
+  --color-primary-foreground: #ffffff;
+
+  --spacing-nav-width: 232px;
+  --radius-default: 12px;
+
+  --font-sans: 'Space Grotesk', sans-serif;
+  --font-mono: 'Space Mono', monospace;
+}
+
+:root {
+  --background: #f4efe6;
+  --foreground: #1a1a2e;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Space Grotesk', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ddd6c8;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2a9d8f;
+}

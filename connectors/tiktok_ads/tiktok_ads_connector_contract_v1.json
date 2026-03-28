@@ -1,0 +1,633 @@
+{
+    "connector_id": "tiktok_ads",
+    "version": "1.0.0",
+    "backplane_contract_version": "connector_backplane_v1",
+    "os_registry_contract": {
+        "input_contract_version": "os_65_connector_contract_input_v1",
+        "output_contract_version": "os_65_connector_contract_output_v1"
+    },
+    "intent_name": "connector_tiktok_ads",
+    "feature_flag": "FF_CONNECTOR_TIKTOK_ADS",
+    "capability_hash": "<TO_BE_COMPUTED_BY_BUILD_PIPELINE>",
+    "lifecycle_status": "ACTIVE",
+    "supported_environments": [
+        "SANDBOX",
+        "PRODUCTION"
+    ],
+    "owner": "kaivo_core_connectors",
+    "description": "TikTok Ads connector surfaces In-Feed Video, Brand Takeover, TopView, and Spark Ads campaigns through the Kaivo connector backplane with deterministic IO, safety integration, and replay compatible envelopes.",
+    "backplane_fields": {
+        "request_builder_input_shape_ref": "tiktok_ads_request_contract_v1",
+        "normalized_response_shape_ref": "tiktok_ads_response_contract_v1",
+        "error_mapping_table_ref": "tiktok_ads_error_mapping_v1",
+        "routing_flags_ref": "tiktok_ads_routing_profile_v1",
+        "capability_table_ref": "tiktok_ads_capability_table_v1",
+        "state_reconciliation_metadata_ref": "tiktok_ads_state_meta_v1"
+    },
+    "capabilities": {
+        "channels": [
+            "TIKTOK",
+            "TIKTOK_FEED",
+            "TIKTOK_VIDEO"
+        ],
+        "campaign_types": [
+            {
+                "id": "IN_FEED_VIDEO",
+                "name": "In-Feed Video",
+                "channel": "TIKTOK",
+                "tiktok_campaign_type": "IN_FEED_VIDEO",
+                "surfaces": [
+                    "TIKTOK_FEED",
+                    "TIKTOK_FOR_YOU"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS",
+                    "TRAFFIC",
+                    "CONVERSIONS",
+                    "VIDEO_VIEWS",
+                    "APP_INSTALLS"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST",
+                    "COST_CAP",
+                    "BID_CAP",
+                    "MAX_CONVERSIONS"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "SPARK_ADS",
+                "name": "Spark Ads",
+                "channel": "TIKTOK",
+                "tiktok_campaign_type": "SPARK_ADS",
+                "surfaces": [
+                    "TIKTOK_FEED",
+                    "TIKTOK_FOR_YOU"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS",
+                    "TRAFFIC",
+                    "CONVERSIONS",
+                    "VIDEO_VIEWS"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST",
+                    "COST_CAP"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "BRAND_TAKEOVER",
+                "name": "Brand Takeover",
+                "channel": "TIKTOK",
+                "tiktok_campaign_type": "BRAND_TAKEOVER",
+                "surfaces": [
+                    "TIKTOK_OPEN_SCREEN"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS",
+                    "TRAFFIC"
+                ],
+                "allowed_bidding_strategies": [
+                    "BID_CAP"
+                ],
+                "status": "SUPPORTED_PHASE_2",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "TOP_VIEW",
+                "name": "TopView",
+                "channel": "TIKTOK",
+                "tiktok_campaign_type": "TOP_VIEW",
+                "surfaces": [
+                    "TIKTOK_OPEN_SCREEN"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS",
+                    "TRAFFIC",
+                    "VIDEO_VIEWS"
+                ],
+                "allowed_bidding_strategies": [
+                    "BID_CAP"
+                ],
+                "status": "SUPPORTED_PHASE_2",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            }
+        ],
+        "bidding_strategies": [
+            {
+                "id": "LOWEST_COST",
+                "name": "Lowest Cost",
+                "type": "AUTOMATED",
+                "requires_target_value": false,
+                "supported_channels": [
+                    "TIKTOK",
+                    "TIKTOK_FEED",
+                    "TIKTOK_VIDEO"
+                ]
+            },
+            {
+                "id": "COST_CAP",
+                "name": "Cost Cap",
+                "type": "AUTOMATED",
+                "requires_target_value": true,
+                "target_metric": "COST_PER_ACTION",
+                "supported_channels": [
+                    "TIKTOK",
+                    "TIKTOK_FEED",
+                    "TIKTOK_VIDEO"
+                ]
+            },
+            {
+                "id": "BID_CAP",
+                "name": "Bid Cap",
+                "type": "MANUAL",
+                "requires_target_value": true,
+                "target_metric": "MAX_BID",
+                "supported_channels": [
+                    "TIKTOK",
+                    "TIKTOK_FEED",
+                    "TIKTOK_VIDEO"
+                ]
+            },
+            {
+                "id": "MAX_CONVERSIONS",
+                "name": "Maximize Conversions",
+                "type": "AUTOMATED",
+                "requires_target_value": false,
+                "supported_channels": [
+                    "TIKTOK",
+                    "TIKTOK_FEED"
+                ]
+            }
+        ],
+        "targeting": {
+            "segments": [
+                {
+                    "id": "CUSTOM_AUDIENCE",
+                    "name": "Custom Audience",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "LOCATION",
+                    "name": "Location",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "AGE",
+                    "name": "Age",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": false
+                },
+                {
+                    "id": "GENDER",
+                    "name": "Gender",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": false
+                },
+                {
+                    "id": "INTERESTS",
+                    "name": "Interests",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "BEHAVIORS",
+                    "name": "Behaviors",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "DEVICES",
+                    "name": "Devices",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": false
+                },
+                {
+                    "id": "LANGUAGE",
+                    "name": "Language",
+                    "channels": [
+                        "TIKTOK",
+                        "TIKTOK_FEED",
+                        "TIKTOK_VIDEO"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": false
+                }
+            ]
+        },
+        "creative_formats": [
+            {
+                "id": "VIDEO",
+                "name": "Single Video",
+                "channels": [
+                    "TIKTOK",
+                    "TIKTOK_FEED",
+                    "TIKTOK_VIDEO"
+                ],
+                "required_assets": [
+                    "VIDEO_ASSET",
+                    "AD_TEXT",
+                    "LANDING_PAGE_URL"
+                ],
+                "optional_assets": [
+                    "CALL_TO_ACTION",
+                    "VIDEO_COVER_IMAGE"
+                ]
+            },
+            {
+                "id": "IMAGE_VIDEO",
+                "name": "Image Video",
+                "channels": [
+                    "TIKTOK",
+                    "TIKTOK_FEED"
+                ],
+                "required_assets": [
+                    "IMAGE_ASSET",
+                    "AD_TEXT",
+                    "LANDING_PAGE_URL"
+                ],
+                "optional_assets": [
+                    "CALL_TO_ACTION"
+                ]
+            },
+            {
+                "id": "CAROUSEL",
+                "name": "Carousel",
+                "channels": [
+                    "TIKTOK",
+                    "TIKTOK_FEED"
+                ],
+                "required_assets": [
+                    "CAROUSEL_CARDS",
+                    "AD_TEXT",
+                    "LANDING_PAGE_URL"
+                ],
+                "optional_assets": [
+                    "CALL_TO_ACTION"
+                ]
+            }
+        ]
+    },
+    "constraints": {
+        "budget": {
+            "policies": [
+                {
+                    "id": "MIN_DAILY_BUDGET",
+                    "scope": "CAMPAIGN",
+                    "unit": "MAJOR_CURRENCY",
+                    "expression": "budget_per_day >= platform_min_daily_budget",
+                    "enforced_by": [
+                        "policy_mirror",
+                        "safety_horizon"
+                    ],
+                    "source": "TIKTOK_POLICY"
+                },
+                {
+                    "id": "MAX_LIFETIME_BUDGET",
+                    "scope": "CAMPAIGN",
+                    "unit": "MAJOR_CURRENCY",
+                    "expression": "total_budget <= kaivo_workspace_budget_ceiling",
+                    "enforced_by": [
+                        "workspace_manager",
+                        "safety_horizon"
+                    ],
+                    "source": "KAIVO_POLICY"
+                }
+            ]
+        },
+        "regions": {
+            "allowed_regions_ref": "tiktok_ads_allowed_regions_v1",
+            "restricted_regions_ref": "tiktok_ads_restricted_regions_v1"
+        },
+        "categories": {
+            "sensitive_categories": [
+                "POLITICAL",
+                "HEALTH",
+                "ALCOHOL",
+                "FINANCIAL_SERVICES",
+                "GAMBLING",
+                "ADULT_CONTENT"
+            ],
+            "requires_identity_verification": [
+                "POLITICAL",
+                "ELECTION_RELATED",
+                "CREDIT",
+                "HOUSING",
+                "EMPLOYMENT"
+            ],
+            "policy_mirror_table_ref": "tiktok_ads_policy_categories_v1"
+        },
+        "required_fields": {
+            "CAMPAIGN_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_name",
+                "campaign_type",
+                "channel",
+                "objective",
+                "bidding_strategy",
+                "daily_budget",
+                "currency",
+                "geo_targets",
+                "advertiser_id"
+            ],
+            "AD_GROUP_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_id",
+                "ad_group_name",
+                "channel",
+                "bidding_strategy",
+                "budget",
+                "schedule_start_time",
+                "placement_type"
+            ],
+            "AD_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_id",
+                "ad_group_id",
+                "creative_format_id",
+                "assets",
+                "ad_text",
+                "landing_page_url"
+            ]
+        },
+        "forbidden_fields": [
+            "raw_personally_identifiable_information",
+            "plaintext_credit_card_data",
+            "plaintext_passwords",
+            "unhashed_user_identifiers"
+        ],
+        "not_yet_supported_features": [
+            "OFFLINE_CONVERSION_UPLOAD",
+            "DYNAMIC_CREATIVE_OPTIMIZATION",
+            "AUTOMATED_CREATIVE_GENERATION"
+        ]
+    },
+    "io_schema": {
+        "request_contract": {
+            "id": "tiktok_ads_request_contract_v1",
+            "required_fields": [
+                "execution_id",
+                "tenant_context",
+                "workspace_context",
+                "connector_id",
+                "operation",
+                "payload",
+                "feature_flags",
+                "requested_backplane_contract_version"
+            ],
+            "forbidden_fields": [
+                "_debug",
+                "debug_info",
+                "internal_only"
+            ],
+            "operations": [
+                {
+                    "operation": "CREATE_CAMPAIGN",
+                    "tiktok_api_method_ref": "tiktok.business.v1.3.advertiser.campaign.create",
+                    "payload_shape_ref": "tiktok_ads_create_campaign_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_external_reference)"
+                },
+                {
+                    "operation": "CREATE_AD_GROUP",
+                    "tiktok_api_method_ref": "tiktok.business.v1.3.advertiser.adgroup.create",
+                    "payload_shape_ref": "tiktok_ads_create_ad_group_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, ad_group_external_reference)"
+                },
+                {
+                    "operation": "CREATE_AD",
+                    "tiktok_api_method_ref": "tiktok.business.v1.3.advertiser.ad.create",
+                    "payload_shape_ref": "tiktok_ads_create_ad_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, ad_external_reference)"
+                },
+                {
+                    "operation": "MUTATE_BUDGET",
+                    "tiktok_api_method_ref": "tiktok.business.v1.3.advertiser.campaign.update",
+                    "payload_shape_ref": "tiktok_ads_mutate_budget_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_id, change_vector)"
+                },
+                {
+                    "operation": "PAUSE_CAMPAIGN",
+                    "tiktok_api_method_ref": "tiktok.business.v1.3.advertiser.campaign.update",
+                    "payload_shape_ref": "tiktok_ads_pause_campaign_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_id, target_status)"
+                }
+            ]
+        },
+        "response_contract": {
+            "id": "tiktok_ads_response_contract_v1",
+            "required_fields": [
+                "execution_id",
+                "tenant_context",
+                "workspace_context",
+                "connector_id",
+                "operation",
+                "status",
+                "normalized_payload",
+                "raw_connector_payload_ref",
+                "error",
+                "retry_advice",
+                "rate_limit_observation"
+            ],
+            "forbidden_fields": [
+                "_debug",
+                "debug_info",
+                "internal_only"
+            ],
+            "status_values": [
+                "SUCCESS",
+                "PARTIAL_SUCCESS",
+                "RETRYABLE_ERROR",
+                "NON_RETRYABLE_ERROR"
+            ],
+            "normalized_payload_shape_ref": "tiktok_ads_normalized_entity_shapes_v1"
+        },
+        "error_mapping": {
+            "id": "tiktok_ads_error_mapping_v1",
+            "domains": [
+                {
+                    "tiktok_domain": "AUTHENTICATION_ERROR",
+                    "mapped_category": "AUTH",
+                    "default_retry_policy": "NO_RETRY"
+                },
+                {
+                    "tiktok_domain": "RATE_LIMIT_ERROR",
+                    "mapped_category": "RATE_LIMIT",
+                    "default_retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "tiktok_domain": "QUOTA_ERROR",
+                    "mapped_category": "QUOTA",
+                    "default_retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "tiktok_domain": "POLICY_VIOLATION_ERROR",
+                    "mapped_category": "POLICY",
+                    "default_retry_policy": "NO_RETRY"
+                },
+                {
+                    "tiktok_domain": "INTERNAL_ERROR",
+                    "mapped_category": "CONNECTOR_INTERNAL",
+                    "default_retry_policy": "RETRY_WITH_JITTER"
+                }
+            ],
+            "kaivo_error_codes": [
+                {
+                    "code": "TIKTOK_AUTH_FAILED",
+                    "category": "AUTH",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "TIKTOK_RATE_LIMITED",
+                    "category": "RATE_LIMIT",
+                    "retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "code": "TIKTOK_POLICY_VIOLATION",
+                    "category": "POLICY",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "TIKTOK_INVALID_REQUEST",
+                    "category": "REQUEST",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "TIKTOK_INTERNAL_ERROR",
+                    "category": "CONNECTOR_INTERNAL",
+                    "retry_policy": "RETRY_WITH_JITTER"
+                }
+            ]
+        },
+        "retry_logic": {
+            "policies": [
+                {
+                    "id": "RETRY_WITH_BACKOFF",
+                    "max_attempts": 3,
+                    "backoff_strategy": "EXPONENTIAL",
+                    "initial_delay_ms": 500,
+                    "max_delay_ms": 30000
+                },
+                {
+                    "id": "RETRY_WITH_JITTER",
+                    "max_attempts": 2,
+                    "backoff_strategy": "EXPONENTIAL_JITTER",
+                    "initial_delay_ms": 250,
+                    "max_delay_ms": 15000
+                },
+                {
+                    "id": "NO_RETRY",
+                    "max_attempts": 1,
+                    "backoff_strategy": "NONE",
+                    "initial_delay_ms": 0,
+                    "max_delay_ms": 0
+                }
+            ],
+            "safe_abort_conditions": [
+                "AUTH",
+                "POLICY",
+                "INVALID_REQUEST"
+            ]
+        }
+    },
+    "routing": {
+        "profile_id": "tiktok_ads_routing_profile_v1",
+        "default_endpoint": "https://business-api.tiktok.com/open_api/v1.3",
+        "supports_batching": false,
+        "max_batch_size": 1,
+        "concurrency_limits": {
+            "per_workspace_max_in_flight": 5,
+            "per_tenant_max_in_flight": 20
+        },
+        "rate_limit_hint": {
+            "tokens_per_second_soft_ceiling": 1,
+            "burst_size_soft_ceiling": 3
+        },
+        "timeout_ms": {
+            "connect_timeout_ms": 5000,
+            "read_timeout_ms": 60000
+        }
+    },
+    "safety_profile": {
+        "risk_weight": "HIGH",
+        "quota_consumption_model_ref": "tiktok_ads_quota_model_v1",
+        "connector_health_signals_ref": "tiktok_ads_health_signals_v1",
+        "safety_horizon_bindings": {
+            "uses_policy_mirror": true,
+            "uses_safety_horizon": true,
+            "uses_rate_limit_forecaster": true,
+            "uses_capability_drift_model": true
+        }
+    },
+    "knowledge_sources": {
+        "policy_mirror_table_ref": "tiktok_ads_policy_mirror_v1",
+        "capability_source": "TIKTOK_MARKETING_API_DOCS_AND_MANUAL_VERIFICATION",
+        "documentation_urls": [
+            "https://ads.tiktok.com/help/article?aid=10028"
+        ]
+    },
+    "metadata": {
+        "created_at": "2025-01-15T00:00:00Z",
+        "updated_at": "2025-01-15T00:00:00Z",
+        "created_by": "kaivo_system",
+        "updated_by": "kaivo_system"
+    }
+}

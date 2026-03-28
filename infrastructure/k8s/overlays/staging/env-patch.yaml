@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  template:
+    spec:
+      containers:
+        - name: frontend
+          env:
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://staging.app.getkaivo.com"
+            - name: KAIVO_ENV
+              value: "staging"
+            - name: STAGING_TEST_EMAIL
+              value: "staging-test@getkaivo.com"
+            - name: STAGING_TEST_PASSWORD
+              value: "KaivoStaging2025!"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agency-portal
+spec:
+  template:
+    spec:
+      containers:
+        - name: agency-portal
+          env:
+            # Route to Auth Service via app host (no collision with agency host /api/auth for NextAuth)
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://staging.app.getkaivo.com/api/auth"
+            - name: NEXTAUTH_URL
+              value: "https://staging.agency.getkaivo.com"
+            - name: AUTH_SECRET
+              value: "CHANGE_ME_STAGING"

@@ -1,0 +1,166 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kaivo-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  rules:
+    - host: staging.app.getkaivo.com
+      http:
+        paths:
+          # Frontend Match (root)
+          # Needs to match / but NOT /api or /auth or others if regex is greedy.
+          # But Nginx regex priority: longest match? No, order matters.
+          # If I put frontend last, and specific API paths first, it works.
+          
+          # Auth Service
+          # - path: /auth(/|$)(.*) REMOVED to avoid collision
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: auth-service
+          #       port:
+          #         number: 80
+          - path: /api/auth(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: auth-service
+                port:
+                  number: 80
+
+          # i18n Service
+          # - path: /i18n(/|$)(.*) REMOVED to avoid collision
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: i18n-service
+          #       port:
+          #         number: 80
+          - path: /api/i18n(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: i18n-service
+                port:
+                  number: 80
+
+          # Account Service
+          # - path: /account(/|$)(.*) REMOVED to avoid collision
+          #   pathType: ImplementationSpecific
+          #   backend:
+          #     service:
+          #       name: account-service
+          #       port:
+          #         number: 80
+          - path: /api/account(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: account-service
+                port:
+                  number: 80
+
+          # Generic Services (Campaign, Creative, Audience, etc)
+          # Removed top-level capture to avoid frontend collision. API should use /api/*
+          # - path: /api-collision-avoidance... see /api rules below.
+
+          - path: /api/campaign(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: campaign-service
+                port:
+                  number: 80
+          - path: /api/creative(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: creative-service
+                port:
+                  number: 80
+          - path: /api/audience(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: audience-service
+                port:
+                  number: 80
+          - path: /api/billing(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: billing-service
+                port:
+                  number: 80
+          - path: /api/reporting(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: reporting-service
+                port:
+                  number: 80
+          - path: /api/policy(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: policy-service
+                port:
+                  number: 80
+          - path: /api/intelligence(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: intelligence-service
+                port:
+                  number: 80
+          - path: /api/agent(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: agent-service
+                port:
+                  number: 80
+          
+          # Capabilities (API Gateway)
+          - path: /()(capabilities.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+          - path: /api/capabilities(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: api-gateway
+                port:
+                  number: 80
+          
+          # Frontend Fallback (Everything else)
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80
+    - host: staging.agency.getkaivo.com
+      http:
+        paths:
+          # Agency Portal (all routes, including NextAuth /api/auth/*, must go to agency-portal)
+          - path: /()(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: agency-portal
+                port:
+                  number: 80
+
+  tls:
+    - hosts:
+        - staging.app.getkaivo.com
+        - staging.agency.getkaivo.com
+      secretName: kaivo-tls

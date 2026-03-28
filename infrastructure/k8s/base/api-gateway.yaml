@@ -1,0 +1,69 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+    spec:
+      containers:
+        - name: api-gateway
+          image: kaivo-api-gateway:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: REDIS_URL
+                  optional: true
+            - name: FF_OS_RUNTIME_ENABLED
+              value: "true"
+            - name: SHOPIFY_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: SHOPIFY_API_KEY
+                  optional: true
+            - name: SHOPIFY_API_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: SHOPIFY_API_SECRET
+                  optional: true
+            - name: SHOPIFY_APP_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: SHOPIFY_APP_URL
+                  optional: true
+            - name: SHOPIFY_SCOPES
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: SHOPIFY_SCOPES
+                  optional: true

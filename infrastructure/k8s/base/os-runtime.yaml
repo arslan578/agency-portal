@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: os-runtime-service
+  labels:
+    app: os-runtime-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: os-runtime-service
+  template:
+    metadata:
+      labels:
+        app: os-runtime-service
+    spec:
+      serviceAccountName: default
+      containers:
+      - name: os-runtime-service
+        image: kaivo-os-runtime-service
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: kaivo-secrets
+        env:
+        - name: NODE_ENV
+          value: "production"
+        - name: PORT
+          value: "3000"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: os-runtime-service
+spec:
+  selector:
+    app: os-runtime-service
+  ports:
+  - port: 3000
+    targetPort: 3000
+  type: ClusterIP

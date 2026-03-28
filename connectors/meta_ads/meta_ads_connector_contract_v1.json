@@ -1,0 +1,684 @@
+{
+    "connector_id": "meta_ads",
+    "version": "1.0.0",
+    "backplane_contract_version": "connector_backplane_v1",
+    "os_registry_contract": {
+        "input_contract_version": "os_65_connector_contract_input_v1",
+        "output_contract_version": "os_65_connector_contract_output_v1"
+    },
+    "intent_name": "connector_meta_ads",
+    "feature_flag": "FF_CONNECTOR_META_ADS",
+    "capability_hash": "<TO_BE_COMPUTED_BY_BUILD_PIPELINE>",
+    "lifecycle_status": "ACTIVE",
+    "supported_environments": [
+        "SANDBOX",
+        "PRODUCTION"
+    ],
+    "owner": "kaivo_core_connectors",
+    "description": "Meta Ads connector surfaces Facebook, Instagram, Messenger, and Audience Network campaigns through the Kaivo connector backplane with deterministic IO, safety integration, and replay compatible envelopes.",
+    "backplane_fields": {
+        "request_builder_input_shape_ref": "meta_ads_request_contract_v1",
+        "normalized_response_shape_ref": "meta_ads_response_contract_v1",
+        "error_mapping_table_ref": "meta_ads_error_mapping_v1",
+        "routing_flags_ref": "meta_ads_routing_profile_v1",
+        "capability_table_ref": "meta_ads_capability_table_v1",
+        "state_reconciliation_metadata_ref": "meta_ads_state_meta_v1"
+    },
+    "capabilities": {
+        "channels": [
+            "FACEBOOK",
+            "INSTAGRAM",
+            "MESSENGER",
+            "AUDIENCE_NETWORK"
+        ],
+        "campaign_types": [
+            {
+                "id": "OUTCOME_SALES",
+                "name": "Sales",
+                "channel": "FACEBOOK",
+                "google_campaign_type": "CONVERSIONS",
+                "surfaces": [
+                    "FACEBOOK_FEED",
+                    "INSTAGRAM_FEED",
+                    "STORIES"
+                ],
+                "allowed_objectives": [
+                    "SALES"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST_WITHOUT_CAP",
+                    "COST_CAP",
+                    "BID_CAP",
+                    "ROAS"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "OUTCOME_LEADS",
+                "name": "Leads",
+                "channel": "FACEBOOK",
+                "google_campaign_type": "LEAD_GENERATION",
+                "surfaces": [
+                    "FACEBOOK_FEED",
+                    "INSTAGRAM_FEED"
+                ],
+                "allowed_objectives": [
+                    "LEADS"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST_WITHOUT_CAP",
+                    "COST_CAP"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "OUTCOME_AWARENESS",
+                "name": "Awareness",
+                "channel": "FACEBOOK",
+                "google_campaign_type": "BRAND_AWARENESS",
+                "surfaces": [
+                    "FACEBOOK_FEED",
+                    "INSTAGRAM_FEED",
+                    "STORIES",
+                    "REELS"
+                ],
+                "allowed_objectives": [
+                    "AWARENESS"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST_WITHOUT_CAP",
+                    "BID_CAP"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "OUTCOME_TRAFFIC",
+                "name": "Traffic",
+                "channel": "FACEBOOK",
+                "google_campaign_type": "TRAFFIC",
+                "surfaces": [
+                    "FACEBOOK_FEED",
+                    "INSTAGRAM_FEED"
+                ],
+                "allowed_objectives": [
+                    "TRAFFIC"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST_WITHOUT_CAP",
+                    "COST_CAP"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "OUTCOME_ENGAGEMENT",
+                "name": "Engagement",
+                "channel": "FACEBOOK",
+                "google_campaign_type": "ENGAGEMENT",
+                "surfaces": [
+                    "FACEBOOK_FEED",
+                    "INSTAGRAM_FEED",
+                    "MESSENGER"
+                ],
+                "allowed_objectives": [
+                    "ENGAGEMENT"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST_WITHOUT_CAP",
+                    "COST_CAP"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            },
+            {
+                "id": "OUTCOME_APP_PROMOTION",
+                "name": "App Promotion",
+                "channel": "FACEBOOK",
+                "google_campaign_type": "APP_INSTALLS",
+                "surfaces": [
+                    "FACEBOOK_FEED",
+                    "INSTAGRAM_FEED",
+                    "AUDIENCE_NETWORK"
+                ],
+                "allowed_objectives": [
+                    "APP_PROMOTION"
+                ],
+                "allowed_bidding_strategies": [
+                    "LOWEST_COST_WITHOUT_CAP",
+                    "COST_CAP"
+                ],
+                "status": "ACTIVE",
+                "phase_support": {
+                    "creation_supported": true,
+                    "mutation_supported": true,
+                    "reporting_supported": true
+                }
+            }
+        ],
+        "bidding_strategies": [
+            {
+                "id": "LOWEST_COST_WITHOUT_CAP",
+                "name": "Lowest Cost",
+                "type": "AUTOMATED",
+                "requires_target_value": false,
+                "supported_channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM",
+                    "MESSENGER",
+                    "AUDIENCE_NETWORK"
+                ]
+            },
+            {
+                "id": "COST_CAP",
+                "name": "Cost Cap",
+                "type": "AUTOMATED",
+                "requires_target_value": true,
+                "target_metric": "COST_PER_ACTION",
+                "supported_channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM",
+                    "MESSENGER",
+                    "AUDIENCE_NETWORK"
+                ]
+            },
+            {
+                "id": "BID_CAP",
+                "name": "Bid Cap",
+                "type": "MANUAL",
+                "requires_target_value": true,
+                "target_metric": "MAX_BID",
+                "supported_channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM",
+                    "MESSENGER",
+                    "AUDIENCE_NETWORK"
+                ]
+            },
+            {
+                "id": "ROAS",
+                "name": "Return On Ad Spend",
+                "type": "AUTOMATED",
+                "requires_target_value": true,
+                "target_metric": "RETURN_ON_AD_SPEND",
+                "supported_channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM",
+                    "AUDIENCE_NETWORK"
+                ]
+            }
+        ],
+        "targeting": {
+            "segments": [
+                {
+                    "id": "CUSTOM_AUDIENCE",
+                    "name": "Custom Audience",
+                    "channels": [
+                        "FACEBOOK",
+                        "INSTAGRAM"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "LOCATION",
+                    "name": "Location",
+                    "channels": [
+                        "FACEBOOK",
+                        "INSTAGRAM",
+                        "MESSENGER",
+                        "AUDIENCE_NETWORK"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "AGE",
+                    "name": "Age",
+                    "channels": [
+                        "FACEBOOK",
+                        "INSTAGRAM",
+                        "MESSENGER",
+                        "AUDIENCE_NETWORK"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": false
+                },
+                {
+                    "id": "GENDER",
+                    "name": "Gender",
+                    "channels": [
+                        "FACEBOOK",
+                        "INSTAGRAM",
+                        "MESSENGER",
+                        "AUDIENCE_NETWORK"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": false
+                },
+                {
+                    "id": "INTERESTS",
+                    "name": "Interests",
+                    "channels": [
+                        "FACEBOOK",
+                        "INSTAGRAM",
+                        "MESSENGER",
+                        "AUDIENCE_NETWORK"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                },
+                {
+                    "id": "PLACEMENT",
+                    "name": "Placement",
+                    "channels": [
+                        "FACEBOOK",
+                        "INSTAGRAM",
+                        "MESSENGER",
+                        "AUDIENCE_NETWORK"
+                    ],
+                    "required_for_campaign_types": [],
+                    "supports_negative_targets": true
+                }
+            ]
+        },
+        "creative_formats": [
+            {
+                "id": "IMAGE",
+                "name": "Single Image",
+                "channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM",
+                    "MESSENGER",
+                    "AUDIENCE_NETWORK"
+                ],
+                "required_assets": [
+                    "IMAGE_HASH",
+                    "PRIMARY_TEXT",
+                    "HEADLINE"
+                ],
+                "optional_assets": [
+                    "DESCRIPTION",
+                    "CALL_TO_ACTION"
+                ]
+            },
+            {
+                "id": "VIDEO",
+                "name": "Single Video",
+                "channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM",
+                    "MESSENGER",
+                    "AUDIENCE_NETWORK"
+                ],
+                "required_assets": [
+                    "VIDEO_ID",
+                    "PRIMARY_TEXT",
+                    "HEADLINE"
+                ],
+                "optional_assets": [
+                    "DESCRIPTION",
+                    "CALL_TO_ACTION",
+                    "VIDEO_THUMBNAIL"
+                ]
+            },
+            {
+                "id": "CAROUSEL",
+                "name": "Carousel",
+                "channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM",
+                    "MESSENGER"
+                ],
+                "required_assets": [
+                    "CAROUSEL_CARDS",
+                    "PRIMARY_TEXT",
+                    "HEADLINE"
+                ],
+                "optional_assets": [
+                    "DESCRIPTION",
+                    "CALL_TO_ACTION"
+                ]
+            },
+            {
+                "id": "COLLECTION",
+                "name": "Collection",
+                "channels": [
+                    "FACEBOOK",
+                    "INSTAGRAM"
+                ],
+                "required_assets": [
+                    "INSTANT_EXPERIENCE_ID",
+                    "COVER_IMAGE",
+                    "PRIMARY_TEXT"
+                ],
+                "optional_assets": [
+                    "HEADLINE"
+                ]
+            }
+        ]
+    },
+    "constraints": {
+        "budget": {
+            "policies": [
+                {
+                    "id": "MIN_DAILY_BUDGET",
+                    "scope": "CAMPAIGN",
+                    "unit": "MAJOR_CURRENCY",
+                    "expression": "budget_per_day >= platform_min_daily_budget",
+                    "enforced_by": [
+                        "policy_mirror",
+                        "safety_horizon"
+                    ],
+                    "source": "META_POLICY"
+                },
+                {
+                    "id": "MAX_LIFETIME_BUDGET",
+                    "scope": "CAMPAIGN",
+                    "unit": "MAJOR_CURRENCY",
+                    "expression": "total_budget <= kaivo_workspace_budget_ceiling",
+                    "enforced_by": [
+                        "workspace_manager",
+                        "safety_horizon"
+                    ],
+                    "source": "KAIVO_POLICY"
+                }
+            ]
+        },
+        "regions": {
+            "allowed_regions_ref": "meta_ads_allowed_regions_v1",
+            "restricted_regions_ref": "meta_ads_restricted_regions_v1"
+        },
+        "categories": {
+            "sensitive_categories": [
+                "HOUSING",
+                "CREDIT",
+                "EMPLOYMENT",
+                "ISSUES_ELECTIONS_POLITICS",
+                "GAMBLING",
+                "ADULT_CONTENT"
+            ],
+            "requires_identity_verification": [
+                "ISSUES_ELECTIONS_POLITICS",
+                "CREDIT",
+                "HOUSING",
+                "EMPLOYMENT"
+            ],
+            "policy_mirror_table_ref": "meta_ads_policy_categories_v1"
+        },
+        "required_fields": {
+            "CAMPAIGN_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_name",
+                "campaign_type",
+                "channel",
+                "objective",
+                "bidding_strategy",
+                "daily_budget",
+                "currency",
+                "geo_targets"
+            ],
+            "AD_GROUP_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_id",
+                "ad_group_name",
+                "channel",
+                "bidding_strategy",
+                "initial_cpc_or_cpa_if_applicable"
+            ],
+            "AD_CREATE": [
+                "tenant_id",
+                "workspace_id",
+                "campaign_id",
+                "ad_group_id",
+                "creative_format_id",
+                "assets"
+            ]
+        },
+        "forbidden_fields": [
+            "raw_personally_identifiable_information",
+            "plaintext_credit_card_data",
+            "plaintext_passwords",
+            "unhashed_user_identifiers"
+        ],
+        "not_yet_supported_features": [
+            "OFFLINE_CONVERSION_UPLOAD",
+            "MESSAGING_EXPERIENCES",
+            "AUTOMATED_APP_ADS",
+            "CATALOG_SALES"
+        ]
+    },
+    "io_schema": {
+        "request_contract": {
+            "id": "meta_ads_request_contract_v1",
+            "required_fields": [
+                "execution_id",
+                "tenant_context",
+                "workspace_context",
+                "connector_id",
+                "operation",
+                "payload",
+                "feature_flags",
+                "requested_backplane_contract_version"
+            ],
+            "forbidden_fields": [
+                "_debug",
+                "debug_info",
+                "internal_only"
+            ],
+            "operations": [
+                {
+                    "operation": "CREATE_CAMPAIGN",
+                    "google_api_method_ref": "facebook.graph.v19.0.act_account_id.campaigns.POST",
+                    "payload_shape_ref": "meta_ads_create_campaign_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_external_reference)"
+                },
+                {
+                    "operation": "CREATE_AD_GROUP",
+                    "google_api_method_ref": "facebook.graph.v19.0.act_account_id.adsets.POST",
+                    "payload_shape_ref": "meta_ads_create_ad_group_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, ad_group_external_reference)"
+                },
+                {
+                    "operation": "CREATE_AD",
+                    "google_api_method_ref": "facebook.graph.v19.0.act_account_id.ads.POST",
+                    "payload_shape_ref": "meta_ads_create_ad_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, ad_external_reference)"
+                },
+                {
+                    "operation": "MUTATE_BUDGET",
+                    "google_api_method_ref": "facebook.graph.v19.0.campaign_id.POST",
+                    "payload_shape_ref": "meta_ads_mutate_budget_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_id, change_vector)"
+                },
+                {
+                    "operation": "PAUSE_CAMPAIGN",
+                    "google_api_method_ref": "facebook.graph.v19.0.campaign_id.POST",
+                    "payload_shape_ref": "meta_ads_pause_campaign_payload_v1",
+                    "idempotency_key_strategy": "HASH(tenant_id, workspace_id, campaign_id, target_status)"
+                }
+            ]
+        },
+        "response_contract": {
+            "id": "meta_ads_response_contract_v1",
+            "required_fields": [
+                "execution_id",
+                "tenant_context",
+                "workspace_context",
+                "connector_id",
+                "operation",
+                "status",
+                "normalized_payload",
+                "raw_connector_payload_ref",
+                "error",
+                "retry_advice",
+                "rate_limit_observation"
+            ],
+            "forbidden_fields": [
+                "_debug",
+                "debug_info",
+                "internal_only"
+            ],
+            "status_values": [
+                "SUCCESS",
+                "PARTIAL_SUCCESS",
+                "RETRYABLE_ERROR",
+                "NON_RETRYABLE_ERROR"
+            ],
+            "normalized_payload_shape_ref": "meta_ads_normalized_entity_shapes_v1"
+        },
+        "error_mapping": {
+            "id": "meta_ads_error_mapping_v1",
+            "domains": [
+                {
+                    "google_domain": "OAuthException",
+                    "mapped_category": "AUTH",
+                    "default_retry_policy": "NO_RETRY"
+                },
+                {
+                    "google_domain": "Throttling",
+                    "mapped_category": "RATE_LIMIT",
+                    "default_retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "google_domain": "Recipients",
+                    "mapped_category": "QUOTA",
+                    "default_retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "google_domain": "Permissions",
+                    "mapped_category": "POLICY",
+                    "default_retry_policy": "NO_RETRY"
+                },
+                {
+                    "google_domain": "Service",
+                    "mapped_category": "CONNECTOR_INTERNAL",
+                    "default_retry_policy": "RETRY_WITH_JITTER"
+                }
+            ],
+            "kaivo_error_codes": [
+                {
+                    "code": "META_AUTH_FAILED",
+                    "category": "AUTH",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "META_RATE_LIMITED",
+                    "category": "RATE_LIMIT",
+                    "retry_policy": "RETRY_WITH_BACKOFF"
+                },
+                {
+                    "code": "META_POLICY_VIOLATION",
+                    "category": "POLICY",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "META_INVALID_REQUEST",
+                    "category": "REQUEST",
+                    "retry_policy": "NO_RETRY"
+                },
+                {
+                    "code": "META_INTERNAL_ERROR",
+                    "category": "CONNECTOR_INTERNAL",
+                    "retry_policy": "RETRY_WITH_JITTER"
+                }
+            ]
+        },
+        "retry_logic": {
+            "policies": [
+                {
+                    "id": "RETRY_WITH_BACKOFF",
+                    "max_attempts": 5,
+                    "backoff_strategy": "EXPONENTIAL",
+                    "initial_delay_ms": 500,
+                    "max_delay_ms": 30000
+                },
+                {
+                    "id": "RETRY_WITH_JITTER",
+                    "max_attempts": 3,
+                    "backoff_strategy": "EXPONENTIAL_JITTER",
+                    "initial_delay_ms": 250,
+                    "max_delay_ms": 15000
+                },
+                {
+                    "id": "NO_RETRY",
+                    "max_attempts": 1,
+                    "backoff_strategy": "NONE",
+                    "initial_delay_ms": 0,
+                    "max_delay_ms": 0
+                }
+            ],
+            "safe_abort_conditions": [
+                "AUTH",
+                "POLICY",
+                "INVALID_REQUEST"
+            ]
+        }
+    },
+    "routing": {
+        "profile_id": "meta_ads_routing_profile_v1",
+        "default_endpoint": "https://graph.facebook.com/v19.0",
+        "supports_batching": true,
+        "max_batch_size": 50,
+        "concurrency_limits": {
+            "per_workspace_max_in_flight": 10,
+            "per_tenant_max_in_flight": 50
+        },
+        "rate_limit_hint": {
+            "tokens_per_second_soft_ceiling": 5,
+            "burst_size_soft_ceiling": 10
+        },
+        "timeout_ms": {
+            "connect_timeout_ms": 3000,
+            "read_timeout_ms": 60000
+        }
+    },
+    "safety_profile": {
+        "risk_weight": "HIGH",
+        "quota_consumption_model_ref": "meta_ads_quota_model_v1",
+        "connector_health_signals_ref": "meta_ads_health_signals_v1",
+        "safety_horizon_bindings": {
+            "uses_policy_mirror": true,
+            "uses_safety_horizon": true,
+            "uses_rate_limit_forecaster": true,
+            "uses_capability_drift_model": true
+        }
+    },
+    "knowledge_sources": {
+        "policy_mirror_table_ref": "meta_ads_policy_mirror_v1",
+        "capability_source": "META_MARKETING_API_DOCS_AND_MANUAL_VERIFICATION",
+        "documentation_urls": [
+            "https://developers.facebook.com/docs/marketing-api/"
+        ]
+    },
+    "metadata": {
+        "created_at": "2025-12-09T00:00:00Z",
+        "updated_at": "2025-12-09T00:00:00Z",
+        "created_by": "kaivo_system",
+        "updated_by": "kaivo_system"
+    }
+}

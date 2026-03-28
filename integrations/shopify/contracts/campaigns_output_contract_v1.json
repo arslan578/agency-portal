@@ -1,0 +1,14 @@
+{
+    "contract_version": "output_contract_v1",
+    "shop_domain": "string",
+    "campaigns": [
+        {
+            "kaivo_campaign_id": "string",
+            "shopify_product_id": "string",
+            "status": "DRAFT_CREATED | SUBMITTED | ERROR",
+            "created_at": "string"
+        }
+    ],
+    "correlation_id": "string",
+    "forbidden_fields": []
+}

@@ -1,0 +1,75 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: campaign-service
+spec:
+  selector:
+    app: campaign-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: campaign-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: campaign-service
+  template:
+    metadata:
+      labels:
+        app: campaign-service
+    spec:
+      containers:
+        - name: campaign-service
+          image: kaivo-campaign-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: DATABASE_URL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: creative-service
+spec:
+  selector:
+    app: creative-service
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: creative-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: creative-service
+  template:
+    metadata:
+      labels:
+        app: creative-service
+    spec:
+      containers:
+        - name: creative-service
+          image: kaivo-creative-service:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: kaivo-secrets
+                  key: DATABASE_URL

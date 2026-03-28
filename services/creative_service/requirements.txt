@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pydantic
+sqlalchemy
+psycopg2-binary
+python-multipart
+cloudinary>=1.40.0
+httpx
+openai

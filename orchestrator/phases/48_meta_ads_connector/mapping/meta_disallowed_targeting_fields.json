@@ -1,0 +1,30 @@
+{
+    "disallowed_fields": [
+        "custom_audiences",
+        "excluded_custom_audiences",
+        "connections",
+        "excluded_connections",
+        "friends_of_connections",
+        "user_os",
+        "wireless_carrier",
+        "site_category",
+        "work_employers",
+        "education_schools",
+        "education_majors",
+        "relationship_statuses",
+        "interested_in",
+        "life_events",
+        "politics",
+        "income",
+        "net_worth",
+        "home_type",
+        "home_ownership",
+        "home_value",
+        "ethnic_affinity",
+        "generation",
+        "household_composition",
+        "moms",
+        "office_type",
+        "targeting_optimization"
+    ]
+}

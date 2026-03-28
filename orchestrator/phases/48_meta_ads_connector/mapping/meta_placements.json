@@ -1,0 +1,79 @@
+{
+    "placement_bundles": {
+        "AUTOMATIC": {
+            "publisher_platforms": [
+                "facebook",
+                "instagram",
+                "audience_network",
+                "messenger"
+            ],
+            "facebook_positions": [
+                "feed",
+                "right_hand_column",
+                "instant_article",
+                "marketplace",
+                "video_feeds",
+                "story",
+                "search"
+            ],
+            "instagram_positions": [
+                "stream",
+                "story",
+                "explore"
+            ],
+            "audience_network_positions": [
+                "classic",
+                "rewarded_video"
+            ],
+            "messenger_positions": [
+                "messenger_home",
+                "sponsored_messages",
+                "story"
+            ]
+        },
+        "FACEBOOK_ONLY": {
+            "publisher_platforms": [
+                "facebook"
+            ],
+            "facebook_positions": [
+                "feed",
+                "right_hand_column",
+                "instant_article",
+                "marketplace",
+                "video_feeds",
+                "story",
+                "search"
+            ],
+            "instagram_positions": [],
+            "audience_network_positions": [],
+            "messenger_positions": []
+        },
+        "INSTAGRAM_ONLY": {
+            "publisher_platforms": [
+                "instagram"
+            ],
+            "facebook_positions": [],
+            "instagram_positions": [
+                "stream",
+                "story",
+                "explore"
+            ],
+            "audience_network_positions": [],
+            "messenger_positions": []
+        },
+        "MOBILE_FEED": {
+            "publisher_platforms": [
+                "facebook",
+                "instagram"
+            ],
+            "facebook_positions": [
+                "feed"
+            ],
+            "instagram_positions": [
+                "stream"
+            ],
+            "audience_network_positions": [],
+            "messenger_positions": []
+        }
+    }
+}

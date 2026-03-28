@@ -1,0 +1,18 @@
+{
+    "allowed_fields": [
+        "geo",
+        "age_min",
+        "age_max",
+        "genders",
+        "interests",
+        "behaviors",
+        "publisher_platforms",
+        "facebook_positions",
+        "instagram_positions",
+        "audience_network_positions",
+        "messenger_positions",
+        "locales",
+        "device_platforms",
+        "exclude_reached_since"
+    ]
+}
