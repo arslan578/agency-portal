@@ -126,7 +126,13 @@ export function AgencySidebar({ initialUser }: { initialUser?: SidebarUserSnapsh
       {/* Navigation */}
       <nav className="p-[10px] pt-3 flex-1">
         {NAV_ITEMS.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const isActive =
+            item.href === "/"
+              ? pathname === "/"
+              : item.href === "/clients"
+                ? pathname.startsWith("/clients") ||
+                  Boolean(pathname?.match(/^\/agency\/\d+\/clients(\/|$)/))
+                : pathname.startsWith(item.href);
           return (
             <Link
               key={item.name}

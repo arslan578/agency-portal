@@ -126,10 +126,16 @@ export const HierarchyCampaignSchema = z.object({
   ad_sets: z.array(HierarchyAdSetSchema).default([]),
 });
 
+export const HierarchyLinkedAccountSchema = z.object({
+  id: z.number(),
+  external_id: z.string(),
+});
+
 export const HierarchyPlatformSchema = z.object({
   key: z.string(),
   display_name: z.string(),
   account_ids: z.array(z.string()).default([]),
+  linked_accounts: z.array(HierarchyLinkedAccountSchema).default([]),
   metrics: HierarchyMetricsSchema,
   campaigns: z.array(HierarchyCampaignSchema).default([]),
 });
@@ -204,3 +210,73 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, { capabilities: string[]; sect
     sections: ['Dashboard', 'Clients (read-only)', 'Reports'],
   },
 };
+
+// ── Meta Business Manager Types ─────────────────────────────────────────────
+
+export interface MetaAdAccount {
+  account_id: string;
+  account_name: string;
+  currency: string;
+  timezone: string;
+  status: string;
+  spend?: number;
+}
+
+export interface MetaCampaign {
+  campaign_id: string;
+  name: string;
+  objective: string;
+  status: 'ACTIVE' | 'PAUSED' | 'ARCHIVED' | string;
+  budget_type: 'daily' | 'lifetime';
+  budget: number;
+  currency: string;
+  start_date: string;
+  end_date: string | null;
+  ad_account_id: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  reach: number;
+}
+
+export interface MetaAdSet {
+  adset_id: string;
+  campaign_id: string;
+  name: string;
+  status: string;
+  daily_budget: number;
+  targeting_summary: string;
+}
+
+export interface MetaInsights {
+  connected: boolean;
+  reason?: 'agency_not_connected' | 'not_linked' | 'token_expired';
+  meta_account_status: string;
+  business_manager_name?: string;
+  ad_accounts: MetaAdAccount[];
+  campaigns: MetaCampaign[];
+  ad_sets: MetaAdSet[];
+  token_valid: boolean;
+  token_expires_at: string | null;
+}
+
+export interface BMAccount {
+  account_id: string;
+  account_name: string;
+  currency: string;
+  timezone: string;
+  status: string;
+  spend: number;
+  linked_client_id?: string | null;
+}
+
+export interface MetaBMStatus {
+  connected: boolean;
+  business_manager_id: string | null;
+  business_manager_name: string | null;
+  connected_at: string | null;
+  token_valid: boolean;
+  token_expires_at: string | null;
+  token_warning: boolean;
+}
+

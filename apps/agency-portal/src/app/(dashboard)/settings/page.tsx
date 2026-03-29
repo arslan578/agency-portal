@@ -850,6 +850,7 @@ export default function SettingsPage() {
             </div>
           )}
 
+
           {activeTab === 'account' && (
             <div className="max-w-xl space-y-6">
               <h2 className={sectionTitle}>Account</h2>

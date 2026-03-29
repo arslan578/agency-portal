@@ -9,7 +9,7 @@ This module provides endpoints for:
 All sensitive operations require appropriate role-based access control.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, HTTPException, Header, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
@@ -53,8 +53,7 @@ def get_agency_dashboard(
     Agency dashboard summary. Only agency members can access.
     Returns agency info, client count, and campaign counts for the agency.
     """
-    if ctx["agency_id"] != agency_id:
-        raise HTTPException(status_code=403, detail="Access denied to this agency")
+    ensure_agency_scope(ctx, agency_id)
     agency = db.query(Agency).filter(Agency.id == agency_id).first()
     if not agency:
         raise HTTPException(status_code=404, detail="Agency not found")
@@ -410,11 +409,11 @@ def remove_member(
 
 @router.get("/clients", response_model=List[schemas_agency.ClientOut])
 def list_clients_by_agency(
-    agency_id: int,
+    agency_id: int = Query(..., description="Agency id (must match X-Agency-ID context)"),
     db: Session = Depends(get_db),
     ctx: dict = Depends(require_any_member),
 ):
-    """List clients for an agency by query parameter"""
+    """List clients for an agency by query parameter (same RBAC as /agency/{id}/clients)."""
     ensure_agency_scope(ctx, agency_id)
     clients = db.query(Client).filter(Client.agency_id == agency_id).all()
     return clients
@@ -600,3 +599,213 @@ def update_client_permissions(
     client.is_active = permission.is_active
     db.commit()
     return {"status": "success", "is_active": client.is_active}
+
+
+# ── Meta Business Manager Endpoints ──────────────────────────────────────────
+
+@router.post("/agency/{agency_id}/meta/connect")
+def connect_meta_bm(
+    agency_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """
+    Connect Meta Business Manager to the agency.
+    Receives OAuth code from frontend, exchanges for long-lived token,
+    fetches BM info, stores credentials.
+    """
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.meta_bm_service import connect_business_manager
+
+    code = body.get("code")
+    redirect_uri = body.get("redirectUri")
+    if not code:
+        raise HTTPException(status_code=400, detail="OAuth code is required")
+
+    try:
+        result = connect_business_manager(
+            db, agency_id, code, user_id=ctx.get("user_id"), redirect_uri=redirect_uri
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect Meta BM: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/meta/disconnect")
+def disconnect_meta_bm(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """Disconnect Meta Business Manager from the agency."""
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.meta_bm_service import disconnect_business_manager
+
+    try:
+        result = disconnect_business_manager(db, agency_id, user_id=ctx.get("user_id"))
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/meta/accounts")
+def get_meta_bm_accounts(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    """
+    List all ad accounts under the agency's Business Manager.
+    Returns list of ad accounts with metadata.
+    """
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.meta_bm_service import fetch_bm_client_ad_accounts
+
+    agency = db.query(Agency).filter(Agency.id == agency_id).first()
+    if not agency:
+        raise HTTPException(status_code=404, detail="Agency not found")
+
+    if not agency.meta_business_manager_id or not agency.meta_agency_access_token:
+        return {"connected": False, "accounts": [], "reason": "agency_not_connected"}
+
+    try:
+        accounts = fetch_bm_client_ad_accounts(
+            agency.meta_business_manager_id, agency.meta_agency_access_token
+        )
+
+        # Annotate accounts with linked client info
+        clients = db.query(Client).filter(Client.agency_id == agency_id).all()
+        client_map = {}
+        for c in clients:
+            if c.agency_meta_account_id:
+                client_map[c.agency_meta_account_id] = c.id
+
+        for acc in accounts:
+            acc["linked_client_id"] = client_map.get(acc["account_id"])
+
+        return {"connected": True, "accounts": accounts}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch accounts: {str(e)}")
+
+
+@router.get("/agency/{agency_id}/meta/status")
+def get_meta_bm_status(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    """Get Meta Business Manager connection status for the agency."""
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.meta_bm_service import check_token_validity
+
+    agency = db.query(Agency).filter(Agency.id == agency_id).first()
+    if not agency:
+        raise HTTPException(status_code=404, detail="Agency not found")
+
+    if not agency.meta_business_manager_id:
+        return {
+            "connected": False,
+            "business_manager_id": None,
+            "business_manager_name": None,
+            "connected_at": None,
+            "token_valid": False,
+            "token_expires_at": None,
+            "token_warning": False,
+        }
+
+    token_info = check_token_validity(agency)
+
+    return {
+        "connected": True,
+        "business_manager_id": agency.meta_business_manager_id,
+        "business_manager_name": agency.meta_business_manager_name,
+        "connected_at": agency.meta_connected_at.isoformat() if agency.meta_connected_at else None,
+        "token_valid": token_info.get("valid", False),
+        "token_expires_at": token_info.get("expires_at"),
+        "token_warning": token_info.get("warning", False),
+    }
+
+
+@router.post("/agency/{agency_id}/meta/auto-link")
+def auto_link_meta_clients(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """
+    Auto-link agency clients to BM ad accounts.
+    Matches Kaivo platform accounts against BM client_ad_accounts.
+    """
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.meta_bm_service import auto_link_clients
+
+    try:
+        result = auto_link_clients(db, agency_id, user_id=ctx.get("user_id"))
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-link failed: {str(e)}")
+
+
+@router.post("/clients/{client_id}/meta/manual-link")
+def manual_link_meta_client(
+    client_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    """
+    Manually assign a BM ad account to a client.
+    Body: { "ad_account_id": "act_XXXXXXX" }
+    """
+    from services.account_service.meta_bm_service import manual_link_client
+
+    ad_account_id = body.get("ad_account_id")
+    if not ad_account_id:
+        raise HTTPException(status_code=400, detail="ad_account_id is required")
+
+    try:
+        result = manual_link_client(
+            db, client_id, ad_account_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Manual link failed: {str(e)}")
+
+
+@router.get("/clients/{client_id}/meta-insights")
+def get_client_meta_insights(
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    """
+    Fetch Meta insights for a specific client.
+    Uses agency BM token, NOT client's Kaivo token.
+    Returns campaigns (live), ad_accounts (cached 15m), ad_sets (cached 15m).
+    """
+    from services.account_service.meta_bm_service import fetch_client_meta_insights
+
+    try:
+        result = fetch_client_meta_insights(
+            db, client_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch insights: {str(e)}")

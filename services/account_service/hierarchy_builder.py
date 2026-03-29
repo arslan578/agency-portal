@@ -210,10 +210,14 @@ def build_client_hierarchy(
         platform_nodes: List[Dict[str, Any]] = []
 
         for pk in ordered_platforms:
-            p_accounts = [
-                a.account_id
+            p_acct_rows = [
+                a
                 for a in accounts_by_client.get(cl.id, [])
                 if normalize_platform_key(a.platform) == pk
+            ]
+            p_accounts = [a.account_id for a in p_acct_rows]
+            linked_accounts = [
+                {"id": a.id, "external_id": a.account_id or ""} for a in p_acct_rows
             ]
             p_camps = [c for c in cl_camps if pk in _campaign_platform_keys(c)]
             p_spend = p_imp = p_clk = p_budget = 0.0
@@ -259,6 +263,7 @@ def build_client_hierarchy(
                     "key": pk,
                     "display_name": platform_display_name(pk),
                     "account_ids": p_accounts,
+                    "linked_accounts": linked_accounts,
                     "metrics": p_metrics,
                     "campaigns": camp_nodes,
                 }

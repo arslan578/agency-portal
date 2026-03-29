@@ -23,7 +23,10 @@ export function DashboardHeader({
   actions?: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const meta = PAGE_META[pathname] || { title: "Kaivo" };
+  const meta =
+    PAGE_META[pathname] ||
+    (pathname?.match(/^\/agency\/\d+\/clients\/?$/) ? { title: "Clients" } : null) ||
+    { title: "Kaivo" };
   const displayTitle = title || meta.title;
   const displaySubtitle = subtitle || meta.subtitle;
 

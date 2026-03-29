@@ -647,8 +647,37 @@ function PlatformRows({
           </button>
         </td>
         <td className="pl-8 pr-3 py-2 text-text-secondary font-bold" colSpan={1}>
-          <span className="text-teal">{platform.display_name}</span>
-          <span className="text-text-muted font-medium text-[10px] ml-2">· client #{clientId}</span>
+          <div className="flex flex-col gap-1 min-w-0">
+            <div>
+              <span className="text-teal">{platform.display_name}</span>
+              <span className="text-text-muted font-medium text-[10px] ml-2">· client #{clientId}</span>
+            </div>
+            {(platform.linked_accounts?.length ?? 0) > 0 ? (
+              <div className="flex flex-wrap gap-1 max-w-[420px]">
+                {platform.linked_accounts!.map((acc) => (
+                  <span
+                    key={acc.id}
+                    className="inline-flex px-1.5 py-0.5 rounded bg-cream-dark text-[9.5px] font-mono text-text-muted truncate max-w-[200px]"
+                    title={acc.external_id}
+                  >
+                    {acc.external_id || `id:${acc.id}`}
+                  </span>
+                ))}
+              </div>
+            ) : platform.account_ids.length > 0 ? (
+              <div className="flex flex-wrap gap-1 max-w-[420px]">
+                {platform.account_ids.map((aid, i) => (
+                  <span
+                    key={`${aid}-${i}`}
+                    className="inline-flex px-1.5 py-0.5 rounded bg-cream-dark text-[9.5px] font-mono text-text-muted truncate max-w-[200px]"
+                    title={aid}
+                  >
+                    {aid}
+                  </span>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </td>
         <MetricsRowCells m={m} />
         <td className="px-3 py-2 text-text-muted">—</td>

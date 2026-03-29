@@ -40,6 +40,12 @@ class PlanStatus(enum.Enum):
     DRAFT = "DRAFT"
     CONVERTED = "CONVERTED"
 
+
+def _enum_db_values(enum_cls: type[enum.Enum]) -> list[str]:
+    """Persist Enum .value to PostgreSQL when labels match values (not Python member names)."""
+    return [e.value for e in enum_cls]
+
+
 class InviteStatus(enum.Enum):
     PENDING = "pending"
     ACCEPTED = "accepted"
@@ -79,9 +85,24 @@ class Agency(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    current_plan = Column(Enum(PlanTier), default=PlanTier.FREE)
+    current_plan = Column(
+        Enum(
+            PlanTier,
+            name="plantier",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=PlanTier.FREE,
+    )
     credits = Column(DECIMAL(10, 2), default=0.00, nullable=False)
     billing_status = Column(String, default="active")
+
+    # --- Meta Business Manager ---
+    meta_business_manager_id = Column(String(100), nullable=True)
+    meta_business_manager_name = Column(String(255), nullable=True)
+    meta_agency_access_token = Column(Text, nullable=True)
+    meta_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    meta_connected_at = Column(DateTime(timezone=True), nullable=True)
     
     memberships = relationship("packages.db.models.AgencyMembership", back_populates="agency")
     clients = relationship("packages.db.models.Client", back_populates="agency")
@@ -94,8 +115,16 @@ class AgencyMembership(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
-    role = Column(Enum(AgencyRole), default=AgencyRole.VIEWER)
-    
+    role = Column(
+        Enum(
+            AgencyRole,
+            name="agencyrole",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=AgencyRole.VIEWER,
+    )
+
     user = relationship("packages.db.models.User", back_populates="agency_memberships")
     agency = relationship("packages.db.models.Agency", back_populates="memberships")
 
@@ -107,9 +136,25 @@ class AgencyInvite(Base):
     id = Column(Integer, primary_key=True, index=True)
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
     email = Column(String, nullable=False, index=True)
-    role = Column(Enum(AgencyRole), default=AgencyRole.VIEWER)
+    role = Column(
+        Enum(
+            AgencyRole,
+            name="agencyrole",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=AgencyRole.VIEWER,
+    )
     token = Column(String, unique=True, nullable=False, index=True)
-    status = Column(Enum(InviteStatus), default=InviteStatus.PENDING)
+    status = Column(
+        Enum(
+            InviteStatus,
+            name="invitestatus",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=InviteStatus.PENDING,
+    )
     invited_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -132,6 +177,12 @@ class Client(Base):
     markup_percent = Column(DECIMAL(10, 4), default=1.0000) # e.g. 1.20 for 20% markup
     is_active = Column(Boolean, default=True)
     account_mode = Column(String(20), default="kaivo_managed") # 'kaivo_managed' | 'reporting_only'
+
+    # --- Meta Business Manager linking ---
+    agency_meta_account_id = Column(String(100), nullable=True)
+    meta_account_status = Column(String(30), default="agency_not_connected")
+    meta_account_name = Column(String(255), nullable=True)
+    meta_linked_at = Column(DateTime(timezone=True), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -363,7 +414,15 @@ class MagicToken(Base):
     id = Column(Integer, primary_key=True, index=True)
     token = Column(String, unique=True, nullable=False, index=True)
     email = Column(String, nullable=False, index=True)
-    role = Column(Enum(AgencyRole), default=AgencyRole.VIEWER)
+    role = Column(
+        Enum(
+            AgencyRole,
+            name="agencyrole",
+            values_callable=_enum_db_values,
+            create_type=False,
+        ),
+        default=AgencyRole.VIEWER,
+    )
     agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     expires_at = Column(DateTime(timezone=True), nullable=False)
@@ -386,4 +445,24 @@ class ShopifyConnection(Base):
     workspace_id = Column(String, nullable=True)  # Optional: link to workspace
     installed_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# --- Audit Logs ---
+
+class AuditLog(Base):
+    """Audit log for tracking Meta operations and other sensitive actions."""
+    __tablename__ = "audit_logs"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action = Column(String(100), nullable=False, index=True)
+    details = Column(JSON, default={})
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    agency = relationship("packages.db.models.Agency")
+    client = relationship("packages.db.models.Client")
+    user = relationship("packages.db.models.User")
 

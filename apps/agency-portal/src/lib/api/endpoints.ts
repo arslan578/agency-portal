@@ -44,4 +44,13 @@ export const API_ENDPOINTS = {
   INTELLIGENCE: {
     RECOMMENDATIONS: `${BASE}/intelligence/recommendations`,
   },
+  META: {
+    CONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/meta/connect`,
+    DISCONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/meta/disconnect`,
+    STATUS: (agencyId: string) => `${BASE}/agency/${agencyId}/meta/status`,
+    ACCOUNTS: (agencyId: string) => `${BASE}/agency/${agencyId}/meta/accounts`,
+    AUTO_LINK: (agencyId: string) => `${BASE}/agency/${agencyId}/meta/auto-link`,
+    MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/meta/manual-link`,
+    CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/meta-insights`,
+  },
 } as const;
