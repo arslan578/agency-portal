@@ -22,11 +22,11 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from packages.db.admin_schema import ensure_magic_tokens_table
 from packages.db.database import SessionLocal, engine
+from packages.db.orm_schema_repair import ensure_orm_schema
 from packages.db.models import (
     Agency,
     AgencyMembership,
@@ -36,38 +36,6 @@ from packages.db.models import (
     User,
 )
 from services.auth_service import auth as auth_lib
-
-# ---------------------------------------------------------------------------
-# Schema auto-repair: columns the ORM expects but older DB dumps may lack.
-# Each entry: (table, column, column_definition).
-# Uses ADD COLUMN IF NOT EXISTS — safe to run repeatedly.
-# ---------------------------------------------------------------------------
-_REQUIRED_COLUMNS = [
-    ("agencies",  "updated_at",      "TIMESTAMP WITH TIME ZONE"),
-    ("agencies",  "credits",         "DECIMAL(10,2) NOT NULL DEFAULT 0.00"),
-    ("agencies",  "billing_status",  "VARCHAR DEFAULT 'active'"),
-    ("clients",   "account_mode",    "VARCHAR(20) DEFAULT 'kaivo_managed'"),
-    ("users",     "last_login_at",   "TIMESTAMP WITH TIME ZONE"),
-]
-
-
-def _ensure_schema() -> None:
-    """Add any columns the SQLAlchemy models need but the live DB is missing.
-
-    Uses a short statement_timeout so a stale lock can never hang the script.
-    Each ALTER runs in its own autocommit transaction.
-    """
-    with engine.connect() as conn:
-        conn.execute(text("SET statement_timeout = '5s';"))
-        conn.execute(text("COMMIT;"))  # exit any implicit transaction
-        for table, column, definition in _REQUIRED_COLUMNS:
-            conn.execute(
-                text(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {definition};")
-            )
-            conn.execute(text("COMMIT;"))
-        conn.execute(text("SET statement_timeout = '0';"))
-        conn.execute(text("COMMIT;"))
-
 
 # ---------------------------------------------------------------------------
 # Interactive helpers
@@ -166,7 +134,7 @@ def run() -> int:
 
     # 1. Auto-repair schema before any ORM operations
     try:
-        _ensure_schema()
+        ensure_orm_schema(engine)
         ensure_magic_tokens_table(engine)
         print("[OK] Database schema verified.\n")
     except Exception as e:

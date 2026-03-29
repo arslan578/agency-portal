@@ -1,0 +1,67 @@
+________________________________________
+The Complete Data Picture for Kaivo Agency Portal
+Using the 4W + 1H Framework
+________________________________________
+🔴 WHAT is the actual problem we are solving?
+Think of it like this. You have Kaivo — your platform. An agency (let's call them "XYZ Marketing Agency") has signed up on Kaivo. That agency manages 10 clients — meaning 10 different businesses that hired XYZ to run their Facebook ads, Google ads, etc.
+The question you're asking is: how does all that data — clients, campaigns, ad performance — actually appear on the Kaivo agency portal?
+There are only two possible answers to this in the world:
+1.	The agency manually types it all in (bad, slow, agencies will hate you)
+2.	The agency connects their existing ad accounts and Kaivo pulls it automatically (good, this is what every serious platform does)
+You are doing option 2. And your ClickUp confirms it — there's a task called "Integrate data pipeline from ad platform into portal" and another called "Define ingestion rules." That tells you the client already expects automatic data pulling.
+________________________________________
+🔴 WHO is involved and what is their role?
+There are 3 types of people in this whole system. Think of it as 3 floors of a building.
+Floor 3 — You (Kaivo / Super Admin) You sit at the very top. You invite agencies to your platform. You can see everything. You manage who has access.
+Floor 2 — The Agency (Agency Admin) The agency logs into the Kaivo portal. They manage their own clients. They can see all their clients' data in one place. They don't manage each client on Meta or Google separately anymore — they see everything in Kaivo. They also have team members (like junior account managers) who are agency viewers.
+Floor 1 — The Client (the business) The client is just a business — a restaurant, a clothing brand, a car dealership — that hired the agency to run their ads. The client itself does NOT log into Kaivo. The client's data just flows into Kaivo through the agency's ad account connections.
+________________________________________
+🔴 WHERE does the data come from?
+This is the most important part. Here's where it comes from, step by step, in plain English.
+Meta (Facebook/Instagram Ads): Meta has something called the Meta Marketing API. If an agency gives Kaivo permission to read their Meta ad account, Kaivo can pull — automatically — all their clients' campaigns, ad spend, impressions, clicks, conversions, everything. Meta calls this a "Business Manager" connection.
+Google Ads: Google has the Google Ads API. Same idea. Agency connects their Google Ads Manager account (called an MCC — Manager account) and Kaivo can pull all campaign data for all the clients under that manager.
+How agencies grant this permission: There is a standard industry method called OAuth. You have already used this concept — it's the same as "Login with Google" or "Login with Facebook." The agency clicks "Connect Meta" in Kaivo → a Meta popup opens → they click Allow → Meta gives Kaivo a token → Kaivo uses that token from now on to fetch data silently in the background. The agency never has to do it again.
+This is exactly what your ClickUp task "Connect Integrations Screen - note sliding side panel" is referring to.
+________________________________________
+🔴 WHEN does the data sync?
+Not in real time — that would be too many API calls and cost you money. The industry standard is:
+•	Every night — Kaivo runs a background job (a scheduled task in Flask using something like Celery or APScheduler) that pulls fresh data from Meta and Google for every connected agency.
+•	On demand — If the agency clicks a "Refresh" button in the portal, it triggers an immediate pull for that account.
+•	On first connection — The moment an agency connects their Meta or Google account, Kaivo immediately pulls the last 30–90 days of historical data so the dashboard isn't empty.
+________________________________________
+🔴 HOW does the full workflow work, step by step?
+Here is the complete journey from zero to a filled agency dashboard. Read this slowly — this is everything.
+________________________________________
+Step 1 — You invite the agency From your admin panel, you type the agency's email and click Send. They get a magic link. They click it. They're now logged into the Kaivo Agency Portal. Their dashboard is empty because they haven't connected anything yet.
+Step 2 — First-time onboarding screen This is the ClickUp task "Connect 1st time onboarding screen." The moment they log in for the first time, a setup wizard appears. It says something like: "Welcome to Kaivo. Let's connect your ad accounts to get started." There are two big buttons: Connect Meta and Connect Google.
+Step 3 — Agency connects Meta They click "Connect Meta." An OAuth popup opens (this is Meta's official login window — you don't build this, Meta provides it). The agency logs into their Meta Business Manager. They click "Allow Kaivo to access your ad accounts." Meta sends a secure token back to your Flask backend. You save this token in your database tied to that agency's workspace.
+Step 4 — Kaivo reads their ad accounts and clients Now that you have the token, your Flask backend immediately calls the Meta API: "Give me all the ad accounts under this Business Manager." Meta returns a list — each ad account represents one of the agency's clients. For example:
+•	Ad Account 001 → Client: Fresh Burger Restaurant
+•	Ad Account 002 → Client: Blue Ocean Clothing
+•	Ad Account 003 → Client: Fast Cars Dealership
+Kaivo saves these as "clients" in your database, automatically. The agency didn't type anything manually. The clients just appeared.
+Step 5 — Kaivo pulls campaign data for each client For each client (ad account), Kaivo calls the Meta API again: "Give me all campaigns, their status, spend, impressions, clicks, and results." All of this goes into your database.
+Step 6 — Dashboard is now populated The agency refreshes their Kaivo dashboard. They now see all their clients listed. They click on "Fresh Burger Restaurant" and see that client's campaigns, ad spend, performance graphs — everything. This is what the ClickUp task "Connect Client Detail Page" means.
+Step 7 — Nightly sync keeps data fresh Every night at 2am (or whatever time you schedule), a background job runs automatically in Flask. It loops through every agency that has a connected Meta or Google account. For each one, it fetches the last 24 hours of data and updates the database. The agency wakes up and their dashboard already has yesterday's numbers.
+________________________________________
+The Integrations Question — Yes or No?
+Yes, you must allow agencies to connect their own Meta and Google accounts. There is no other way to get their clients' campaign data. You cannot get it any other way — Meta and Google only give data to people who have been given permission by the account owner.
+________________________________________
+Summary in One Paragraph (The Simple Version)
+An agency logs into Kaivo using a magic link you sent them. On their first visit, they see a setup screen asking them to connect their Meta and Google accounts. They click a button, approve it in a popup, and that's it. Kaivo then automatically fetches all their clients and all their campaigns from Meta and Google using official APIs. Every night, Kaivo refreshes all that data automatically. The agency opens their dashboard every morning and sees all their clients, all campaigns, all performance numbers — without doing anything manually. That is the complete data flow.
+________________________________________
+What You Need to Build (Mapped to Your ClickUp Tasks)
+ClickUp Task	What it actually means now
+Connect 1st time onboarding screen	The setup wizard that appears after first login — shows Connect Meta + Connect Google buttons
+Connect Integrations Screen	The page where agencies can manage, disconnect, or reconnect their ad platforms
+Build agency authentication and user roles	Done — this is your magic link work
+Connect Client list page	The page that shows all clients pulled from Meta/Google
+Connect Client Detail Page	Single client view showing their campaigns and performance
+Integrate data pipeline from ad platform	The Flask background job that calls Meta/Google APIs and stores data
+Define ingestion rules	Decisions like: how far back do we pull? what data fields do we store? how often?
+Build client account management	UI to manually add/remove a client if the agency wants to add one that isn't on Meta/Google
+Connect agency dashboard	The main overview showing all clients' combined performance at a glance
+________________________________________
+This is your complete picture. The data comes from Meta and Google APIs via OAuth. Agencies connect once and everything populates automatically. You already have the pattern from the commercial portal — apply it here at the Business Manager level and you're done.
+
+This is not only for meta and Google we are going to integrate the Reddit, Tiktok, Spotify add Microsoft as well. 

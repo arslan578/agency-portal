@@ -39,8 +39,13 @@ def upgrade() -> None:
             """
         )
 
-    for lab in ("agency_admin", "agency_member", "agency_viewer"):
-        add_enum_label("agencyrole", lab)
+    # ADD VALUE must commit before new labels are valid in UPDATE/INSERT.
+    with op.get_context().autocommit_block():
+        for lab in ("agency_admin", "agency_member", "agency_viewer"):
+            add_enum_label("agencyrole", lab)
+        if bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'invitestatus'")).scalar():
+            for lab in ("pending", "accepted", "expired", "revoked"):
+                add_enum_label("invitestatus", lab)
 
     role_map = [
         ("ADMIN", "agency_admin"),
@@ -63,16 +68,13 @@ def upgrade() -> None:
                 f"UPDATE magic_tokens SET role = '{new}'::agencyrole WHERE role::text = '{old}';"
             )
 
+    invite_map = [
+        ("PENDING", "pending"),
+        ("ACCEPTED", "accepted"),
+        ("EXPIRED", "expired"),
+        ("REVOKED", "revoked"),
+    ]
     if bind.execute(sa.text("SELECT 1 FROM pg_type WHERE typname = 'invitestatus'")).scalar():
-        for lab in ("pending", "accepted", "expired", "revoked"):
-            add_enum_label("invitestatus", lab)
-
-        invite_map = [
-            ("PENDING", "pending"),
-            ("ACCEPTED", "accepted"),
-            ("EXPIRED", "expired"),
-            ("REVOKED", "revoked"),
-        ]
         if "agency_invites" in tables:
             for old, new in invite_map:
                 op.execute(
