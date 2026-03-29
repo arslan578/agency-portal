@@ -36,14 +36,17 @@ export const MOCK_CAMPAIGNS = [
 
 export const MOCK_PLATFORMS = [
   { id: "meta", name: "Meta", icon: "f", iconBg: "#e8effe", iconColor: "#1877f2", accounts: 8, spend: "$38.4k", score: 82.4, status: "connected" as const, lastSynced: "2 min ago" },
-  { id: "google", name: "Google Ads", icon: "G", iconBg: "#fdecea", iconColor: "#ea4335", accounts: 7, spend: "$22.1k", score: 78.1, status: "connected" as const, lastSynced: "5 min ago" },
-  { id: "tiktok", name: "TikTok", icon: "T", iconBg: "#e6f9fb", iconColor: "#00b8c4", accounts: 5, spend: "$14.2k", score: 64.8, status: "connected" as const, lastSynced: "10 min ago" },
-  { id: "linkedin", name: "LinkedIn", icon: "in", iconBg: "#e8f0f8", iconColor: "#0077b5", accounts: 3, spend: "$6.4k", score: 49.2, status: "disconnected" as const, lastSynced: "Never" },
-  { id: "snapchat", name: "Snapchat", icon: "👻", iconBg: "#fffbe6", iconColor: "#FFCC00", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never" },
-  { id: "pinterest", name: "Pinterest", icon: "P", iconBg: "#fdecea", iconColor: "#e60023", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never" },
-  { id: "reddit", name: "Reddit", icon: "R", iconBg: "#fff0e6", iconColor: "#ff4500", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never" },
-  { id: "microsoft", name: "Microsoft Ads", icon: "M", iconBg: "#e8f0f8", iconColor: "#00a4ef", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never" },
-  { id: "spotify", name: "Spotify", icon: "S", iconBg: "#e8f7ef", iconColor: "#1DB954", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never" },
+  /** Template-aligned demo cards (UI only; same shell as Meta) */
+  { id: "google", name: "Google Ads", icon: "G", iconBg: "#fdecea", iconColor: "#ea4335", accounts: 7, spend: "$22.1k", score: 78.1, status: "connected" as const, lastSynced: "12 min ago", integrationUiVariant: "connected_ok" as const },
+  { id: "tiktok", name: "TikTok", icon: "T", iconBg: "#e6f9fb", iconColor: "#00b8c4", accounts: 5, spend: "$14.2k", score: 64.8, status: "connected" as const, lastSynced: "6 hrs ago", integrationUiVariant: "auth_error" as const },
+  { id: "linkedin", name: "LinkedIn", icon: "in", iconBg: "#e8f0f8", iconColor: "#0077b5", accounts: 3, spend: "$6.4k", score: 49.2, status: "disconnected" as const, lastSynced: "Never", availSub: "Campaign Manager" },
+  { id: "youtube", name: "YouTube", icon: "▶", iconBg: "#fff0f0", iconColor: "#cc0000", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never", availSub: "Google Ads connected" },
+  { id: "snapchat", name: "Snapchat", icon: "👻", iconBg: "#fffbe6", iconColor: "#FFCC00", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never", availSub: "Ads Manager" },
+  { id: "pinterest", name: "Pinterest", icon: "P", iconBg: "#fdecea", iconColor: "#e60023", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never", availSub: "Ads Manager" },
+  { id: "reddit", name: "Reddit", icon: "r", iconBg: "#fff0ec", iconColor: "#ff4500", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never", availSub: "Ads Manager" },
+  { id: "microsoft", name: "Microsoft Ads", icon: "M", iconBg: "#e8f0fe", iconColor: "#0078d4", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never", availSub: "Bing Ads" },
+  { id: "spotify", name: "Spotify", icon: "♪", iconBg: "#e8f7ef", iconColor: "#1db954", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never", availSub: "Ad Studio" },
+  { id: "x", name: "X (Twitter)", icon: "𝕏", iconBg: "#f0f0f0", iconColor: "#000000", accounts: 0, spend: "$0", score: 0, status: "not_connected" as const, lastSynced: "Never", availSub: "Ads Manager" },
 ];
 
 export const MOCK_TEAM = [
