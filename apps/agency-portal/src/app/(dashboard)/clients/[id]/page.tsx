@@ -12,6 +12,7 @@ import { useClients, useCampaigns, useClientHierarchy, useApiAuth } from '@/hook
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import type { Campaign, HierarchyClientRow } from '@/lib/api/contracts';
+import { ClientMetaSection } from '@/components/agency/ClientMetaSection';
 
 function platformKey(platform: string): string {
   const p = platform.toLowerCase();
@@ -346,6 +347,9 @@ export default function ClientDetailPage() {
             </div>
           </div>
         </section>
+
+        {/* ── META ADS SECTION ── */}
+        <ClientMetaSection key={`meta-${clientId}`} clientId={clientId} />
 
         {/* KPI row */}
         <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">

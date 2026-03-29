@@ -13,6 +13,7 @@ from packages.db.models import (
     Plan,
     Campaign,
     Audience,
+    AuditLog,
 )
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum, DECIMAL

@@ -96,6 +96,13 @@ class Agency(Base):
     )
     credits = Column(DECIMAL(10, 2), default=0.00, nullable=False)
     billing_status = Column(String, default="active")
+
+    # --- Meta Business Manager ---
+    meta_business_manager_id = Column(String(100), nullable=True)
+    meta_business_manager_name = Column(String(255), nullable=True)
+    meta_agency_access_token = Column(Text, nullable=True)
+    meta_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    meta_connected_at = Column(DateTime(timezone=True), nullable=True)
     
     memberships = relationship("packages.db.models.AgencyMembership", back_populates="agency")
     clients = relationship("packages.db.models.Client", back_populates="agency")
@@ -170,6 +177,12 @@ class Client(Base):
     markup_percent = Column(DECIMAL(10, 4), default=1.0000) # e.g. 1.20 for 20% markup
     is_active = Column(Boolean, default=True)
     account_mode = Column(String(20), default="kaivo_managed") # 'kaivo_managed' | 'reporting_only'
+
+    # --- Meta Business Manager linking ---
+    agency_meta_account_id = Column(String(100), nullable=True)
+    meta_account_status = Column(String(30), default="agency_not_connected")
+    meta_account_name = Column(String(255), nullable=True)
+    meta_linked_at = Column(DateTime(timezone=True), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -432,4 +445,24 @@ class ShopifyConnection(Base):
     workspace_id = Column(String, nullable=True)  # Optional: link to workspace
     installed_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
+# --- Audit Logs ---
+
+class AuditLog(Base):
+    """Audit log for tracking Meta operations and other sensitive actions."""
+    __tablename__ = "audit_logs"
+    __table_args__ = {'extend_existing': True}
+
+    id = Column(Integer, primary_key=True, index=True)
+    agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    action = Column(String(100), nullable=False, index=True)
+    details = Column(JSON, default={})
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    agency = relationship("packages.db.models.Agency")
+    client = relationship("packages.db.models.Client")
+    user = relationship("packages.db.models.User")
 

@@ -59,6 +59,9 @@ Set these in your backend provider's dashboard:
 - `STRIPE_SECRET_KEY`: [Your Stripe Key]
 - `CORS_ALLOWED_ORIGINS`: `https://app.getkaivo.com`
 - `ALLOWED_HOSTS`: `api.getkaivo.com`
+- `META_APP_ID`: [Meta Business App ID]
+- `META_APP_SECRET`: [Meta Business App Secret]
+- `META_REDIRECT_URI`: `https://app.getkaivo.com/integrations`
 
 ### 3. Celery Worker (Background Tasks)
 Deploy the worker using the same Docker image as the Backend API (`services/intelligence_service/Dockerfile`).
