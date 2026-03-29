@@ -22,27 +22,32 @@ def upgrade() -> None:
     if bind.dialect.name != "postgresql":
         return
 
-    op.execute(
-        """
-        DO $$
-        DECLARE
-            lab text;
-            labels text[] := ARRAY['free','starter','growth','scale','enterprise'];
-        BEGIN
-            FOREACH lab IN ARRAY labels
-            LOOP
-                IF NOT EXISTS (
-                    SELECT 1
-                    FROM pg_enum e
-                    JOIN pg_type t ON e.enumtypid = t.oid
-                    WHERE t.typname = 'plantier' AND e.enumlabel = lab
-                ) THEN
-                    EXECUTE format('ALTER TYPE plantier ADD VALUE %L', lab);
+    # ADD VALUE must commit before new labels can appear in UPDATE/INSERT (PG safety).
+    with op.get_context().autocommit_block():
+        op.execute(
+            """
+            DO $$
+            DECLARE
+                lab text;
+                labels text[] := ARRAY['free','starter','growth','scale','enterprise'];
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'plantier') THEN
+                    RETURN;
                 END IF;
-            END LOOP;
-        END $$;
-        """
-    )
+                FOREACH lab IN ARRAY labels
+                LOOP
+                    IF NOT EXISTS (
+                        SELECT 1
+                        FROM pg_enum e
+                        JOIN pg_type t ON e.enumtypid = t.oid
+                        WHERE t.typname = 'plantier' AND e.enumlabel = lab
+                    ) THEN
+                        EXECUTE format('ALTER TYPE plantier ADD VALUE %L', lab);
+                    END IF;
+                END LOOP;
+            END $$;
+            """
+        )
 
     pairs = [
         ("FREE", "free"),

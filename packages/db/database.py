@@ -30,6 +30,11 @@ else:
     engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+# Legacy DBs may omit columns added after their last migration; repair once per process.
+from packages.db.orm_schema_repair import ensure_orm_schema
+
+ensure_orm_schema(engine)
+
 Base = declarative_base()
 
 def get_db():
