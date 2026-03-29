@@ -174,21 +174,23 @@ def fetch_business_manager_info(access_token: str) -> Dict[str, Any]:
     }
 
 
-def fetch_bm_client_ad_accounts(
-    business_manager_id: str, access_token: str
+_ACCOUNT_STATUS_MAP = {
+    1: "ACTIVE", 2: "DISABLED", 3: "UNSETTLED",
+    7: "PENDING_RISK_REVIEW", 9: "IN_GRACE_PERIOD",
+    100: "PENDING_CLOSURE", 101: "CLOSED",
+    201: "ANY_ACTIVE", 202: "ANY_CLOSED",
+}
+
+
+def _fetch_bm_accounts_edge(
+    business_manager_id: str, access_token: str, edge: str
 ) -> List[Dict[str, Any]]:
     """
-    Fetch all client ad accounts under a Business Manager.
-    Uses /{bm-id}/client_ad_accounts endpoint.
-    Supports pagination.
+    Fetch ad accounts from a single BM edge with pagination.
+    `edge` is either "owned_ad_accounts" or "client_ad_accounts".
     """
-    cache_key = f"bm_accounts:{business_manager_id}"
-    cached = _cache_get(cache_key)
-    if cached is not None:
-        return cached
-
-    all_accounts: List[Dict[str, Any]] = []
-    url = f"{META_GRAPH_BASE}/{business_manager_id}/client_ad_accounts"
+    accounts: List[Dict[str, Any]] = []
+    url = f"{META_GRAPH_BASE}/{business_manager_id}/{edge}"
     params = {
         "access_token": access_token,
         "fields": "id,name,account_id,account_status,currency,timezone_name,amount_spent",
@@ -201,35 +203,59 @@ def fetch_bm_client_ad_accounts(
             if resp.status_code != 200:
                 error_data = resp.json() if resp.content else {}
                 error_msg = error_data.get("error", {}).get("message", resp.text)
-                logger.error(f"BM client_ad_accounts fetch failed: {error_msg}")
+                logger.error(f"BM {edge} fetch failed: {error_msg}")
                 break
 
             data = resp.json()
-            accounts = data.get("data", [])
 
-            for acc in accounts:
-                status_map = {1: "ACTIVE", 2: "DISABLED", 3: "UNSETTLED", 7: "PENDING_RISK_REVIEW", 9: "IN_GRACE_PERIOD", 100: "PENDING_CLOSURE", 101: "CLOSED", 201: "ANY_ACTIVE", 202: "ANY_CLOSED"}
+            for acc in data.get("data", []):
                 raw_status = acc.get("account_status", 0)
-                status_label = status_map.get(raw_status, f"UNKNOWN_{raw_status}")
-
-                all_accounts.append({
+                accounts.append({
                     "account_id": acc.get("id", ""),
                     "account_name": acc.get("name", "Unnamed"),
                     "currency": acc.get("currency", "USD"),
                     "timezone": acc.get("timezone_name", ""),
-                    "status": status_label,
-                    "spend": float(acc.get("amount_spent", 0)) / 100,  # Meta returns in cents
+                    "status": _ACCOUNT_STATUS_MAP.get(raw_status, f"UNKNOWN_{raw_status}"),
+                    "spend": float(acc.get("amount_spent", 0)) / 100,
                 })
 
-            # Handle pagination
-            paging = data.get("paging", {})
-            next_url = paging.get("next")
+            next_url = data.get("paging", {}).get("next")
             if next_url:
                 url = next_url
-                params = {}  # next URL already contains params
+                params = {}
             else:
                 break
 
+    return accounts
+
+
+def fetch_bm_client_ad_accounts(
+    business_manager_id: str, access_token: str
+) -> List[Dict[str, Any]]:
+    """
+    Fetch ALL ad accounts under a Business Manager — both owned and
+    client (shared) accounts.  Owned accounts take priority when
+    the same account_id appears on both edges.
+    """
+    cache_key = f"bm_accounts:{business_manager_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    seen: Dict[str, Dict[str, Any]] = {}
+
+    # 1) Owned accounts first (higher priority)
+    for acc in _fetch_bm_accounts_edge(business_manager_id, access_token, "owned_ad_accounts"):
+        acc["source"] = "owned"
+        seen[acc["account_id"]] = acc
+
+    # 2) Client (shared) accounts — only add if not already seen
+    for acc in _fetch_bm_accounts_edge(business_manager_id, access_token, "client_ad_accounts"):
+        if acc["account_id"] not in seen:
+            acc["source"] = "client"
+            seen[acc["account_id"]] = acc
+
+    all_accounts = list(seen.values())
     _cache_set(cache_key, all_accounts)
     return all_accounts
 
