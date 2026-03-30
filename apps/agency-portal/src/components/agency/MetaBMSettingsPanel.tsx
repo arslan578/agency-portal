@@ -12,9 +12,9 @@ const META_REDIRECT_URI =
     ? `${window.location.origin}/settings?tab=meta&meta_callback=1`
     : '';
 
-const sectionTitle = 'text-[15px] font-extrabold text-text-primary';
+const sectionTitle = 'text-[15px] font-bold text-text-primary';
 const btnPrimary =
-  'bg-teal text-white font-bold rounded-[10px] h-[40px] px-4 inline-flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-95 transition-opacity';
+  'bg-teal-deep text-white font-bold rounded-[10px] h-[40px] px-4 inline-flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-95 transition-opacity';
 
 interface MetaBMSettingsPanelProps {
   accessToken?: string;
@@ -176,11 +176,11 @@ export function MetaBMSettingsPanel({
     return (
       <div className="max-w-2xl space-y-6">
         <h2 className={sectionTitle}>Meta Business Manager</h2>
-        <div className="bg-white border-2 border-cream-border rounded-[12px] p-6">
+        <div className="bg-white border border-border rounded-[12px] p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-5 bg-cream-dark rounded w-1/3" />
-            <div className="h-10 bg-cream-dark rounded" />
-            <div className="h-8 bg-cream-dark rounded w-1/2" />
+            <div className="h-5 bg-surface-secondary rounded w-1/3" />
+            <div className="h-10 bg-surface-secondary rounded" />
+            <div className="h-8 bg-surface-secondary rounded w-1/2" />
           </div>
         </div>
       </div>
@@ -195,7 +195,7 @@ export function MetaBMSettingsPanel({
     <div className="max-w-2xl space-y-6">
       <h2 className={sectionTitle}>Meta Business Manager</h2>
 
-      <div className="bg-white border-2 border-cream-border rounded-[12px] p-6 space-y-5">
+      <div className="bg-white border border-border rounded-[12px] p-6 space-y-5">
         {/* Connection status badge */}
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -208,7 +208,7 @@ export function MetaBMSettingsPanel({
               </svg>
             </div>
             <div>
-              <p className="text-[14px] font-extrabold text-text-primary">
+              <p className="text-[14px] font-bold text-text-primary">
                 {connected
                   ? metaStatus?.business_manager_name || 'Connected'
                   : 'Not Connected'}
@@ -228,12 +228,12 @@ export function MetaBMSettingsPanel({
           </div>
 
           <span
-            className={`shrink-0 inline-flex px-2.5 py-1 rounded-lg text-[11px] font-bold ${
+            className={`shrink-0 inline-flex px-2.5 py-1 rounded-lg text-[11px] font-semibold ${
               connected && !tokenExpired
                 ? 'bg-green-light text-green'
                 : connected && tokenExpired
                   ? 'bg-red-light text-red'
-                  : 'bg-cream text-text-muted'
+                  : 'bg-surface-secondary text-text-muted'
             }`}
           >
             {connected && !tokenExpired
@@ -247,7 +247,7 @@ export function MetaBMSettingsPanel({
         {/* Token expiry warning */}
         {connected && tokenWarning && !tokenExpired && (
           <div className="rounded-lg bg-amber-light/50 border border-amber/20 px-4 py-3">
-            <p className="text-[12px] font-bold text-amber">
+            <p className="text-[12px] font-semibold text-amber">
               ⚠ Token expires {formatDate(metaStatus?.token_expires_at ?? null)}.
               Reconnect to refresh your access token.
             </p>
@@ -257,7 +257,7 @@ export function MetaBMSettingsPanel({
         {/* Token expired */}
         {tokenExpired && (
           <div className="rounded-lg bg-red-light/50 border border-red/20 px-4 py-3">
-            <p className="text-[12px] font-bold text-red">
+            <p className="text-[12px] font-semibold text-red">
               ✕ Your Meta access token has expired. Reconnect to continue syncing data.
             </p>
           </div>
@@ -266,17 +266,17 @@ export function MetaBMSettingsPanel({
         {/* Token validity info */}
         {connected && !tokenExpired && metaStatus?.token_expires_at && (
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-lg border-2 border-cream-border bg-cream/40 px-3 py-2.5">
-              <div className="text-[10.5px] font-bold text-text-muted uppercase tracking-wide">
+            <div className="rounded-lg border border-border bg-surface-secondary/50 px-3 py-2.5">
+              <div className="text-[10.5px] font-semibold text-text-muted uppercase tracking-wide">
                 Token Status
               </div>
-              <div className="text-[13px] font-bold text-green mt-1">✓ Valid</div>
+              <div className="text-[13px] font-semibold text-green mt-1">✓ Valid</div>
             </div>
-            <div className="rounded-lg border-2 border-cream-border bg-cream/40 px-3 py-2.5">
-              <div className="text-[10.5px] font-bold text-text-muted uppercase tracking-wide">
+            <div className="rounded-lg border border-border bg-surface-secondary/50 px-3 py-2.5">
+              <div className="text-[10.5px] font-semibold text-text-muted uppercase tracking-wide">
                 Expires
               </div>
-              <div className="text-[13px] font-bold text-text-primary mt-1">
+              <div className="text-[13px] font-semibold text-text-primary mt-1">
                 {formatDate(metaStatus.token_expires_at)}
               </div>
             </div>
@@ -341,7 +341,7 @@ export function MetaBMSettingsPanel({
 
                 <button
                   type="button"
-                  className="bg-cream border-2 border-cream-border text-text-primary font-bold rounded-[10px] h-[40px] px-4 inline-flex items-center justify-center gap-2 hover:bg-cream-dark transition-colors"
+                  className="bg-surface-secondary border border-border text-text-primary font-bold rounded-[10px] h-[40px] px-4 inline-flex items-center justify-center gap-2 hover:bg-surface-hover transition-colors"
                   onClick={handleConnect}
                 >
                   🔄 Reconnect
@@ -349,7 +349,7 @@ export function MetaBMSettingsPanel({
 
                 <button
                   type="button"
-                  className="text-[13px] font-bold text-red hover:underline"
+                  className="text-[13px] font-semibold text-red hover:underline"
                   onClick={handleDisconnect}
                 >
                   Disconnect
@@ -373,13 +373,13 @@ export function MetaBMSettingsPanel({
       </div>
 
       {/* Help text */}
-      <div className="rounded-[12px] bg-cream/60 border-2 border-cream-border p-4">
+      <div className="rounded-[12px] bg-surface-secondary/50 border border-border p-4">
         <p className="text-[12px] text-text-secondary leading-relaxed">
-          <span className="font-bold text-text-primary">How it works:</span>{' '}
+          <span className="font-semibold text-text-primary">How it works:</span>{' '}
           Connect your Meta Business Manager to automatically sync all client ad accounts.
-          Use <span className="font-bold">Auto-link</span> to match clients with their ad accounts,
+          Use <span className="font-semibold">Auto-link</span> to match clients with their ad accounts,
           or assign accounts manually from the{' '}
-          <span className="font-bold">Integrations</span> page.
+          <span className="font-semibold">Integrations</span> page.
           Data syncs nightly and on-demand from the client detail page.
         </p>
       </div>

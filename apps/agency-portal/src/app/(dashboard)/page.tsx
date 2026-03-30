@@ -11,43 +11,43 @@ type TabFilter = 'all' | 'needs_action' | 'top' | 'manual_ai';
 
 function ScoreBadge({ score }: { score: number }) {
   const color = score >= 80 ? 'bg-green-light text-green' : score >= 60 ? 'bg-amber-light text-amber' : 'bg-red-light text-red';
-  return <span className={`inline-flex items-center px-[7px] py-[2px] rounded-[6px] text-[11.5px] font-bold ${color}`}>{score}</span>;
+  return <span className={`inline-flex items-center px-2 py-[2px] rounded-md text-[11px] font-semibold ${color}`}>{score}</span>;
 }
 
 function PacingBar({ pacing }: { pacing: number }) {
   const color = pacing >= 90 ? 'bg-green' : pacing >= 80 ? 'bg-teal' : 'bg-coral';
   return (
     <div className="flex items-center gap-2">
-      <div className="w-[60px] h-[6px] rounded-full bg-cream-dark overflow-hidden">
+      <div className="w-[60px] h-[5px] rounded-full bg-surface-secondary overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${pacing}%` }} />
       </div>
-      <span className="text-[11px] font-bold text-text-muted font-mono">{pacing}%</span>
+      <span className="text-[11px] font-semibold text-text-muted font-mono">{pacing}%</span>
     </div>
   );
 }
 
 function AiModeBadge({ mode }: { mode: string }) {
   const styles: Record<string, string> = {
-    auto: 'bg-teal-light text-teal',
+    auto: 'bg-teal-light text-teal-deep',
     hybrid: 'bg-purple-light text-purple',
-    manual: 'bg-cream-dark text-text-muted',
+    manual: 'bg-surface-secondary text-text-muted',
   };
-  return <span className={`px-[7px] py-[2px] rounded-[6px] text-[10.5px] font-bold capitalize ${styles[mode] || styles.manual}`}>{mode}</span>;
+  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold capitalize ${styles[mode] || styles.manual}`}>{mode}</span>;
 }
 
 function AlertBadge({ count, severity }: { count: number; severity: string }) {
   if (count === 0) return <span className="text-[11px] text-text-muted">—</span>;
   const color = severity === 'critical' ? 'bg-coral text-white' : 'bg-amber-light text-amber';
-  return <span className={`min-w-[18px] h-[18px] px-1 rounded-[5px] text-[10px] font-bold flex items-center justify-center ${color}`}>{count}</span>;
+  return <span className={`min-w-[20px] h-[20px] px-1.5 rounded-md text-[10px] font-semibold flex items-center justify-center ${color}`}>{count}</span>;
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
   const styles: Record<string, string> = {
-    critical: 'bg-red-light text-red border border-red/10',
-    warning: 'bg-amber-light text-amber border border-amber/10',
-    opportunity: 'bg-green-light text-green border border-green/10',
+    critical: 'bg-red-light text-red',
+    warning: 'bg-amber-light text-amber',
+    opportunity: 'bg-green-light text-green',
   };
-  return <span className={`px-2 py-[2px] rounded-[6px] text-[10.5px] font-bold capitalize ${styles[severity] || ''}`}>{severity}</span>;
+  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold capitalize ${styles[severity] || ''}`}>{severity}</span>;
 }
 
 function PlatformTag({ name, className: cls }: { name: string; className?: string }) {
@@ -57,7 +57,7 @@ function PlatformTag({ name, className: cls }: { name: string; className?: strin
     google: 'bg-[#fdecea] text-[#ea4335]',
     youtube: 'bg-[#fdecea] text-[#ff0000]',
   };
-  return <span className={`px-2 py-[2px] rounded-[5px] text-[10.5px] font-bold ${colors[cls || ''] || 'bg-cream text-text-muted'}`}>{name}</span>;
+  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold ${colors[cls || ''] || 'bg-surface-secondary text-text-muted'}`}>{name}</span>;
 }
 
 export default function DashboardPage() {
@@ -105,10 +105,10 @@ export default function DashboardPage() {
         title="Portfolio Dashboard"
         actions={
           <div className="flex items-center gap-2">
-            <span className="bg-cream text-text-muted text-[11.5px] font-bold px-3 py-[6px] rounded-lg border border-cream-border">Last 30 days</span>
+            <span className="bg-surface-secondary text-text-muted text-[12px] font-medium px-3 py-[6px] rounded-lg border border-border">Last 30 days</span>
             <Link
               href="/clients"
-              className="bg-teal text-white text-[12px] font-bold px-4 py-[7px] rounded-lg hover:bg-teal-dark transition-colors"
+              className="bg-teal-deep text-white text-[12px] font-semibold px-4 py-[7px] rounded-lg hover:bg-teal-deep/90 transition-colors shadow-sm"
             >
               + Add Client
             </Link>
@@ -119,16 +119,18 @@ export default function DashboardPage() {
         <div className="max-w-[1400px] mx-auto space-y-6">
           {/* KPI Strip */}
           <div className="grid grid-cols-4 gap-4">
-            <div className="bg-teal rounded-xl p-5 text-white relative overflow-hidden">
-              <div className="text-[11px] font-bold opacity-70 uppercase tracking-wide">Portfolio Score</div>
-              <div className="text-[32px] font-extrabold mt-1 font-mono">
+            <div className="bg-gradient-to-br from-teal-deep to-teal rounded-xl p-5 text-white relative overflow-hidden shadow-sm">
+              <div className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Portfolio Score</div>
+              <div className="text-[32px] font-extrabold mt-1 font-mono tracking-tight">
                 {clients.length > 0
                   ? (clients.reduce((s: number, c: { score: number }) => s + c.score, 0) / clients.length).toFixed(1)
                   : '—'}
               </div>
-              <div className="flex items-center gap-1 mt-1 text-[11px] font-bold text-white/70">
+              <div className="flex items-center gap-1 mt-1 text-[11px] font-medium text-white/70">
                 <span className="text-green-300">▲ 4.2%</span> vs last period
               </div>
+              <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/[0.06]" />
+              <div className="absolute -right-2 -bottom-6 w-20 h-20 rounded-full bg-white/[0.04]" />
             </div>
             <KpiCard label="Total Managed Spend" value={`$${(totalSpend / 1000).toFixed(1)}k`} delta="+12.4%" positive />
             <KpiCard label="AI Actions Pending" value={String(MOCK_INSIGHTS.length)} delta="3 critical" positive={false} />
@@ -138,14 +140,14 @@ export default function DashboardPage() {
           {/* Two-column: Table + Insights */}
           <div className="grid grid-cols-[1fr_380px] gap-5">
             {/* Client Table */}
-            <div className="bg-white rounded-xl border-2 border-cream-border overflow-hidden">
-              <div className="px-5 pt-4 pb-3 flex items-center gap-3 border-b border-cream-border">
+            <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
+              <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border-subtle">
                 {tabs.map(t => (
                   <button
                     key={t.key}
                     onClick={() => setTab(t.key)}
-                    className={`text-[12px] font-bold px-3 py-[5px] rounded-lg transition-colors ${
-                      tab === t.key ? 'bg-teal text-white' : 'text-text-muted hover:bg-cream'
+                    className={`text-[12px] font-medium px-3 py-[5px] rounded-lg transition-all ${
+                      tab === t.key ? 'bg-teal-deep text-white shadow-sm' : 'text-text-muted hover:bg-surface-secondary hover:text-text-primary'
                     }`}
                   >
                     {t.label}
@@ -154,7 +156,7 @@ export default function DashboardPage() {
               </div>
               <table className="w-full text-left">
                 <thead>
-                  <tr className="text-[10.5px] font-bold text-text-muted uppercase tracking-wider border-b border-cream-border">
+                  <tr className="text-[10.5px] font-semibold text-text-muted uppercase tracking-wider border-b border-border-subtle">
                     <th className="px-5 py-3">Client</th>
                     <th className="px-3 py-3">Score</th>
                     <th className="px-3 py-3">Fee</th>
@@ -166,24 +168,24 @@ export default function DashboardPage() {
                 </thead>
                 <tbody>
                   {filtered.map((c) => (
-                    <tr key={c.id} className="border-b border-cream-border/50 hover:bg-cream/50 transition-colors cursor-pointer">
+                    <tr key={c.id} className="border-b border-border-subtle/60 hover:bg-surface-secondary/60 transition-colors cursor-pointer">
                       <td className="px-5 py-3">
                         <Link href={`/clients/${c.id}`} className="flex items-center gap-3">
                           <div
-                            className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-[11px] font-extrabold text-white shrink-0"
+                            className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
                             style={{ background: c.color }}
                           >
                             {c.initials}
                           </div>
                           <div>
-                            <div className="text-[12.5px] font-bold text-text-primary">{c.name}</div>
+                            <div className="text-[12.5px] font-semibold text-text-primary">{c.name}</div>
                             <div className="text-[10.5px] text-text-muted">{c.type}</div>
                           </div>
                         </Link>
                       </td>
                       <td className="px-3 py-3"><ScoreBadge score={c.score} /></td>
-                      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">${c.fee.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">${c.spend.toLocaleString()}</td>
+                      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${c.fee.toLocaleString()}</td>
+                      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${c.spend.toLocaleString()}</td>
                       <td className="px-3 py-3"><PacingBar pacing={c.pacing} /></td>
                       <td className="px-3 py-3"><AlertBadge count={c.alerts.count} severity={c.alerts.severity} /></td>
                       <td className="px-3 py-3"><AiModeBadge mode={c.aiMode} /></td>
@@ -191,34 +193,34 @@ export default function DashboardPage() {
                   ))}
                 </tbody>
               </table>
-              <div className="px-5 py-3 text-[11px] text-text-muted font-semibold flex items-center justify-between bg-cream/30">
+              <div className="px-5 py-3 text-[11px] text-text-muted font-medium flex items-center justify-between bg-surface-secondary/50">
                 <span>{filtered.length} clients shown</span>
                 <span className="font-mono">Total spend: ${totalSpend.toLocaleString()}</span>
               </div>
             </div>
 
             {/* AI Insights Panel */}
-            <div className="bg-white rounded-xl border-2 border-cream-border flex flex-col overflow-hidden">
-              <div className="px-5 pt-4 pb-3 border-b border-cream-border flex items-center justify-between">
-                <h3 className="text-[13px] font-extrabold text-text-primary">AI Insights</h3>
-                <span className="bg-coral text-white text-[10px] font-bold px-2 py-[2px] rounded-[5px]">{MOCK_INSIGHTS.length}</span>
+            <div className="bg-white rounded-xl border border-border flex flex-col overflow-hidden shadow-sm">
+              <div className="px-5 pt-4 pb-3 border-b border-border-subtle flex items-center justify-between">
+                <h3 className="text-[13px] font-bold text-text-primary">AI Insights</h3>
+                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md">{MOCK_INSIGHTS.length}</span>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {MOCK_INSIGHTS.map((insight) => (
-                  <div key={insight.id} className="border-2 border-cream-border rounded-xl p-4 space-y-2 hover:border-teal/30 transition-colors">
+                  <div key={insight.id} className="border border-border rounded-xl p-4 space-y-2 hover:border-aqua/50 hover:shadow-sm transition-all">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-bold text-text-primary">{insight.client}</span>
+                      <span className="text-[11px] font-semibold text-text-primary">{insight.client}</span>
                       <PlatformTag name={insight.platform} className={insight.platformClass} />
                       <SeverityBadge severity={insight.severity} />
                     </div>
                     <p className="text-[12px] text-text-secondary leading-relaxed">{insight.text}</p>
-                    <div className="bg-teal-light rounded-lg px-3 py-[6px] text-[11px] font-bold text-teal">
+                    <div className="bg-teal-light rounded-lg px-3 py-[6px] text-[11px] font-semibold text-teal-deep">
                       Estimated impact: {insight.impact}
                     </div>
                     <div className="flex items-center gap-2 pt-1">
-                      <button className="bg-teal text-white text-[10.5px] font-bold px-3 py-[4px] rounded-[6px] hover:bg-teal-dark">Apply</button>
-                      <button className="bg-cream text-text-secondary text-[10.5px] font-bold px-3 py-[4px] rounded-[6px] hover:bg-cream-dark border border-cream-border">Review</button>
-                      <button className="text-text-muted text-[10.5px] font-bold px-2 py-[4px] hover:text-text-primary">Dismiss</button>
+                      <button className="bg-teal-deep text-white text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-teal-deep/90 transition-colors">Apply</button>
+                      <button className="bg-surface-secondary text-text-secondary text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-surface-hover border border-border">Review</button>
+                      <button className="text-text-muted text-[10.5px] font-medium px-2 py-[4px] hover:text-text-primary transition-colors">Dismiss</button>
                     </div>
                   </div>
                 ))}
@@ -231,22 +233,22 @@ export default function DashboardPage() {
             <LeaderboardCard
               title="Top Performers"
               items={[
-                { name: 'Nova Skincare', score: 91.4, color: '#2a9d8f' },
-                { name: 'Verdant Plant Co.', score: 87.4, color: '#c85a3d' },
-                { name: 'Solstice Home', score: 83.1, color: '#2d9e5a' },
+                { name: 'Nova Skincare', score: 91.4, color: '#007B5F' },
+                { name: 'Verdant Plant Co.', score: 87.4, color: '#FF7043' },
+                { name: 'Solstice Home', score: 83.1, color: '#059669' },
               ]}
             />
             <LeaderboardCard
               title="Needs Attention"
               items={[
-                { name: 'Harbor Coffee Co.', score: 48.2, color: '#e76f51' },
-                { name: 'Forge Supplements', score: 55.8, color: '#d4860a' },
-                { name: 'Peaks Outdoor', score: 67.2, color: '#5c54c8' },
+                { name: 'Harbor Coffee Co.', score: 48.2, color: '#FF7043' },
+                { name: 'Forge Supplements', score: 55.8, color: '#FFB74D' },
+                { name: 'Peaks Outdoor', score: 67.2, color: '#7C3AED' },
               ]}
               negative
             />
-            <div className="bg-white rounded-xl border-2 border-cream-border p-5">
-              <h4 className="text-[12px] font-extrabold text-text-primary mb-4">Platform Performance</h4>
+            <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
+              <h4 className="text-[12px] font-bold text-text-primary mb-4">Platform Performance</h4>
               <div className="space-y-3">
                 {[
                   { name: 'Meta', spend: '$38.4k', score: 82.4, color: '#1877f2' },
@@ -254,9 +256,9 @@ export default function DashboardPage() {
                   { name: 'TikTok', spend: '$14.2k', score: 64.8, color: '#00b8c4' },
                 ].map(p => (
                   <div key={p.name} className="flex items-center gap-3">
-                    <div className="w-[7px] h-[7px] rounded-full shrink-0" style={{ background: p.color }} />
-                    <span className="text-[12px] font-bold text-text-primary flex-1">{p.name}</span>
-                    <span className="text-[11px] font-bold text-text-muted font-mono">{p.spend}</span>
+                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
+                    <span className="text-[12px] font-semibold text-text-primary flex-1">{p.name}</span>
+                    <span className="text-[11px] font-medium text-text-muted font-mono">{p.spend}</span>
                     <ScoreBadge score={p.score} />
                   </div>
                 ))}
@@ -271,10 +273,10 @@ export default function DashboardPage() {
 
 function KpiCard({ label, value, delta, positive }: { label: string; value: string; delta: string; positive: boolean }) {
   return (
-    <div className="bg-white rounded-xl p-5 border-2 border-cream-border">
-      <div className="text-[11px] font-bold text-text-muted uppercase tracking-wide">{label}</div>
-      <div className="text-[28px] font-extrabold text-text-primary mt-1 font-mono">{value}</div>
-      <div className={`flex items-center gap-1 mt-1 text-[11px] font-bold ${positive ? 'text-green' : 'text-coral'}`}>
+    <div className="bg-white rounded-xl p-5 border border-border shadow-sm">
+      <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{label}</div>
+      <div className="text-[28px] font-extrabold text-text-primary mt-1 font-mono tracking-tight">{value}</div>
+      <div className={`flex items-center gap-1 mt-1 text-[11px] font-medium ${positive ? 'text-green' : 'text-coral'}`}>
         {positive ? '▲' : ''} {delta}
       </div>
     </div>
@@ -283,16 +285,16 @@ function KpiCard({ label, value, delta, positive }: { label: string; value: stri
 
 function LeaderboardCard({ title, items, negative }: { title: string; items: { name: string; score: number; color: string }[]; negative?: boolean }) {
   return (
-    <div className="bg-white rounded-xl border-2 border-cream-border p-5">
-      <h4 className="text-[12px] font-extrabold text-text-primary mb-4">{title}</h4>
+    <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
+      <h4 className="text-[12px] font-bold text-text-primary mb-4">{title}</h4>
       <div className="space-y-3">
         {items.map((item, i) => (
           <div key={item.name} className="flex items-center gap-3">
-            <span className="text-[11px] font-bold text-text-muted w-4">{i + 1}</span>
-            <div className="w-[24px] h-[24px] rounded-md flex items-center justify-center text-[9px] font-extrabold text-white shrink-0" style={{ background: item.color }}>
+            <span className="text-[11px] font-medium text-text-muted w-4">{i + 1}</span>
+            <div className="w-[24px] h-[24px] rounded-md flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ background: item.color }}>
               {item.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
             </div>
-            <span className="text-[12px] font-bold text-text-primary flex-1 truncate">{item.name}</span>
+            <span className="text-[12px] font-semibold text-text-primary flex-1 truncate">{item.name}</span>
             <ScoreBadge score={item.score} />
           </div>
         ))}
@@ -309,9 +311,9 @@ function DashboardSkeleton() {
         <div className="max-w-[1400px] mx-auto space-y-6">
           <div className="grid grid-cols-4 gap-4">
             {[1,2,3,4].map(i => (
-              <div key={i} className="bg-white rounded-xl p-5 border-2 border-cream-border animate-pulse">
-                <div className="h-3 w-24 bg-cream-dark rounded mb-3" />
-                <div className="h-8 w-16 bg-cream-dark rounded" />
+              <div key={i} className="bg-white rounded-xl p-5 border border-border animate-pulse shadow-sm">
+                <div className="h-3 w-24 bg-surface-secondary rounded mb-3" />
+                <div className="h-8 w-16 bg-surface-secondary rounded" />
               </div>
             ))}
           </div>

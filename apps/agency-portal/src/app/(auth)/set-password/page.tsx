@@ -33,7 +33,7 @@ function SetPasswordContent() {
   if (status === 'loading' || (waitingForSession && status !== 'authenticated')) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-white">
-        <span className="inline-block h-8 w-8 border-[3px] border-teal/20 border-t-teal rounded-full animate-spin" />
+        <span className="inline-block h-8 w-8 border-[3px] border-teal-deep/20 border-t-teal-deep rounded-full animate-spin" />
       </div>
     );
   }
@@ -58,7 +58,7 @@ function SetPasswordContent() {
 
     setIsLoading(true);
     try {
-      const token = session?.accessToken || (session?.user as Record<string, unknown>)?.accessToken;
+      const token = session?.accessToken || (session?.user as unknown as Record<string, unknown>)?.accessToken;
       const res = await fetch(`${API_BASE}/auth/set-password`, {
         method: 'POST',
         headers: {
@@ -87,7 +87,7 @@ function SetPasswordContent() {
   return (
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2">
       {/* LEFT PANEL */}
-      <div className="hidden lg:flex bg-teal flex-col p-12 relative overflow-hidden">
+      <div className="hidden lg:flex bg-gradient-to-br from-dark-bg via-dark-card to-teal-deep flex-col p-12 relative overflow-hidden">
         <div className="absolute -bottom-[60px] -right-[60px] w-[320px] h-[320px] rounded-full bg-white/[0.06]" />
         <div className="absolute -top-[40px] right-[80px] w-[180px] h-[180px] rounded-full bg-white/[0.04]" />
 
@@ -99,7 +99,7 @@ function SetPasswordContent() {
         </div>
 
         <div className="relative z-10 flex-1 flex flex-col justify-center">
-          <h2 className="text-[36px] font-extrabold text-white leading-[1.2] tracking-[-0.5px] mb-4">
+          <h2 className="text-[36px] font-bold text-white leading-[1.2] tracking-[-0.5px] mb-4">
             Almost there!
           </h2>
           <p className="text-[15px] text-white/75 font-medium leading-[1.6] max-w-[360px]">
@@ -114,50 +114,50 @@ function SetPasswordContent() {
           {success ? (
             <div className="text-center space-y-4">
               <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-teal/10">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2a9d8f" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#007B5F" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h1 className="text-[22px] font-extrabold text-text-primary">Password set!</h1>
+              <h1 className="text-[22px] font-bold text-text-primary">Password set!</h1>
               <p className="text-[14px] text-text-muted font-medium">Redirecting to login...</p>
             </div>
           ) : (
           <>
-          <h1 className="text-[26px] font-extrabold text-text-primary mb-[6px]">Set your password</h1>
+          <h1 className="text-[26px] font-bold text-text-primary mb-[6px]">Set your password</h1>
           <p className="text-[13px] text-text-muted font-medium mb-8">
             Create a password for <strong>{session?.user?.email}</strong> so you can sign in later.
           </p>
 
           {error && (
-            <div className="bg-red-light border-[1.5px] border-[#f5c0c0] rounded-lg px-[14px] py-[10px] text-[12.5px] font-semibold text-red mb-4">
+            <div className="bg-red-light border-[1.5px] border-[#FECDD3] rounded-lg px-[14px] py-[10px] text-[12.5px] font-semibold text-red mb-4">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-[6px] mb-4">
-              <label className="text-[11px] font-bold text-text-secondary tracking-wide">New Password</label>
+              <label className="text-[11px] font-semibold text-text-secondary tracking-wide">New Password</label>
               <input
                 type="password"
                 required
                 minLength={8}
                 placeholder="At least 8 characters"
                 autoComplete="new-password"
-                className="py-[11px] px-[14px] border-2 border-cream-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal transition-colors"
+                className="py-[11px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
               />
             </div>
 
             <div className="flex flex-col gap-[6px] mb-6">
-              <label className="text-[11px] font-bold text-text-secondary tracking-wide">Confirm Password</label>
+              <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Confirm Password</label>
               <input
                 type="password"
                 required
                 minLength={8}
                 placeholder="Re-enter your password"
                 autoComplete="new-password"
-                className={`py-[11px] px-[14px] border-2 rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal transition-colors ${error ? 'border-red' : 'border-cream-border'}`}
+                className={`py-[11px] px-[14px] border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors ${error ? 'border-red' : 'border-border'}`}
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setError(''); }}
               />
@@ -166,7 +166,7 @@ function SetPasswordContent() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-[13px] bg-teal hover:bg-teal-dark text-white font-extrabold text-[14px] rounded-[10px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full py-[13px] bg-teal-deep hover:bg-teal-deep/90 text-white font-extrabold text-[14px] rounded-[10px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? 'Setting password...' : 'Set Password & Continue'}
             </button>
@@ -184,7 +184,7 @@ export default function SetPasswordPage() {
     <Suspense
       fallback={
         <div className="min-h-screen w-full flex items-center justify-center bg-white">
-          <span className="inline-block h-8 w-8 border-[3px] border-teal/20 border-t-teal rounded-full animate-spin" />
+          <span className="inline-block h-8 w-8 border-[3px] border-teal-deep/20 border-t-teal-deep rounded-full animate-spin" />
         </div>
       }
     >

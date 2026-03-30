@@ -15,11 +15,11 @@ export function ErrorDisplay({ title = 'Something went wrong', message, onRetry 
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-sm font-semibold text-red-400 mb-1">{title}</h3>
-          <p className="text-sm text-muted-foreground mb-3">{message}</p>
+          <p className="text-sm text-text-muted mb-3">{message}</p>
           {onRetry && (
             <button
               onClick={onRetry}
-              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-white/10 bg-white/5 text-foreground hover:bg-white/10 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-border bg-white/5 text-text-primary hover:bg-white/10 transition-colors"
             >
               <RefreshCw className="h-3 w-3" />
               Retry

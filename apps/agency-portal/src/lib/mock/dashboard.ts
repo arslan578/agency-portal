@@ -1,13 +1,13 @@
 export const MOCK_CLIENTS = [
-  { id: 1, name: "Harbor Coffee Co.", type: "E-commerce", initials: "HC", color: "#e76f51", score: 48.2, fee: 2480, spend: 12400, pacing: 83, alerts: { count: 2, severity: "critical" as const }, aiMode: "manual" as const },
-  { id: 2, name: "Nova Skincare", type: "Beauty", initials: "NS", color: "#2a9d8f", score: 91.4, fee: 3720, spend: 18600, pacing: 93, alerts: { count: 0, severity: "ok" as const }, aiMode: "auto" as const },
+  { id: 1, name: "Harbor Coffee Co.", type: "E-commerce", initials: "HC", color: "#FF7043", score: 48.2, fee: 2480, spend: 12400, pacing: 83, alerts: { count: 2, severity: "critical" as const }, aiMode: "manual" as const },
+  { id: 2, name: "Nova Skincare", type: "Beauty", initials: "NS", color: "#007B5F", score: 91.4, fee: 3720, spend: 18600, pacing: 93, alerts: { count: 0, severity: "ok" as const }, aiMode: "auto" as const },
   { id: 3, name: "Peaks Outdoor", type: "Outdoor", initials: "PO", color: "#5c54c8", score: 67.2, fee: 1960, spend: 9800, pacing: 82, alerts: { count: 1, severity: "warning" as const }, aiMode: "hybrid" as const },
   { id: 4, name: "Forge Supplements", type: "Health", initials: "FS", color: "#d4860a", score: 55.8, fee: 2820, spend: 14100, pacing: 79, alerts: { count: 1, severity: "critical" as const }, aiMode: "manual" as const },
   { id: 5, name: "Solstice Home", type: "Home & Living", initials: "SH", color: "#2d9e5a", score: 83.1, fee: 1360, spend: 6800, pacing: 88, alerts: { count: 0, severity: "ok" as const }, aiMode: "hybrid" as const },
   { id: 6, name: "Verdant Plant Co.", type: "Lifestyle", initials: "VP", color: "#c85a3d", score: 87.4, fee: 840, spend: 4200, pacing: 91, alerts: { count: 0, severity: "ok" as const }, aiMode: "auto" as const },
   { id: 7, name: "Luxe Threads", type: "Fashion", initials: "LX", color: "#9b5de5", score: 71.9, fee: 2240, spend: 11200, pacing: 86, alerts: { count: 2, severity: "warning" as const }, aiMode: "hybrid" as const },
-  { id: 8, name: "Luminary Studio", type: "Photography", initials: "LY", color: "#2a9d8f", score: 82.6, fee: 1480, spend: 7400, pacing: 90, alerts: { count: 0, severity: "ok" as const }, aiMode: "auto" as const },
-  { id: 9, name: "Bluebell Boutique", type: "Retail", initials: "BB", color: "#2a9d8f", score: 72.4, fee: 1100, spend: 5500, pacing: 85, alerts: { count: 1, severity: "warning" as const }, aiMode: "hybrid" as const },
+  { id: 8, name: "Luminary Studio", type: "Photography", initials: "LY", color: "#007B5F", score: 82.6, fee: 1480, spend: 7400, pacing: 90, alerts: { count: 0, severity: "ok" as const }, aiMode: "auto" as const },
+  { id: 9, name: "Bluebell Boutique", type: "Retail", initials: "BB", color: "#007B5F", score: 72.4, fee: 1100, spend: 5500, pacing: 85, alerts: { count: 1, severity: "warning" as const }, aiMode: "hybrid" as const },
   { id: 10, name: "Crest Athletics", type: "Sports", initials: "CA", color: "#0077b5", score: 78.3, fee: 1600, spend: 8000, pacing: 87, alerts: { count: 0, severity: "ok" as const }, aiMode: "auto" as const },
   { id: 11, name: "Amber Grove Wines", type: "Beverages", initials: "AG", color: "#d4860a", score: 75.1, fee: 900, spend: 4500, pacing: 84, alerts: { count: 0, severity: "ok" as const }, aiMode: "hybrid" as const },
   { id: 12, name: "Riverstone Realty", type: "Real Estate", initials: "RR", color: "#5c54c8", score: 69.8, fee: 2200, spend: 11000, pacing: 80, alerts: { count: 1, severity: "warning" as const }, aiMode: "manual" as const },
@@ -50,8 +50,8 @@ export const MOCK_PLATFORMS = [
 ];
 
 export const MOCK_TEAM = [
-  { id: 1, name: "James Lewis", email: "james@mediaco.agency", initials: "JL", color: "#e76f51", role: "admin" as const, status: "active" as const, lastActive: "Now" },
-  { id: 2, name: "Sophie Reed", email: "sophie@mediaco.agency", initials: "SR", color: "#2a9d8f", role: "manager" as const, status: "active" as const, lastActive: "2 hrs ago" },
+  { id: 1, name: "James Lewis", email: "james@mediaco.agency", initials: "JL", color: "#FF7043", role: "admin" as const, status: "active" as const, lastActive: "Now" },
+  { id: 2, name: "Sophie Reed", email: "sophie@mediaco.agency", initials: "SR", color: "#007B5F", role: "manager" as const, status: "active" as const, lastActive: "2 hrs ago" },
   { id: 3, name: "Tom Keller", email: "tom@mediaco.agency", initials: "TK", color: "#5c54c8", role: "viewer" as const, status: "active" as const, lastActive: "Yesterday" },
   { id: 4, name: "Rita Novak", email: "rita@mediaco.agency", initials: "RN", color: "#d4860a", role: "viewer" as const, status: "invited" as const, lastActive: "Never" },
 ];

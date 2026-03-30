@@ -93,12 +93,12 @@ export default function TeamPage() {
     const r = AGENCY_ROLES[role as AgencyRole];
     const label = r?.label || role;
     const colors: Record<string, string> = {
-      agency_admin: 'bg-kaivo-teal/10 text-kaivo-teal border-kaivo-teal/20',
+      agency_admin: 'bg-teal-deep/10 text-teal-deep border-teal-deep/20',
       agency_manager: 'bg-purple-400/10 text-purple-400 border-purple-400/20',
       agency_viewer: 'bg-blue-400/10 text-blue-400 border-blue-400/20',
     };
     return (
-      <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold border", colors[role] || 'bg-muted text-muted-foreground border-white/10')}>
+      <span className={cn("text-[10px] px-2 py-0.5 rounded-full font-semibold border", colors[role] || 'bg-muted text-text-muted border-border')}>
         {label}
       </span>
     );
@@ -108,16 +108,16 @@ export default function TeamPage() {
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Team</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold text-text-primary tracking-tight">Team</h1>
+          <p className="text-text-muted mt-1">
             Manage your agency team members
-            {members.length > 0 && <span className="ml-2 text-xs bg-kaivo-teal/10 text-kaivo-teal px-2 py-0.5 rounded-full font-semibold">{members.length} members</span>}
+            {members.length > 0 && <span className="ml-2 text-xs bg-teal-deep/10 text-teal-deep px-2 py-0.5 rounded-full font-semibold">{members.length} members</span>}
           </p>
         </div>
         {isAdmin && (
           <button
             onClick={() => setShowInvite(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-kaivo-teal text-white text-sm font-semibold hover:bg-kaivo-teal-deep transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-teal-deep text-white text-sm font-semibold hover:bg-teal-deep/90 transition-colors"
           >
             <UserPlus className="h-4 w-4" />
             Invite Member
@@ -135,7 +135,7 @@ export default function TeamPage() {
           title="No team members"
           description="You're the only one here. Invite team members to collaborate on client management."
           action={isAdmin ? (
-            <button onClick={() => setShowInvite(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-kaivo-teal text-white text-sm font-semibold hover:bg-kaivo-teal-deep transition-colors">
+            <button onClick={() => setShowInvite(true)} className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-deep text-white text-sm font-semibold hover:bg-teal-deep/90 transition-colors">
               <UserPlus className="h-4 w-4" />
               Invite First Member
             </button>
@@ -145,17 +145,17 @@ export default function TeamPage() {
         <div className="space-y-2">
           {members.map(member => (
             <div key={member.id} className="glass-card rounded-xl border px-5 py-4 flex items-center gap-4 group">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-kaivo-teal/30 to-kaivo-teal-deep/30 flex items-center justify-center shrink-0 border border-white/10">
-                <span className="text-sm font-bold text-kaivo-teal uppercase">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-teal-deep/30 to-teal-deep/30 flex items-center justify-center shrink-0 border border-border">
+                <span className="text-sm font-bold text-teal-deep uppercase">
                   {(member.full_name || member.email).charAt(0)}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="text-sm font-semibold text-foreground truncate">{member.full_name || 'Unnamed'}</p>
+                  <p className="text-sm font-semibold text-text-primary truncate">{member.full_name || 'Unnamed'}</p>
                   {getRoleBadge(member.role)}
                 </div>
-                <p className="text-xs text-muted-foreground truncate mt-0.5">{member.email}</p>
+                <p className="text-xs text-text-muted truncate mt-0.5">{member.email}</p>
               </div>
               {isAdmin && member.user_id !== Number(session?.user?.id) && (
                 <button
@@ -174,24 +174,24 @@ export default function TeamPage() {
 
       {isAdmin && invites.length > 0 && (
         <div className="pt-4">
-          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-3 flex items-center gap-2">
             <Clock className="h-3.5 w-3.5" />
             Pending Invites
           </h2>
           <div className="space-y-2">
             {invites.map(invite => (
-              <div key={invite.id} className="rounded-xl border border-dashed border-white/10 bg-white/[0.02] px-5 py-3 flex items-center gap-4">
+              <div key={invite.id} className="rounded-xl border border-dashed border-border bg-white/[0.02] px-5 py-3 flex items-center gap-4">
                 <div className="h-8 w-8 rounded-full bg-amber-400/10 flex items-center justify-center shrink-0">
                   <Mail className="h-3.5 w-3.5 text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-foreground truncate">{invite.email}</p>
-                  <p className="text-[10px] text-muted-foreground">Invited as {AGENCY_ROLES[invite.role as AgencyRole]?.label || invite.role}</p>
+                  <p className="text-sm text-text-primary truncate">{invite.email}</p>
+                  <p className="text-[10px] text-text-muted">Invited as {AGENCY_ROLES[invite.role as AgencyRole]?.label || invite.role}</p>
                 </div>
                 <button
                   onClick={() => handleCancelInvite(invite.id)}
                   disabled={cancellingId === invite.id}
-                  className="px-3 py-1.5 text-xs rounded-lg border border-white/10 text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                  className="px-3 py-1.5 text-xs rounded-lg border border-border text-text-muted hover:text-text-primary hover:bg-surface-secondary transition-colors disabled:opacity-50 flex items-center gap-1.5"
                 >
                   {cancellingId === invite.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <X className="h-3 w-3" />}
                   Cancel
@@ -206,31 +206,31 @@ export default function TeamPage() {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowInvite(false)}>
           <div className="glass-card rounded-2xl border w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Invite Team Member</h2>
-              <button onClick={() => setShowInvite(false)} className="h-8 w-8 rounded-lg hover:bg-white/5 flex items-center justify-center text-muted-foreground">
+              <h2 className="text-lg font-semibold text-text-primary">Invite Team Member</h2>
+              <button onClick={() => setShowInvite(false)} className="h-8 w-8 rounded-lg hover:bg-surface-secondary flex items-center justify-center text-text-muted">
                 <X className="h-4 w-4" />
               </button>
             </div>
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Email Address *</label>
+                <label className="text-xs font-medium text-text-muted mb-1.5 block">Email Address *</label>
                 <input
                   type="email"
                   value={inviteEmail}
                   onChange={e => setInviteEmail(e.target.value)}
                   placeholder="colleague@agency.com"
-                  className="w-full px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-kaivo-teal/30"
+                  className="w-full px-3 py-2.5 rounded-xl bg-surface-secondary border border-border text-sm text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-2 focus:ring-teal-deep/20"
                 />
               </div>
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Role</label>
+                <label className="text-xs font-medium text-text-muted mb-1.5 block">Role</label>
                 <div className="space-y-2">
                   {(Object.entries(AGENCY_ROLES) as [AgencyRole, typeof AGENCY_ROLES[AgencyRole]][]).map(([key, val]) => (
                     <label
                       key={key}
                       className={cn(
                         "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
-                        inviteRole === key ? "border-kaivo-teal/30 bg-kaivo-teal/5" : "border-white/5 hover:border-white/10"
+                        inviteRole === key ? "border-teal-deep/30 bg-teal-deep/5" : "border-border hover:border-aqua/40"
                       )}
                     >
                       <input
@@ -239,11 +239,11 @@ export default function TeamPage() {
                         value={key}
                         checked={inviteRole === key}
                         onChange={() => setInviteRole(key)}
-                        className="mt-0.5 accent-kaivo-teal"
+                        className="mt-0.5 accent-teal-deep"
                       />
                       <div>
-                        <p className="text-sm font-medium text-foreground">{val.label}</p>
-                        <p className="text-xs text-muted-foreground">{val.description}</p>
+                        <p className="text-sm font-medium text-text-primary">{val.label}</p>
+                        <p className="text-xs text-text-muted">{val.description}</p>
                       </div>
                     </label>
                   ))}
@@ -251,13 +251,13 @@ export default function TeamPage() {
               </div>
             </div>
             <div className="flex items-center gap-3 pt-2">
-              <button onClick={() => setShowInvite(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-white/10 text-sm font-medium text-muted-foreground hover:bg-white/5 transition-colors">
+              <button onClick={() => setShowInvite(false)} className="flex-1 px-4 py-2.5 rounded-xl border border-border text-sm font-medium text-text-muted hover:bg-surface-secondary transition-colors">
                 Cancel
               </button>
               <button
                 onClick={handleInvite}
                 disabled={!inviteEmail.trim() || sending}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-kaivo-teal text-white text-sm font-semibold hover:bg-kaivo-teal-deep transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 px-4 py-2.5 rounded-xl bg-teal-deep text-white text-sm font-semibold hover:bg-teal-deep/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {sending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Send Invite

@@ -31,14 +31,14 @@ export function DashboardHeader({
   const displaySubtitle = subtitle || meta.subtitle;
 
   return (
-    <header className="h-[56px] bg-white border-b-2 border-cream-border flex items-center px-6 gap-3 shrink-0">
+    <header className="h-16 bg-white border-b border-border flex items-center px-7 gap-4 shrink-0">
       <div>
-        <div className="text-[15px] font-extrabold text-text-primary">{displayTitle}</div>
+        <h1 className="text-[16px] font-bold text-text-primary tracking-tight">{displayTitle}</h1>
         {displaySubtitle && (
-          <div className="text-[12px] text-text-muted font-medium">{displaySubtitle}</div>
+          <p className="text-[12px] text-text-muted font-medium -mt-0.5">{displaySubtitle}</p>
         )}
       </div>
-      {actions && <div className="ml-auto flex items-center gap-[10px]">{actions}</div>}
+      {actions && <div className="ml-auto flex items-center gap-3">{actions}</div>}
     </header>
   );
 }
