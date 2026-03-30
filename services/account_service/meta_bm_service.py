@@ -486,10 +486,7 @@ def check_token_validity(agency: Agency) -> Dict[str, Any]:
 
 
 def fetch_client_meta_insights(
-    db: Session,
-    client_id: int,
-    agency_id: int,
-    user_id: Optional[int] = None,
+    db: Session, client_id: int, agency_id: int, user_id: int = None, refresh: bool = False
 ) -> Dict[str, Any]:
     """
     Fetch Meta insights for a specific client using the agency's BM token.
@@ -551,11 +548,11 @@ def fetch_client_meta_insights(
     access_token = agency.meta_agency_access_token
     act_id = client.agency_meta_account_id
 
-    # Fetch ad accounts (cached)
+    # Fetch ad accounts (cached unless refreshing)
     ad_accounts_data = []
     cache_key_accounts = f"ad_accounts:{act_id}"
     cached_accounts = _cache_get(cache_key_accounts)
-    if cached_accounts:
+    if cached_accounts and not refresh:
         ad_accounts_data = cached_accounts
     else:
         try:
@@ -586,11 +583,11 @@ def fetch_client_meta_insights(
     except Exception as e:
         logger.error(f"Failed to fetch campaigns for {act_id}: {e}")
 
-    # Fetch ad sets (cached 15 min)
+    # Fetch ad sets (cached 15 min unless refreshing)
     ad_sets_data = []
     cache_key_adsets = f"ad_sets:{act_id}"
     cached_adsets = _cache_get(cache_key_adsets)
-    if cached_adsets:
+    if cached_adsets and not refresh:
         ad_sets_data = cached_adsets
     else:
         try:
@@ -648,7 +645,7 @@ def _fetch_campaigns_live(act_id: str, access_token: str) -> List[Dict[str, Any]
     insights_url = f"{META_GRAPH_BASE}/{act_id}/insights"
     insights_params = {
         "access_token": access_token,
-        "fields": "campaign_id,impressions,clicks,spend,reach",
+        "fields": "campaign_id,impressions,clicks,spend,reach,ctr,cpc,cost_per_conversion,actions",
         "level": "campaign",
         "date_preset": "last_30d",
         "limit": 500,
@@ -663,6 +660,10 @@ def _fetch_campaigns_live(act_id: str, access_token: str) -> List[Dict[str, Any]
                 for entry in insights_data:
                     c_id = entry.get("campaign_id")
                     if c_id:
+                        # Process actions to get conversions
+                        actions = entry.get("actions", [])
+                        conversions = sum(int(a.get("value", 0)) for a in actions if a.get("action_type") in ["purchase", "offsite_conversion.fb_pixel_purchase", "lead"])
+                        entry["conversions"] = conversions
                         insights_map[c_id] = entry
     except Exception as e:
         logger.warning(f"Batch insights fetch failed: {e}")
@@ -693,6 +694,10 @@ def _fetch_campaigns_live(act_id: str, access_token: str) -> List[Dict[str, Any]
             "clicks": int(insights.get("clicks", 0)),
             "spend": float(insights.get("spend", 0)),
             "reach": int(insights.get("reach", 0)),
+            "ctr": float(insights.get("ctr", 0)),
+            "cpc": float(insights.get("cpc", 0)),
+            "conversions": int(insights.get("conversions", 0)),
+            "cost_per_conversion": float(insights.get("cost_per_conversion", 0)),
         })
 
     return campaigns
@@ -727,42 +732,91 @@ def _fetch_campaign_insights(campaign_id: str, access_token: str) -> Dict[str, A
 
 
 def _fetch_ad_sets(act_id: str, access_token: str) -> List[Dict[str, Any]]:
-    """Fetch ad sets for an ad account."""
-    url = f"{META_GRAPH_BASE}/{act_id}/adsets"
-    params = {
+    """
+    Fetch ad sets and their insights from Meta Graph API.
+    Uses batch insights fetching for all ad sets in the account.
+    """
+    # 1. Fetch Ad Set Metadata
+    adsets_url = f"{META_GRAPH_BASE}/{act_id}/adsets"
+    adsets_params = {
         "access_token": access_token,
         "fields": "id,campaign_id,name,status,daily_budget,targeting",
-        "limit": 100,
+        "limit": 200,
     }
 
-    ad_sets = []
+    raw_adsets = []
     try:
         with httpx.Client(timeout=30.0) as client:
-            resp = client.get(url, params=params)
+            resp = client.get(adsets_url, params=adsets_params)
             if resp.status_code == 200:
-                for adset in resp.json().get("data", []):
-                    targeting = adset.get("targeting", {})
-                    targeting_parts = []
-                    if targeting.get("geo_locations", {}).get("countries"):
-                        targeting_parts.append(f"Countries: {', '.join(targeting['geo_locations']['countries'])}")
-                    if targeting.get("age_min") or targeting.get("age_max"):
-                        targeting_parts.append(f"Age: {targeting.get('age_min', '?')}-{targeting.get('age_max', '?')}")
-                    if targeting.get("genders"):
-                        gender_map = {1: "Male", 2: "Female"}
-                        genders = [gender_map.get(g, str(g)) for g in targeting["genders"]]
-                        targeting_parts.append(f"Gender: {', '.join(genders)}")
-                    targeting_summary = " | ".join(targeting_parts) if targeting_parts else "Broad targeting"
-
-                    ad_sets.append({
-                        "adset_id": adset.get("id", ""),
-                        "campaign_id": adset.get("campaign_id", ""),
-                        "name": adset.get("name", "Unnamed"),
-                        "status": adset.get("status", "UNKNOWN"),
-                        "daily_budget": float(adset.get("daily_budget", 0)) / 100,
-                        "targeting_summary": targeting_summary,
-                    })
+                raw_adsets = resp.json().get("data", [])
     except Exception as e:
-        logger.error(f"Ad sets fetch failed for {act_id}: {e}")
+        logger.error(f"Ad set metadata fetch failed: {e}")
+        return []
+
+    if not raw_adsets:
+        return []
+
+    # 2. Fetch Insights for All Ad Sets
+    insights_url = f"{META_GRAPH_BASE}/{act_id}/insights"
+    insights_params = {
+        "access_token": access_token,
+        "fields": "adset_id,impressions,clicks,spend,ctr,cpc,cost_per_conversion,actions",
+        "level": "adset",
+        "date_preset": "last_30d",
+        "limit": 500,
+    }
+
+    insights_map = {}
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            i_resp = client.get(insights_url, params=insights_params)
+            if i_resp.status_code == 200:
+                insights_data = i_resp.json().get("data", [])
+                for entry in insights_data:
+                    as_id = entry.get("adset_id")
+                    if as_id:
+                        # Process actions
+                        actions = entry.get("actions", [])
+                        conversions = sum(int(a.get("value", 0)) for a in actions if a.get("action_type") in ["purchase", "offsite_conversion.fb_pixel_purchase", "lead"])
+                        entry["conversions"] = conversions
+                        insights_map[as_id] = entry
+    except Exception as e:
+        logger.warning(f"Batch adset insights fetch failed: {e}")
+
+    # 3. Merge Metadata and Insights
+    ad_sets = []
+    for adset in raw_adsets:
+        as_id = adset.get("id", "")
+        insights = insights_map.get(as_id, {})
+        
+        targeting = adset.get("targeting", {})
+        targeting_parts = []
+        if targeting.get("geo_locations", {}).get("countries"):
+            targeting_parts.append(f"Countries: {', '.join(targeting['geo_locations']['countries'])}")
+        if targeting.get("age_min") or targeting.get("age_max"):
+            targeting_parts.append(f"Age: {targeting.get('age_min', '?')}-{targeting.get('age_max', '?')}")
+        if targeting.get("genders"):
+            gender_map = {1: "Male", 2: "Female"}
+            genders = [gender_map.get(g, str(g)) for g in targeting["genders"]]
+            targeting_parts.append(f"Gender: {', '.join(genders)}")
+        targeting_summary = " | ".join(targeting_parts) if targeting_parts else "Broad targeting"
+
+        ad_sets.append({
+            "adset_id": as_id,
+            "campaign_id": adset.get("campaign_id", ""),
+            "name": adset.get("name", "Unnamed"),
+            "status": adset.get("status", "UNKNOWN"),
+            "daily_budget": float(adset.get("daily_budget", 0)) / 100,
+            "targeting_summary": targeting_summary,
+            "impressions": int(insights.get("impressions", 0)),
+            "clicks": int(insights.get("clicks", 0)),
+            "spend": float(insights.get("spend", 0)),
+            "ctr": float(insights.get("ctr", 0)),
+            "cpc": float(insights.get("cpc", 0)),
+            "conversions": int(insights.get("conversions", 0)),
+            "cost_per_conversion": float(insights.get("cost_per_conversion", 0)),
+        })
 
     return ad_sets
 

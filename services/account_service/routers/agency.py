@@ -786,13 +786,14 @@ def manual_link_meta_client(
 @router.get("/clients/{client_id}/meta-insights")
 def get_client_meta_insights(
     client_id: int,
+    refresh: bool = False,
     db: Session = Depends(get_db),
     ctx: dict = Depends(require_any_member),
 ):
     """
     Fetch Meta insights for a specific client.
     Uses agency BM token, NOT client's Kaivo token.
-    Returns campaigns (live), ad_accounts (cached 15m), ad_sets (cached 15m).
+    Returns campaigns (live), ad_accounts (cached), ad_sets (cached).
     """
     from services.account_service.meta_bm_service import fetch_client_meta_insights
 
@@ -801,6 +802,7 @@ def get_client_meta_insights(
             db, client_id,
             agency_id=ctx.get("agency_id"),
             user_id=ctx.get("user_id"),
+            refresh=refresh,
         )
         return result
     except ValueError as e:

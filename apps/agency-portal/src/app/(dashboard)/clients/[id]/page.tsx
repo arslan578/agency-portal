@@ -2,7 +2,7 @@
 
 export const runtime = 'edge';
 
-import { useCallback, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -11,7 +11,7 @@ import { ApiErrorBanner } from '@/components/ui/ApiErrorBanner';
 import { useClients, useCampaigns, useClientHierarchy, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
-import type { Campaign, HierarchyClientRow } from '@/lib/api/contracts';
+import type { Campaign, HierarchyClientRow, MetaInsights } from '@/lib/api/contracts';
 import { ClientMetaSection } from '@/components/agency/ClientMetaSection';
 import { ClientRedditSection } from '@/components/agency/ClientRedditSection';
 
@@ -90,6 +90,23 @@ interface DisplayCampaign {
   roas: number;
   cpa: number;
   isReal: boolean;
+}
+
+interface DisplayPlatformNode {
+  key: string;
+  name: string;
+  score: number;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  budget: number;
+  pacing: number;
+  cpc: number;
+  ctr: number;
+  conversions: number;
+  status: string;
+  aiMode: string;
+  campaigns: DisplayCampaign[];
 }
 
 function avatarColorFromId(id: number): string {
@@ -184,10 +201,12 @@ export default function ClientDetailPage() {
   }, [fromList, hc]);
 
   const campaigns: DisplayCampaign[] = useMemo(() => {
-    if (hc) return flattenHierarchyCampaigns(hc);
+    // Prefer the dedicated campaigns endpoint as the primary source of truth.
     if (apiCampaigns.length > 0) return apiCampaigns.map(mapCampaignToDisplay);
+    // Fall back to hierarchy usage data when the campaigns list is empty.
+    if (hc) return flattenHierarchyCampaigns(hc);
     return [];
-  }, [hc, apiCampaigns]);
+  }, [apiCampaigns, hc]);
 
   const insights = useMemo(
     () => [] as { id: number; client: string; platform: string; severity: string; text: string; impact: string }[],
@@ -197,6 +216,9 @@ export default function ClientDetailPage() {
   const [viewMode, setViewMode] = useState<'agency' | 'client'>('agency');
   const [dismissedInsightIds, setDismissedInsightIds] = useState<Set<number>>(() => new Set());
   const [pausingId, setPausingId] = useState<number | null>(null);
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
+  const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
+  const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
 
   const visibleInsights = useMemo(
     () => insights.filter((i) => !dismissedInsightIds.has(i.id)),
@@ -212,6 +234,30 @@ export default function ClientDetailPage() {
     return Array.from(set);
   }, [hc, campaigns]);
 
+  const loadMetaInsightsFallback = useCallback(async () => {
+    if (!accessToken || !agencyId || Number.isNaN(clientId)) return;
+    if (metaInsightsLoading) return;
+    setMetaInsightsLoading(true);
+    try {
+      const data = await apiClient.get<MetaInsights>(
+        API_ENDPOINTS.META.CLIENT_INSIGHTS(String(clientId)),
+        { accessToken, agencyId },
+      );
+      setMetaInsights(data);
+    } catch {
+      setMetaInsights(null);
+    } finally {
+      setMetaInsightsLoading(false);
+    }
+  }, [accessToken, agencyId, clientId, metaInsightsLoading]);
+
+  useEffect(() => {
+    if ((hc?.platforms?.length ?? 0) > 0) return;
+    if (campaigns.length > 0) return;
+    if (metaInsightsLoading || metaInsights) return;
+    void loadMetaInsightsFallback();
+  }, [hc, campaigns.length, metaInsightsLoading, metaInsights, loadMetaInsightsFallback]);
+
   const avgRoas = useMemo(() => {
     if (campaigns.length === 0) return 0;
     return campaigns.reduce((s, c) => s + c.roas, 0) / campaigns.length;
@@ -226,6 +272,115 @@ export default function ClientDetailPage() {
     if (campaigns.length > 0) return campaigns.reduce((s, c) => s + c.spend, 0);
     return client?.spend ?? 0;
   }, [campaigns, client]);
+
+  const platformNodes = useMemo<DisplayPlatformNode[]>(() => {
+    if (hc?.platforms?.length) {
+      return hc.platforms.map((p) => {
+        const pCampaigns: DisplayCampaign[] = p.campaigns.map((camp) => ({
+          id: camp.id,
+          name: camp.name,
+          platform: p.display_name,
+          status: (camp.status || 'draft').toLowerCase(),
+          budget: camp.metrics.budget,
+          spend: camp.metrics.spend,
+          pacing: Math.round(camp.metrics.pacing),
+          roas: 0,
+          cpa: camp.metrics.cost_per_conversion,
+          isReal: true,
+        }));
+        return {
+          key: p.key,
+          name: p.display_name,
+          score: p.metrics.score,
+          impressions: p.metrics.impressions,
+          clicks: p.metrics.clicks,
+          spend: p.metrics.spend,
+          budget: p.metrics.budget,
+          pacing: Math.round(p.metrics.pacing),
+          cpc: p.metrics.cpc,
+          ctr: p.metrics.ctr,
+          conversions: p.metrics.conversions,
+          status: 'live',
+          aiMode: 'manual',
+          campaigns: pCampaigns,
+        };
+      });
+    }
+
+    const byPlatform = new Map<string, DisplayCampaign[]>();
+    for (const camp of campaigns) {
+      const arr = byPlatform.get(camp.platform) ?? [];
+      arr.push(camp);
+      byPlatform.set(camp.platform, arr);
+    }
+    const fromCampaignApi = Array.from(byPlatform.entries()).map(([name, rows], idx) => {
+      const spend = rows.reduce((s, c) => s + c.spend, 0);
+      const budget = rows.reduce((s, c) => s + c.budget, 0);
+      const pacing = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+      const cpc = rows.reduce((s, c) => s + c.cpa, 0) / Math.max(1, rows.length);
+      const ctr = 0;
+      const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+      return {
+        key: `${name.toLowerCase()}-${idx}`,
+        name,
+        score,
+        impressions: 0,
+        clicks: 0,
+        spend,
+        budget,
+        pacing,
+        cpc,
+        ctr,
+        conversions: 0,
+        status: 'live',
+        aiMode: 'manual',
+        campaigns: rows,
+      };
+    });
+    if (fromCampaignApi.length > 0) return fromCampaignApi;
+
+    if (metaInsights?.campaigns?.length) {
+      const mCampaigns: DisplayCampaign[] = metaInsights.campaigns.map((camp, idx) => ({
+        id: Number(String(camp.campaign_id).replace(/[^\d]/g, '')) || idx + 1,
+        name: camp.name || `Campaign #${idx + 1}`,
+        platform: 'Meta',
+        status: (camp.status || 'draft').toLowerCase(),
+        budget: Number(camp.budget || 0),
+        spend: Number(camp.spend || 0),
+        pacing: camp.budget ? Math.round((Number(camp.spend || 0) / Number(camp.budget)) * 100) : 0,
+        roas: 0,
+        cpa: Number(camp.cost_per_conversion || 0),
+        isReal: true,
+      }));
+      const spend = mCampaigns.reduce((s, c) => s + c.spend, 0);
+      const budget = mCampaigns.reduce((s, c) => s + c.budget, 0);
+      const impressions = metaInsights.campaigns.reduce((s, c) => s + Number(c.impressions || 0), 0);
+      const clicks = metaInsights.campaigns.reduce((s, c) => s + Number(c.clicks || 0), 0);
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const cpc = clicks > 0 ? spend / clicks : 0;
+      const pacing = budget > 0 ? Math.round((spend / budget) * 100) : 0;
+      const conversions = metaInsights.campaigns.reduce((s, c) => s + Number(c.conversions || 0), 0);
+      const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+      return [{
+        key: 'meta',
+        name: 'Meta',
+        score,
+        impressions,
+        clicks,
+        spend,
+        budget,
+        pacing,
+        cpc,
+        ctr,
+        conversions,
+        status: 'live',
+        aiMode: 'manual',
+        campaigns: mCampaigns,
+      }];
+    }
+
+    return [];
+  }, [hc, campaigns, metaInsights]);
 
   const activityEntries = useMemo(() => {
     if (!client) return [];
@@ -258,6 +413,27 @@ export default function ClientDetailPage() {
       setPausingId(null);
     }
   }, [accessToken, agencyId, refreshCampaigns, refreshHierarchy]);
+
+  const toggleRow = useCallback((key: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  const expandAllRows = useCallback(() => {
+    const next = new Set<string>();
+    for (const p of platformNodes) {
+      const pKey = `p-${p.key}`;
+      next.add(pKey);
+      for (const c of p.campaigns) next.add(`${pKey}-c-${c.id}`);
+    }
+    setExpandedRows(next);
+  }, [platformNodes]);
+
+  const collapseAllRows = useCallback(() => setExpandedRows(new Set()), []);
 
   if (clientsLoading) {
     return (
@@ -298,17 +474,17 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-surface-secondary overflow-hidden">
-      <div className="px-6 pt-4 pb-2 shrink-0 border-b border-border bg-white">
-        <Link href="/clients" className="text-[13px] font-semibold text-teal-deep hover:text-teal-deep/80 transition-colors">
+    <div className="flex flex-col h-full bg-cream overflow-hidden font-space">
+      <div className="px-6 pt-4 pb-2 shrink-0 border-b-2 border-cream-border bg-white/50 backdrop-blur-md">
+        <Link href="/clients" className="text-[13px] font-bold text-v-teal hover:text-v-teal-dark transition-colors">
           ← Back to Clients
         </Link>
       </div>
       <DashboardHeader title={client.name} />
 
-      <main className="flex-1 overflow-auto p-6 space-y-5">
+      <main className="flex-1 overflow-auto p-6 space-y-6">
         {/* Client header card */}
-        <section className="bg-white rounded-xl border border-border p-5 shadow-sm">
+        <section className="bg-white rounded-2xl border-2 border-cream-border p-6 shadow-sm">
           <div className="flex flex-wrap items-start gap-4 justify-between">
             <div className="flex items-start gap-4 min-w-0">
               <div
@@ -325,23 +501,23 @@ export default function ClientDetailPage() {
                   <ScoreBadge score={client.score} />
                   {platforms.map((p) => <PlatformTag key={p} name={p} />)}
                   {platforms.length === 0 && (
-                    <span className="text-[11px] font-bold text-text-muted">No platforms or campaigns yet</span>
+                    <span className="text-[11px] font-bold text-v-text-muted">No platforms or campaigns yet</span>
                   )}
                 </div>
               </div>
             </div>
-            <div className="flex rounded-lg border border-border overflow-hidden bg-surface-secondary p-0.5" role="group" aria-label="View mode">
+            <div className="flex rounded-xl border-2 border-cream-border overflow-hidden bg-cream p-0.5" role="group" aria-label="View mode">
               <button
                 type="button"
                 onClick={() => setViewMode('agency')}
-                className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-all ${viewMode === 'agency' ? 'bg-teal-deep text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                className={`px-3 py-1.5 text-[12px] font-bold rounded-lg transition-all ${viewMode === 'agency' ? 'bg-v-teal text-white shadow-md' : 'text-v-text-secondary hover:text-v-text-primary'}`}
               >
                 Agency View
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('client')}
-                className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-all ${viewMode === 'client' ? 'bg-teal-deep text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                className={`px-3 py-1.5 text-[12px] font-bold rounded-lg transition-all ${viewMode === 'client' ? 'bg-v-teal text-white shadow-md' : 'text-v-text-secondary hover:text-v-text-primary'}`}
               >
                 Client Portal View
               </button>
@@ -356,14 +532,14 @@ export default function ClientDetailPage() {
         {/* KPI row */}
         <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            { label: 'Score', value: client.score.toFixed(1) },
+            { label: 'Health Score', value: client.score.toFixed(1) },
             { label: 'Total spend', value: formatUsd(totalSpend) },
             { label: 'Avg ROAS', value: avgRoas > 0 ? avgRoas.toFixed(2) : '—' },
             { label: 'Avg CPA', value: avgCpa > 0 ? formatUsd(avgCpa) : '—' },
           ].map((kpi) => (
-            <div key={kpi.label} className="bg-white rounded-xl border border-border p-5 flex flex-col gap-2 shadow-sm">
-              <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{kpi.label}</div>
-              <div className="text-[28px] font-extrabold font-mono text-text-primary leading-none tabular-nums">{kpi.value}</div>
+            <div key={kpi.label} className="bg-white rounded-2xl border-2 border-cream-border p-6 flex flex-col gap-2 shadow-sm">
+              <div className="text-[10px] font-black text-v-text-muted uppercase tracking-[0.15em]">{kpi.label}</div>
+              <div className="text-[28px] font-black font-mono text-v-text-primary leading-none tabular-nums">{kpi.value}</div>
             </div>
           ))}
         </section>
@@ -380,98 +556,131 @@ export default function ClientDetailPage() {
           />
         )}
 
-        {/* Campaigns table */}
-        <section className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
-          <div className="px-5 py-4 border-b border-border-subtle bg-surface-secondary/50 flex items-center justify-between">
+        {/* Campaigns hierarchy table */}
+        <section className="bg-white rounded-2xl border-2 border-cream-border overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b-2 border-cream-border bg-cream/60 flex items-center justify-between">
             <div>
-              <h2 className="text-[14px] font-bold text-text-primary">Campaigns</h2>
-              <p className="text-[12px] text-text-muted font-medium mt-0.5">
-                {hc ? 'Metrics from usage (hierarchy API)' : apiCampaigns.length > 0 ? 'Campaign list from API' : 'No campaign data yet'}
-                {' · '}
-                {viewMode === 'agency' ? 'Agency' : 'Client'} view
+              <h2 className="text-[14px] font-black text-v-text-primary">Campaigns</h2>
+              <p className="text-[11px] text-v-text-muted font-bold mt-0.5">
+                {platformNodes.length} platforms · {platformNodes.reduce((s, p) => s + p.campaigns.length, 0)} campaigns
               </p>
             </div>
-            {(hc || apiCampaigns.length > 0) && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => {
                   void refreshHierarchy();
                   void refreshCampaigns();
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border border-border bg-white text-text-primary hover:border-aqua hover:text-teal-deep transition-colors"
+                className="px-3 py-1.5 rounded-lg border-2 border-cream-border bg-white text-[11px] font-bold text-v-text-primary hover:border-v-teal transition-colors"
               >
-                <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5" /><path d="M13.5 2.5v4h-4" />
-                </svg>
-                Refresh
+                {metaInsightsLoading ? 'Loading…' : 'Refresh'}
               </button>
-            )}
+              <button type="button" onClick={expandAllRows} className="px-3 py-1.5 rounded-lg border-2 border-cream-border bg-white text-[11px] font-bold text-v-text-primary hover:border-v-teal transition-colors">
+                Expand All
+              </button>
+              <button type="button" onClick={collapseAllRows} className="px-3 py-1.5 rounded-lg border-2 border-cream-border bg-white text-[11px] font-bold text-v-text-primary hover:border-v-teal transition-colors">
+                Collapse All
+              </button>
+            </div>
           </div>
           {(hierarchyLoading && !hc) || (!hc && campaignsLoading) ? (
             <CampaignSkeleton />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-[13px]">
+              <table className="w-full text-left text-[12px]">
                 <thead>
-                  <tr className="border-b border-border bg-surface-secondary/50">
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Campaign</th>
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Platform</th>
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Status</th>
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">Budget</th>
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">Spend</th>
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Pacing</th>
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">ROAS</th>
-                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">CPA</th>
-                    {viewMode === 'agency' && (
-                      <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Action</th>
-                    )}
+                  <tr className="border-b-2 border-cream-border bg-cream">
+                    <th className="w-10 px-2 py-3" />
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Name</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Score</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Impressions</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Clicks</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Spend</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Budget</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Pacing</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">CPC</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">CTR</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Conv.</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">Status</th>
+                    <th className="px-4 py-3 font-black text-v-text-muted uppercase text-[9px] tracking-[0.16em]">AI Mode</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {campaigns.length === 0 ? (
+                  {platformNodes.length === 0 ? (
                     <tr>
-                      <td colSpan={viewMode === 'agency' ? 9 : 8} className="px-5 py-10 text-center text-text-muted font-medium">
-                        No campaigns found for this client.
+                      <td colSpan={13} className="px-5 py-10 text-center text-text-muted font-medium">
+                        {metaInsightsLoading ? 'Loading campaigns…' : 'No campaigns found for this client.'}
                       </td>
                     </tr>
                   ) : (
-                    campaigns.map((row) => {
-                      const isActive = row.status === 'active' || row.status === 'running';
+                    platformNodes.map((p) => {
+                      const pKey = `p-${p.key}`;
+                      const pOpen = expandedRows.has(pKey);
                       return (
-                        <tr key={row.id} className="border-b border-border-subtle last:border-b-0 hover:bg-surface-secondary/60 transition-colors">
-                          <td className="px-5 py-3 font-semibold text-text-primary">{row.name}</td>
-                          <td className="px-5 py-3"><PlatformTag name={row.platform} /></td>
-                          <td className="px-5 py-3">
-                            <span className={`inline-flex px-2 py-0.5 rounded-md text-[10.5px] font-bold capitalize ${
-                              isActive ? 'bg-green-light text-green' : row.status === 'paused' ? 'bg-amber-light text-amber' : 'bg-surface-secondary text-text-muted'
-                            }`}>
-                              {row.status}
-                            </span>
-                          </td>
-                          <td className="px-5 py-3 font-mono text-text-primary tabular-nums">{formatUsd(row.budget)}</td>
-                          <td className="px-5 py-3 font-mono text-text-primary tabular-nums">{formatUsd(row.spend)}</td>
-                          <td className="px-5 py-3"><PacingBar pacing={row.pacing} /></td>
-                          <td className="px-5 py-3 font-mono text-text-primary tabular-nums">{row.roas.toFixed(2)}</td>
-                          <td className="px-5 py-3 font-mono text-text-primary tabular-nums">{formatUsd(row.cpa)}</td>
-                          {viewMode === 'agency' && (
-                            <td className="px-5 py-3">
-                              {row.isReal && (
-                                <button
-                                  type="button"
-                                  disabled={pausingId === row.id}
-                                  onClick={() => handleToggleCampaign(row.id, row.status)}
-                                  className={`px-3 py-1 rounded-md text-[11px] font-bold transition-colors ${
-                                    isActive
-                                      ? 'bg-amber-light text-amber hover:bg-amber/20'
-                                      : 'bg-green-light text-green hover:bg-green/20'
-                                  } disabled:opacity-50`}
-                                >
-                                  {pausingId === row.id ? '...' : isActive ? 'Pause' : 'Resume'}
-                                </button>
-                              )}
+                        <Fragment key={pKey}>
+                          <tr className="border-b border-cream-border bg-white hover:bg-cream/20 cursor-pointer" onClick={() => toggleRow(pKey)}>
+                            <td className="px-2 py-3">
+                              <button className="w-6 h-6 rounded-lg border-2 border-cream-border bg-white text-v-text-muted flex items-center justify-center text-[10px]" style={{ transform: pOpen ? 'rotate(90deg)' : undefined }}>▶</button>
                             </td>
-                          )}
-                        </tr>
+                            <td className="px-4 py-3 font-black text-v-text-primary">{p.name}</td>
+                            <td className="px-4 py-3"><span className="inline-flex px-2 py-0.5 rounded-md text-[11px] font-black bg-red-light text-red">{p.score.toFixed(1)}</span></td>
+                            <td className="px-4 py-3 font-mono font-bold">{p.impressions.toLocaleString()}</td>
+                            <td className="px-4 py-3 font-mono font-bold">{p.clicks.toLocaleString()}</td>
+                            <td className="px-4 py-3 font-mono font-black text-coral">{formatUsd(p.spend)}</td>
+                            <td className="px-4 py-3 font-mono font-bold text-v-text-muted">{formatUsd(p.budget)}</td>
+                            <td className="px-4 py-3"><span className="font-black text-v-teal">{p.pacing}%</span></td>
+                            <td className="px-4 py-3 font-mono font-black text-coral">${p.cpc.toFixed(2)}</td>
+                            <td className="px-4 py-3 font-mono font-black text-coral">{p.ctr.toFixed(1)}%</td>
+                            <td className="px-4 py-3 font-mono font-black">{p.conversions.toLocaleString()}</td>
+                            <td className="px-4 py-3"><span className="text-[10px] font-black text-green">• Live</span></td>
+                            <td className="px-4 py-3"><span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-black bg-cream text-v-text-muted">Manual</span></td>
+                          </tr>
+                          {pOpen &&
+                            p.campaigns.map((row) => {
+                              const isActive = row.status === 'active' || row.status === 'running';
+                              return (
+                                <tr key={`${pKey}-${row.id}`} className="border-b border-cream-border/70 bg-cream/30 hover:bg-cream/50 transition-colors">
+                                  <td className="px-2 py-2" />
+                                  <td className="px-4 py-2 pl-8">
+                                    <div className="font-bold text-v-text-primary">{row.name}</div>
+                                  </td>
+                                  <td className="px-4 py-2"><span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-black bg-red-light text-red">—</span></td>
+                                  <td className="px-4 py-2 font-mono font-bold">—</td>
+                                  <td className="px-4 py-2 font-mono font-bold">—</td>
+                                  <td className="px-4 py-2 font-mono font-black text-coral">{formatUsd(row.spend)}</td>
+                                  <td className="px-4 py-2 font-mono font-bold text-v-text-muted">{formatUsd(row.budget)}</td>
+                                  <td className="px-4 py-2"><span className="font-black text-v-teal">{row.pacing}%</span></td>
+                                  <td className="px-4 py-2 font-mono font-black text-coral">{row.cpa > 0 ? `$${row.cpa.toFixed(2)}` : '—'}</td>
+                                  <td className="px-4 py-2 font-mono font-black text-coral">—</td>
+                                  <td className="px-4 py-2 font-mono font-black">—</td>
+                                  <td className="px-4 py-2">
+                                    <span className={`text-[10px] font-black ${isActive ? 'text-green' : 'text-amber'}`}>
+                                      • {isActive ? 'Live' : 'Pending'}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-2">
+                                    {row.isReal && viewMode === 'agency' ? (
+                                      <button
+                                        type="button"
+                                        disabled={pausingId === row.id}
+                                        onClick={() => handleToggleCampaign(row.id, row.status)}
+                                        className={`px-2 py-1 rounded-md text-[10px] font-bold transition-colors ${
+                                          isActive ? 'bg-amber-light text-amber hover:bg-amber/20' : 'bg-green-light text-green hover:bg-green/20'
+                                        } disabled:opacity-50`}
+                                      >
+                                        {pausingId === row.id ? '...' : isActive ? 'Pause' : 'Resume'}
+                                      </button>
+                                    ) : (
+                                      <span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-black bg-cream text-v-text-muted">
+                                        {viewMode === 'agency' ? 'Manual' : 'Client'}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </Fragment>
                       );
                     })
                   )}

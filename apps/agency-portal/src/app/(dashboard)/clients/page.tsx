@@ -1,15 +1,17 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import Link from 'next/link';
-import { useClientHierarchy, useClients, useApiAuth } from '@/hooks/useAgencyApi';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
+import { useClientHierarchy, useClients, useApiAuth, useCampaigns } from '@/hooks/useAgencyApi';
 import { apiClient, type ApiError } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { buildFallbackHierarchy } from '@/lib/api/hierarchyFallback';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { toast } from 'sonner';
-import type { HierarchyClientRow, HierarchyCampaignRow, HierarchyPlatformRow } from '@/lib/api/contracts';
+import type { Campaign, HierarchyClientRow, HierarchyCampaignRow, HierarchyPlatformRow, MetaInsights } from '@/lib/api/contracts';
 
 type TabFilter = 'all' | 'needs_action' | 'top' | 'manual_ai';
 type SortKey = 'score' | 'spend' | 'alerts' | 'ctr';
@@ -42,6 +44,198 @@ function platformSubtitle(c: HierarchyClientRow): string {
   const industry = (c.industry ?? '').trim() || 'Business';
   const n = c.platform_count ?? c.platforms.length;
   return `${industry} · ${n} platform${n !== 1 ? 's' : ''}`;
+}
+
+type PlatformWithCampaignAccountId = HierarchyPlatformRow & { _campaignAccountId?: Record<number, string> };
+
+function getPlatformAccountNodes(platform: HierarchyPlatformRow): Array<{ key: string; label: string; sub?: string; matchId?: string }> {
+  if ((platform.linked_accounts?.length ?? 0) > 0) {
+    return platform.linked_accounts.map((acc) => ({
+      key: `linked-${acc.id}`,
+      label: acc.external_id || `Account #${acc.id}`,
+      sub: 'Linked account',
+      matchId: acc.external_id,
+    }));
+  }
+  if (platform.account_ids.length > 0) {
+    return platform.account_ids.map((aid, idx) => ({
+      key: `aid-${idx}-${aid}`,
+      label: aid,
+      sub: 'Account ID',
+      matchId: aid,
+    }));
+  }
+  return [{ key: 'platform-default', label: 'Platform campaigns', sub: 'No account mapping' }];
+}
+
+function campaignToHierarchyFallback(c: Campaign, platformKey: string): HierarchyCampaignRow {
+  const budget = (c.total_budget_cents ?? 0) / 100;
+  return {
+    id: c.id,
+    name: c.name || `Campaign #${c.id}`,
+    status: c.status || 'draft',
+    metrics: {
+      spend: 0,
+      impressions: 0,
+      clicks: 0,
+      ctr: 0,
+      cpc: 0,
+      conversions: 0,
+      cost_per_conversion: 0,
+      budget,
+      pacing: 0,
+      score: 0,
+      alerts: { count: 0, severity: 'ok' },
+    },
+    ad_sets: [],
+  };
+}
+
+function createSyntheticPlatform(
+  platformKey: string,
+  campaigns: HierarchyCampaignRow[],
+): HierarchyPlatformRow {
+  const totalBudget = campaigns.reduce((sum, c) => sum + (c.metrics?.budget ?? 0), 0);
+  return {
+    key: platformKey,
+    display_name: platformKey.charAt(0).toUpperCase() + platformKey.slice(1),
+    account_ids: [],
+    linked_accounts: [],
+    metrics: {
+      spend: 0,
+      impressions: 0,
+      clicks: 0,
+      ctr: 0,
+      cpc: 0,
+      conversions: 0,
+      cost_per_conversion: 0,
+      budget: totalBudget,
+      pacing: 0,
+      score: 0,
+      alerts: { count: 0, severity: 'ok' },
+    },
+    campaigns,
+  };
+}
+
+function createMetaFallbackPlatforms(insights: MetaInsights): PlatformWithCampaignAccountId[] {
+  if (!insights.campaigns?.length) return [];
+
+  const adSetsByCampaign = new Map<string, typeof insights.ad_sets>();
+  for (const ad of insights.ad_sets ?? []) {
+    const k = String(ad.campaign_id);
+    const arr = adSetsByCampaign.get(k) ?? [];
+    arr.push(ad);
+    adSetsByCampaign.set(k, arr);
+  }
+
+  const campaignAccountId: Record<number, string> = {};
+
+  const campaigns: HierarchyCampaignRow[] = insights.campaigns.map((camp, idx) => {
+    const clicks = Number(camp.clicks || 0);
+    const impressions = Number(camp.impressions || 0);
+    const spend = Number(camp.spend || 0);
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const cpc = clicks > 0 ? spend / clicks : 0;
+    const budget = Number(camp.budget || 0);
+    const pacing = budget > 0 ? Math.min(200, (spend / budget) * 100) : 0;
+
+    const rawId = String(camp.campaign_id || '');
+    const parsed = Number(rawId.replace(/[^\d]/g, ''));
+    const id = Number.isFinite(parsed) && parsed > 0 ? parsed : idx + 1;
+    campaignAccountId[id] = String(camp.ad_account_id ?? '');
+
+    const adSets = adSetsByCampaign.get(rawId) ?? [];
+
+    const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+
+    return {
+      id,
+      name: camp.name || `Campaign #${id}`,
+      status: camp.status || 'draft',
+      metrics: {
+        spend,
+        impressions,
+        clicks,
+        ctr,
+        cpc,
+        conversions: Number(camp.conversions || 0),
+        cost_per_conversion: 0,
+        budget,
+        pacing,
+        score,
+        alerts: { count: 0, severity: 'ok' },
+      },
+      ad_sets: adSets.map((as, adIdx) => {
+        const asImpr = Number(as.impressions || 0);
+        const asClicks = Number(as.clicks || 0);
+        const asSpend = Number(as.spend || 0);
+        const asBudget = Number(as.daily_budget || 0);
+        const asCtr = asImpr > 0 ? (asClicks / asImpr) * 100 : Number(as.ctr || 0);
+        const asCpc = asClicks > 0 ? asSpend / asClicks : Number(as.cpc || 0);
+        const asPacing = asBudget > 0 ? Math.min(200, (asSpend / asBudget) * 100) : 0;
+        const asScore = Math.min(100, Math.max(0, 75 + asCtr * 10 - asCpc / 2));
+
+        return {
+          id: String(as.adset_id || `${id}-${adIdx + 1}`),
+          name: as.name || `Ad set ${adIdx + 1}`,
+          metrics: {
+            spend: asSpend,
+            impressions: asImpr,
+            clicks: asClicks,
+            ctr: asCtr,
+            cpc: asCpc,
+            conversions: Number(as.conversions || 0),
+            cost_per_conversion: 0,
+            budget: asBudget,
+            pacing: asPacing,
+            score: asScore,
+            alerts: { count: 0, severity: 'ok' },
+          },
+        };
+      }),
+    };
+  });
+
+  const totalSpend = campaigns.reduce((s, c) => s + (c.metrics?.spend ?? 0), 0);
+  const totalBudget = campaigns.reduce((s, c) => s + (c.metrics?.budget ?? 0), 0);
+  const totalImpressions = campaigns.reduce((s, c) => s + (c.metrics?.impressions ?? 0), 0);
+  const totalClicks = campaigns.reduce((s, c) => s + (c.metrics?.clicks ?? 0), 0);
+  const platformCtr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+  const platformCpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
+  const platformPacing = totalBudget > 0 ? Math.min(200, (totalSpend / totalBudget) * 100) : 0;
+  const platformScore = Math.min(100, Math.max(0, 75 + platformCtr * 10 - platformCpc / 2));
+
+  const linked_accounts = (insights.ad_accounts ?? []).map((acc, i) => ({
+    id: i + 1,
+    external_id: String(acc.account_id ?? ''),
+  }));
+
+  const platformMetrics = {
+    spend: totalSpend,
+    impressions: totalImpressions,
+    clicks: totalClicks,
+    ctr: platformCtr,
+    cpc: platformCpc,
+    conversions: 0,
+    cost_per_conversion: 0,
+    budget: totalBudget,
+    pacing: platformPacing,
+    score: platformScore,
+    alerts: { count: 0, severity: 'ok' },
+  };
+
+  return [
+    {
+      key: 'meta',
+      display_name: 'Meta',
+      account_ids: [],
+      linked_accounts,
+      metrics: platformMetrics,
+      campaigns,
+      _campaignAccountId: campaignAccountId,
+    },
+  ];
 }
 
 function ScoreBadge({ score }: { score: number }) {
@@ -140,8 +334,10 @@ function MetricsRowCells({
 const inputClass = 'h-[40px] px-3 border border-border rounded-lg bg-surface-secondary text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-teal-deep/20 focus:border-teal-deep transition-colors';
 
 export default function ClientsPage() {
+  const router = useRouter();
   const { status } = useRequireAuth();
   const { clients: apiClients, isLoading: clientsLoading, refresh: refreshClients } = useClients();
+  const { campaigns: agencyCampaigns } = useCampaigns();
   const { accessToken, agencyId } = useApiAuth();
   const [period, setPeriod] = useState<Period>('7d');
   const {
@@ -166,18 +362,109 @@ export default function ClientsPage() {
   const [sortKey, setSortKey] = useState<SortKey>('score');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+  const [metaFallbackPlatformsByClient, setMetaFallbackPlatformsByClient] = useState<Record<number, PlatformWithCampaignAccountId[]>>({});
+  const [metaLoadingClients, setMetaLoadingClients] = useState<Set<number>>(() => new Set());
 
   const [addOpen, setAddOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', industry: '', website: '' });
   const [saving, setSaving] = useState(false);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   const allClients = effectiveHierarchy?.clients ?? [];
 
+  const fallbackCampaignsByClientPlatform = useMemo(() => {
+    const grouped = new Map<number, Map<string, HierarchyCampaignRow[]>>();
+    for (const c of agencyCampaigns) {
+      if (typeof c.client_id !== 'number') continue;
+      const pKeys = c.platform_allocations ? Object.keys(c.platform_allocations) : [];
+      if (pKeys.length === 0) continue;
+      let byPlatform = grouped.get(c.client_id);
+      if (!byPlatform) {
+        byPlatform = new Map<string, HierarchyCampaignRow[]>();
+        grouped.set(c.client_id, byPlatform);
+      }
+      for (const pk of pKeys) {
+        const key = pk.toLowerCase();
+        const arr = byPlatform.get(key) ?? [];
+        arr.push(campaignToHierarchyFallback(c, key));
+        byPlatform.set(key, arr);
+      }
+    }
+    return grouped;
+  }, [agencyCampaigns]);
+
+  const clientDisplayMetricsById = useMemo(() => {
+    const map = new Map<number, HierarchyClientRow['metrics']>();
+
+    for (const c of allClients) {
+      const base = c.metrics;
+      let sourceCampaigns: HierarchyCampaignRow[] = [];
+
+      if (c.platforms.length > 0) {
+        sourceCampaigns = c.platforms.flatMap((p) => p.campaigns);
+      } else {
+        const metaPlatforms = metaFallbackPlatformsByClient[c.id] ?? [];
+        if (metaPlatforms.length > 0) {
+          sourceCampaigns = metaPlatforms.flatMap((p) => p.campaigns);
+        } else {
+          const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
+          if (fallbackMap) {
+            sourceCampaigns = Array.from(fallbackMap.values()).flat();
+          }
+        }
+      }
+
+      if (sourceCampaigns.length === 0) {
+        map.set(c.id, base);
+        continue;
+      }
+
+      const aggSpend = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.spend ?? 0), 0);
+      const aggBudget = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.budget ?? 0), 0);
+      const aggImpr = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.impressions ?? 0), 0);
+      const aggClicks = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.clicks ?? 0), 0);
+      const aggConv = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.conversions ?? 0), 0);
+      const aggAlerts = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.alerts?.count ?? 0), 0);
+      const alertSeverity = sourceCampaigns.some((camp) => camp.metrics?.alerts?.severity === 'critical')
+        ? 'critical'
+        : aggAlerts > 0
+          ? 'warning'
+          : 'ok';
+
+      const ctr = aggImpr > 0 ? (aggClicks / aggImpr) * 100 : 0;
+      const cpc = aggClicks > 0 ? aggSpend / aggClicks : 0;
+      const costPerConv = aggConv > 0 ? aggSpend / aggConv : 0;
+      const pacing = aggBudget > 0 ? Math.min(200, (aggSpend / aggBudget) * 100) : 0;
+      const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+
+      map.set(c.id, {
+        ...base,
+        spend: base.spend > 0 ? base.spend : aggSpend,
+        budget: base.budget > 0 ? base.budget : aggBudget,
+        impressions: base.impressions > 0 ? base.impressions : aggImpr,
+        clicks: base.clicks > 0 ? base.clicks : aggClicks,
+        conversions: base.conversions > 0 ? base.conversions : aggConv,
+        ctr: base.ctr > 0 ? base.ctr : ctr,
+        cpc: base.cpc > 0 ? base.cpc : cpc,
+        cost_per_conversion: base.cost_per_conversion > 0 ? base.cost_per_conversion : costPerConv,
+        pacing: base.pacing > 0 ? base.pacing : pacing,
+        score: base.score > 0 ? base.score : score,
+        alerts: base.alerts?.count > 0 ? base.alerts : { count: aggAlerts, severity: alertSeverity },
+      });
+    }
+
+    return map;
+  }, [allClients, metaFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
+
   const needsActionCount = useMemo(
-    () => allClients.filter((c) => c.metrics.alerts.count > 0).length,
-    [allClients],
+    () => allClients.filter((c) => (clientDisplayMetricsById.get(c.id)?.alerts.count ?? 0) > 0).length,
+    [allClients, clientDisplayMetricsById],
   );
-  const topCount = useMemo(() => allClients.filter((c) => c.metrics.score >= 80).length, [allClients]);
+  const topCount = useMemo(
+    () => allClients.filter((c) => (clientDisplayMetricsById.get(c.id)?.score ?? 0) >= 80).length,
+    [allClients, clientDisplayMetricsById],
+  );
   const manualCount = useMemo(
     () => allClients.filter((c) => aiModeFromAccountMode(c.account_mode) === 'manual').length,
     [allClients],
@@ -186,8 +473,8 @@ export default function ClientsPage() {
   const filtered = useMemo(() => {
     let list = [...allClients];
 
-    if (tab === 'needs_action') list = list.filter((c) => c.metrics.alerts.count > 0);
-    else if (tab === 'top') list = list.filter((c) => c.metrics.score >= 80);
+    if (tab === 'needs_action') list = list.filter((c) => (clientDisplayMetricsById.get(c.id)?.alerts.count ?? 0) > 0);
+    else if (tab === 'top') list = list.filter((c) => (clientDisplayMetricsById.get(c.id)?.score ?? 0) >= 80);
     else if (tab === 'manual_ai') list = list.filter((c) => aiModeFromAccountMode(c.account_mode) === 'manual');
 
     const q = search.trim().toLowerCase();
@@ -201,15 +488,96 @@ export default function ClientsPage() {
 
     const dir = sortDir === 'asc' ? 1 : -1;
     return list.sort((a, b) => {
-      if (sortKey === 'score') return (a.metrics.score - b.metrics.score) * dir;
-      if (sortKey === 'spend') return (a.metrics.spend - b.metrics.spend) * dir;
-      if (sortKey === 'alerts') return (a.metrics.alerts.count - b.metrics.alerts.count) * dir;
-      if (sortKey === 'ctr') return (a.metrics.ctr - b.metrics.ctr) * dir;
+      const am = clientDisplayMetricsById.get(a.id) ?? a.metrics;
+      const bm = clientDisplayMetricsById.get(b.id) ?? b.metrics;
+      if (sortKey === 'score') return (am.score - bm.score) * dir;
+      if (sortKey === 'spend') return (am.spend - bm.spend) * dir;
+      if (sortKey === 'alerts') return (am.alerts.count - bm.alerts.count) * dir;
+      if (sortKey === 'ctr') return (am.ctr - bm.ctr) * dir;
       return 0;
     });
-  }, [allClients, tab, search, sortKey, sortDir]);
+  }, [allClients, tab, search, sortKey, sortDir, clientDisplayMetricsById]);
 
-  const counts = effectiveHierarchy?.counts;
+  // Footer counts are computed from whichever data source we have (hierarchy / fallbacks / lazy meta-insights).
+
+  const computedCounts = useMemo(() => {
+    let platforms = 0;
+    let campaigns = 0;
+    let ad_sets = 0;
+
+    for (const client of filtered) {
+      if (client.platforms.length > 0) {
+        platforms += client.platforms.length;
+        for (const p of client.platforms) {
+          campaigns += p.campaigns.length;
+          for (const camp of p.campaigns) {
+            ad_sets += camp.ad_sets?.length ?? 0;
+          }
+        }
+        continue;
+      }
+
+      const metaPlatforms = metaFallbackPlatformsByClient[client.id] ?? [];
+      if (metaPlatforms.length > 0) {
+        platforms += metaPlatforms.length;
+        for (const p of metaPlatforms) {
+          campaigns += p.campaigns.length;
+          for (const camp of p.campaigns) {
+            ad_sets += camp.ad_sets?.length ?? 0;
+          }
+        }
+        continue;
+      }
+
+      const fallbackMap = fallbackCampaignsByClientPlatform.get(client.id);
+      if (!fallbackMap) continue;
+
+      platforms += fallbackMap.size;
+      for (const arr of fallbackMap.values()) {
+        campaigns += arr.length;
+      }
+    }
+
+    return { platforms, campaigns, ad_sets };
+  }, [filtered, metaFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
+
+  const loadMetaFallbackForClient = useCallback(async (clientId: number) => {
+    if (!accessToken || !agencyId) return;
+    if (metaFallbackPlatformsByClient[clientId]?.length) return;
+    if (metaLoadingClients.has(clientId)) return;
+
+    setMetaLoadingClients((prev) => new Set(prev).add(clientId));
+    try {
+      const data = await apiClient.get<MetaInsights>(
+        API_ENDPOINTS.META.CLIENT_INSIGHTS(String(clientId)),
+        { accessToken, agencyId },
+      );
+      const platforms = createMetaFallbackPlatforms(data);
+      if (platforms.length > 0) {
+        setMetaFallbackPlatformsByClient((prev) => ({ ...prev, [clientId]: platforms }));
+      }
+    } catch {
+      // Keep quiet here; row fallback text remains for truly empty clients.
+    } finally {
+      setMetaLoadingClients((prev) => {
+        const next = new Set(prev);
+        next.delete(clientId);
+        return next;
+      });
+    }
+  }, [accessToken, agencyId, metaFallbackPlatformsByClient, metaLoadingClients]);
+
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onPointerDown = (ev: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(ev.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [profileMenuOpen]);
 
   if (status === 'loading') return <ClientsSkeleton />;
   if (status !== 'authenticated') return null;
@@ -240,11 +608,16 @@ export default function ClientsPage() {
       for (const p of c.platforms) {
         const pKey = `${cKey}-p-${p.key}`;
         keys.push(pKey);
-        for (const camp of p.campaigns) {
-          const campKey = `${pKey}-camp-${camp.id}`;
-          keys.push(campKey);
-          for (const ad of camp.ad_sets ?? []) {
-            keys.push(`${campKey}-ad-${ad.id}`);
+        const accounts = getPlatformAccountNodes(p);
+        for (const acc of accounts) {
+          const aKey = `${pKey}-a-${acc.key}`;
+          keys.push(aKey);
+          for (const camp of p.campaigns) {
+            const campKey = `${aKey}-camp-${camp.id}`;
+            keys.push(campKey);
+            for (const ad of camp.ad_sets ?? []) {
+              keys.push(`${campKey}-ad-${ad.id}`);
+            }
           }
         }
       }
@@ -321,15 +694,49 @@ export default function ClientsPage() {
                 className={`${inputClass} pl-8 w-[200px]`}
               />
             </div>
-            <button
-              onClick={() => {
-                setFormData({ name: '', industry: '', website: '' });
-                setAddOpen(true);
-              }}
-              className="h-[40px] px-4 rounded-lg bg-teal-deep text-white text-[12.5px] font-semibold hover:bg-teal-deep/90 transition-colors shrink-0 shadow-sm"
-            >
-              + Add Client
-            </button>
+            <div ref={profileMenuRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((v) => !v)}
+                className="w-10 h-10 rounded-full border-2 border-cream-border bg-white text-[12px] font-bold text-v-text-primary hover:border-v-teal transition-colors flex items-center justify-center"
+                aria-expanded={profileMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open profile menu"
+              >
+                <span className="w-7 h-7 rounded-full bg-v-teal text-white text-[10px] font-black flex items-center justify-center">
+                  U
+                </span>
+              </button>
+              {profileMenuOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-[46px] w-44 rounded-xl border-2 border-cream-border bg-white shadow-lg overflow-hidden z-50"
+                >
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      router.push('/settings');
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-[12px] font-semibold text-v-text-primary hover:bg-cream transition-colors"
+                    role="menuitem"
+                  >
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      void signOut({ callbackUrl: '/login' });
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-[12px] font-semibold text-red hover:bg-red-light transition-colors border-t border-cream-border"
+                    role="menuitem"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         }
       />
@@ -464,22 +871,64 @@ export default function ClientsPage() {
                       const m = c.metrics;
                       const ai = aiModeFromAccountMode(c.account_mode);
                       const live = c.is_active !== false;
+                      const fallbackPlatformsMap = fallbackCampaignsByClientPlatform.get(c.id);
+                      const metaFallbackPlatforms = metaFallbackPlatformsByClient[c.id] ?? [];
+                      const displayMetrics = clientDisplayMetricsById.get(c.id) ?? m;
+                      const derivedPlatforms =
+                        c.platforms.length > 0
+                          ? c.platforms
+                          : (fallbackPlatformsMap
+                              ? Array.from(fallbackPlatformsMap.entries()).map(([pk, campaigns]) =>
+                                  createSyntheticPlatform(pk, campaigns),
+                                )
+                              : metaFallbackPlatforms);
                       return (
                         <Fragment key={cKey}>
-                          <tr className="border-b border-border-subtle hover:bg-surface-secondary/60 transition-colors group">
+                          <tr
+                            className="border-b border-border-subtle hover:bg-surface-secondary/60 transition-colors group cursor-pointer"
+                            onClick={() => {
+                              const opening = !cOpen;
+                              toggleKey(cKey);
+                              if (
+                                opening &&
+                                c.platforms.length === 0 &&
+                                (!fallbackPlatformsMap || fallbackPlatformsMap.size === 0) &&
+                                metaFallbackPlatforms.length === 0
+                              ) {
+                                void loadMetaFallbackForClient(c.id);
+                              }
+                            }}
+                          >
                             <td className="pl-4 pr-0 py-3">
                               <button
                                 type="button"
-                                onClick={() => toggleKey(cKey)}
-                                className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text-primary text-[11px] transition-transform"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  const opening = !cOpen;
+                                  toggleKey(cKey);
+                                  if (
+                                    opening &&
+                                    c.platforms.length === 0 &&
+                                    (!fallbackPlatformsMap || fallbackPlatformsMap.size === 0) &&
+                                    metaFallbackPlatforms.length === 0
+                                  ) {
+                                    void loadMetaFallbackForClient(c.id);
+                                  }
+                                }}
+                                className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text-primary text-[11px] transition-transform shrink-0"
                                 style={{ transform: cOpen ? 'rotate(90deg)' : undefined }}
                                 aria-expanded={cOpen}
+                                aria-label={cOpen ? 'Collapse client' : 'Expand client'}
                               >
                                 ▶
                               </button>
                             </td>
                             <td className="pl-2 pr-3 py-3">
-                              <Link href={`/clients/${c.id}`} className="flex items-center gap-3 min-w-[220px]">
+                              <Link
+                                href={`/clients/${c.id}`}
+                                className="flex items-center gap-3 min-w-0 flex-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <div
                                   className="w-[34px] h-[34px] rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
                                   style={{ background: avatarColorFromId(c.id) }}
@@ -492,7 +941,7 @@ export default function ClientsPage() {
                                 </div>
                               </Link>
                             </td>
-                            <MetricsRowCells m={m} />
+                            <MetricsRowCells m={displayMetrics} />
                             <td className="px-3 py-3">
                               <StatusBadge status={live ? 'Live' : 'Paused'} />
                             </td>
@@ -501,15 +950,29 @@ export default function ClientsPage() {
                             </td>
                           </tr>
                           {cOpen &&
-                            c.platforms.map((p) => (
-                              <PlatformRows
-                                key={`${cKey}-p-${p.key}`}
-                                cKey={cKey}
-                                clientId={c.id}
-                                platform={p}
-                                expanded={expanded}
-                                onToggle={toggleKey}
-                              />
+                            (derivedPlatforms.length > 0 ? (
+                              derivedPlatforms.map((p) => (
+                                <PlatformRows
+                                  key={`${cKey}-p-${p.key}`}
+                                  cKey={cKey}
+                                  clientId={c.id}
+                                  platform={p}
+                                fallbackCampaigns={
+                                  fallbackCampaignsByClientPlatform.get(c.id)?.get(p.key.toLowerCase()) ?? []
+                                }
+                                  expanded={expanded}
+                                  onToggle={toggleKey}
+                                />
+                              ))
+                            ) : (
+                              <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
+                                <td className="pl-4 pr-0 py-2" />
+                                <td className="pl-8 pr-3 py-2 text-text-muted" colSpan={12}>
+                                  {metaLoadingClients.has(c.id)
+                                    ? 'Loading platform data...'
+                                    : 'No platform hierarchy data available for this client in the selected period.'}
+                                </td>
+                              </tr>
                             ))}
                         </Fragment>
                       );
@@ -521,8 +984,8 @@ export default function ClientsPage() {
               <div className="px-5 py-3 border-t border-border flex items-center justify-between bg-surface-secondary/50">
                 <span className="text-[11.5px] text-text-muted font-medium">
                   Showing {filtered.length} of {allClients.length} clients
-                  {counts
-                    ? ` · ${counts.platforms} platforms · ${counts.campaigns} campaigns · ${counts.ad_sets} ad sets`
+                  {computedCounts
+                    ? ` · ${computedCounts.platforms} platforms · ${computedCounts.campaigns} campaigns · ${computedCounts.ad_sets} ad sets`
                     : ''}
                 </span>
                 {filtered.length < allClients.length && (
@@ -619,26 +1082,36 @@ function PlatformRows({
   cKey,
   clientId,
   platform,
+  fallbackCampaigns,
   expanded,
   onToggle,
 }: {
   cKey: string;
   clientId: number;
-  platform: HierarchyPlatformRow;
+  platform: PlatformWithCampaignAccountId;
+  fallbackCampaigns: HierarchyCampaignRow[];
   expanded: Set<string>;
   onToggle: (key: string) => void;
 }) {
   const pKey = `${cKey}-p-${platform.key}`;
   const pOpen = expanded.has(pKey);
   const m = platform.metrics;
+  const campaigns = platform.campaigns.length > 0 ? platform.campaigns : fallbackCampaigns;
+  const accountNodes = getPlatformAccountNodes(platform);
 
   return (
     <>
-      <tr className="border-b border-border-subtle bg-surface-secondary/40 text-[12px]">
-        <td className="pl-4 pr-0 py-2">
+      <tr
+        className="border-b border-border-subtle bg-surface-secondary/40 text-[12px] cursor-pointer"
+        onClick={() => onToggle(pKey)}
+      >
+        <td className="pl-7 pr-0 py-2">
           <button
             type="button"
-            onClick={() => onToggle(pKey)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(pKey);
+            }}
             className="w-6 h-6 flex items-center justify-center text-text-muted text-[10px]"
             style={{ transform: pOpen ? 'rotate(90deg)' : undefined }}
             aria-expanded={pOpen}
@@ -684,15 +1157,131 @@ function PlatformRows({
         <td className="px-3 py-2 text-text-muted">—</td>
       </tr>
       {pOpen &&
-        platform.campaigns.map((camp) => (
-          <CampaignRows
-            key={`${pKey}-camp-${camp.id}`}
+        accountNodes.map((acc) => (
+          <AccountRows
+            key={`${pKey}-a-${acc.key}`}
             pKey={pKey}
+            account={acc}
+            campaigns={campaigns}
+            campaignAccountId={platform._campaignAccountId}
+            expanded={expanded}
+            onToggle={onToggle}
+          />
+        ))}
+    </>
+  );
+}
+
+function AccountRows({
+  pKey,
+  account,
+  campaigns,
+  campaignAccountId,
+  expanded,
+  onToggle,
+}: {
+  pKey: string;
+  account: { key: string; label: string; sub?: string; matchId?: string };
+  campaigns: HierarchyCampaignRow[];
+  campaignAccountId?: Record<number, string>;
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+}) {
+  const aKey = `${pKey}-a-${account.key}`;
+  const aOpen = expanded.has(aKey);
+  const allKey = `${aKey}-all`;
+  const showAll = expanded.has(allKey);
+  const accountCampaigns =
+    campaignAccountId && account.matchId
+      ? campaigns.filter((c) => String(campaignAccountId[c.id] ?? '') === String(account.matchId))
+      : campaigns;
+
+  const visibleCampaigns = showAll ? accountCampaigns : accountCampaigns.slice(0, 4);
+  const hasMoreCampaigns = accountCampaigns.length > 4;
+
+  const totalSpend = accountCampaigns.reduce((s, c) => s + (c.metrics?.spend ?? 0), 0);
+  const totalBudget = accountCampaigns.reduce((s, c) => s + (c.metrics?.budget ?? 0), 0);
+  const totalImpressions = accountCampaigns.reduce((s, c) => s + (c.metrics?.impressions ?? 0), 0);
+  const totalClicks = accountCampaigns.reduce((s, c) => s + (c.metrics?.clicks ?? 0), 0);
+  const ctr = totalImpressions > 0 ? (totalClicks / totalImpressions) * 100 : 0;
+  const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
+  const pacing = totalBudget > 0 ? Math.min(200, (totalSpend / totalBudget) * 100) : 0;
+  const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+  const conversions = accountCampaigns.reduce((s, c) => s + (c.metrics?.conversions ?? 0), 0);
+  const costPerConv = conversions > 0 ? totalSpend / conversions : 0;
+  const alertCount = accountCampaigns.reduce((s, c) => s + (c.metrics?.alerts?.count ?? 0), 0);
+  const alertSeverity = accountCampaigns.some((c) => c.metrics?.alerts?.severity === 'critical')
+    ? 'critical'
+    : alertCount > 0
+      ? 'warning'
+      : 'ok';
+
+  const accountMetrics = {
+    score,
+    spend: totalSpend,
+    budget: totalBudget,
+    cpc,
+    ctr,
+    conversions,
+    cost_per_conversion: costPerConv,
+    pacing,
+    alerts: { count: alertCount, severity: alertSeverity },
+  };
+
+  return (
+    <>
+      <tr
+        className="border-b border-border-subtle/50 bg-surface-secondary/20 text-[11.5px] cursor-pointer"
+        onClick={() => onToggle(aKey)}
+      >
+        <td className="pl-12 pr-0 py-2">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(aKey);
+            }}
+            className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text-primary text-[10px] transition-transform"
+            style={{ transform: aOpen ? 'rotate(90deg)' : undefined }}
+            aria-expanded={aOpen}
+          >
+            ▶
+          </button>
+        </td>
+        <td className="pl-12 pr-3 py-2 text-text-secondary font-semibold">
+          <div className="min-w-0">
+            <div className="text-[11.5px] text-text-primary truncate">{account.label}</div>
+            <div className="text-[10px] text-text-muted">{account.sub ?? 'Account'}</div>
+          </div>
+        </td>
+        <MetricsRowCells m={accountMetrics} />
+        <td className="px-3 py-2 text-text-muted">—</td>
+        <td className="px-3 py-2 text-text-muted">—</td>
+      </tr>
+      {aOpen &&
+        visibleCampaigns.map((camp) => (
+          <CampaignRows
+            key={`${aKey}-camp-${camp.id}`}
+            pKey={aKey}
             campaign={camp}
             expanded={expanded}
             onToggle={onToggle}
           />
         ))}
+      {aOpen && hasMoreCampaigns && (
+        <tr className="border-b border-border-subtle/40 bg-surface-secondary/30 text-[11px]">
+          <td className="pl-4 pr-0 py-2" />
+          <td className="pl-16 pr-3 py-2 text-text-secondary" colSpan={12}>
+            <button
+              type="button"
+              onClick={() => onToggle(allKey)}
+              className="text-[11px] font-semibold text-teal-deep hover:underline"
+            >
+              {showAll ? 'Show first 4 campaigns' : `View all ${accountCampaigns.length} campaigns`}
+            </button>
+          </td>
+        </tr>
+      )}
     </>
   );
 }
@@ -716,12 +1305,20 @@ function CampaignRows({
 
   return (
     <>
-      <tr className="border-b border-border-subtle/60 bg-white text-[11.5px]">
-        <td className="pl-4 pr-0 py-2">
+      <tr
+        className="border-b border-border-subtle/60 bg-white text-[11.5px] cursor-pointer"
+        onClick={() => {
+          if (hasAds) onToggle(campKey);
+        }}
+      >
+        <td className="pl-16 pr-0 py-2">
           {hasAds ? (
             <button
               type="button"
-              onClick={() => onToggle(campKey)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle(campKey);
+              }}
               className="w-6 h-6 flex items-center justify-center text-text-muted text-[10px]"
               style={{ transform: campOpen ? 'rotate(90deg)' : undefined }}
               aria-expanded={campOpen}
@@ -742,7 +1339,7 @@ function CampaignRows({
       {campOpen &&
         ads.map((ad) => (
           <tr key={`${campKey}-ad-${ad.id}`} className="border-b border-border-subtle/40 bg-surface-secondary/30 text-[11px]">
-            <td className="pl-4 pr-0 py-1.5" />
+            <td className="pl-16 pr-0 py-1.5" />
             <td className="pl-16 pr-3 py-1.5 text-text-muted">{ad.name}</td>
             <MetricsRowCells m={ad.metrics} />
             <td className="px-3 py-1.5 text-text-muted">—</td>

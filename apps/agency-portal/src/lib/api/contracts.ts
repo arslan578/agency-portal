@@ -237,6 +237,10 @@ export interface MetaCampaign {
   clicks: number;
   spend: number;
   reach: number;
+  ctr: number;
+  cpc: number;
+  conversions: number;
+  cost_per_conversion: number;
 }
 
 export interface MetaAdSet {
@@ -246,6 +250,13 @@ export interface MetaAdSet {
   status: string;
   daily_budget: number;
   targeting_summary: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  ctr: number;
+  cpc: number;
+  conversions: number;
+  cost_per_conversion: number;
 }
 
 export interface MetaInsights {
