@@ -17,12 +17,25 @@
   --color-aqua: #4DB6AC;
   --color-aqua-light: #E0F2F1;
 
-  --color-coral: #FF7043;
-  --color-coral-light: #FFF4F0;
-  --color-coral-dark: #E65100;
+  --color-coral: #E76F51;
+  --color-coral-light: #FDF0EC;
+  --color-coral-dark: #C85A3D;
 
-  --color-amber: #FFB74D;
-  --color-amber-light: #FFF8E1;
+  --color-amber: #D4860A;
+  --color-amber-light: #FEF3DC;
+
+  /* === Premium Theme (kaivo-agency-clients-v2) === */
+  --color-cream: #F4EFE6;
+  --color-cream-dark: #ECE6DB;
+  --color-cream-border: #DDD6C8;
+
+  --color-v-teal: #2A9D8F;
+  --color-v-teal-dark: #1F7A6E;
+  --color-v-teal-light: #E8F5F3;
+
+  --color-v-text-primary: #1A1A2E;
+  --color-v-text-secondary: #5A5A72;
+  --color-v-text-muted: #9A9AAA;
 
   /* === Surfaces === */
   --color-surface: #FFFFFF;
@@ -75,8 +88,9 @@
   --radius-default: 12px;
 
   /* === Typography === */
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-space: 'Space Grotesk', sans-serif;
+  --font-mono: 'Space Mono', 'JetBrains Mono', monospace;
 }
 
 :root {

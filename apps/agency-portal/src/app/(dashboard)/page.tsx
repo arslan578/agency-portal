@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useDashboard, useClients } from '@/hooks/useAgencyApi';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
@@ -61,10 +63,13 @@ function PlatformTag({ name, className: cls }: { name: string; className?: strin
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { status } = useRequireAuth();
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboard();
   const { clients: apiClients, isLoading: clientsLoading, error: clientsError } = useClients();
   const [tab, setTab] = useState<TabFilter>('all');
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
   if (status === 'loading') return <DashboardSkeleton />;
   if (status !== 'authenticated') return null;
@@ -99,6 +104,16 @@ export default function DashboardPage() {
     { key: 'manual_ai', label: 'Manual AI' },
   ];
 
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onPointerDown = (ev: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(ev.target as Node)) setProfileMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [profileMenuOpen]);
+
   return (
     <>
       <DashboardHeader
@@ -106,12 +121,44 @@ export default function DashboardPage() {
         actions={
           <div className="flex items-center gap-2">
             <span className="bg-surface-secondary text-text-muted text-[12px] font-medium px-3 py-[6px] rounded-lg border border-border">Last 30 days</span>
-            <Link
-              href="/clients"
-              className="bg-teal-deep text-white text-[12px] font-semibold px-4 py-[7px] rounded-lg hover:bg-teal-deep/90 transition-colors shadow-sm"
-            >
-              + Add Client
-            </Link>
+            <div ref={profileMenuRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setProfileMenuOpen((v) => !v)}
+                className="w-10 h-10 rounded-full border-2 border-cream-border bg-white text-[12px] font-bold text-v-text-primary hover:border-v-teal transition-colors flex items-center justify-center"
+                aria-expanded={profileMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Open profile menu"
+              >
+                <span className="w-7 h-7 rounded-full bg-v-teal text-white text-[10px] font-black flex items-center justify-center">U</span>
+              </button>
+              {profileMenuOpen && (
+                <div role="menu" className="absolute right-0 top-[46px] w-44 rounded-xl border-2 border-cream-border bg-white shadow-lg overflow-hidden z-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      router.push('/settings');
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-[12px] font-semibold text-v-text-primary hover:bg-cream transition-colors"
+                    role="menuitem"
+                  >
+                    Settings
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setProfileMenuOpen(false);
+                      void signOut({ callbackUrl: '/login' });
+                    }}
+                    className="w-full text-left px-4 py-2.5 text-[12px] font-semibold text-red hover:bg-red-light transition-colors border-t border-cream-border"
+                    role="menuitem"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         }
       />
