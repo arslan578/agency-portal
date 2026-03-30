@@ -53,4 +53,13 @@ export const API_ENDPOINTS = {
     MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/meta/manual-link`,
     CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/meta-insights`,
   },
+  REDDIT: {
+    CONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/reddit/connect`,
+    DISCONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/reddit/disconnect`,
+    STATUS: (agencyId: string) => `${BASE}/agency/${agencyId}/reddit/status`,
+    ACCOUNTS: (agencyId: string) => `${BASE}/agency/${agencyId}/reddit/accounts`,
+    AUTO_LINK: (agencyId: string) => `${BASE}/agency/${agencyId}/reddit/auto-link`,
+    MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/reddit/manual-link`,
+    CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/reddit-insights`,
+  },
 } as const;

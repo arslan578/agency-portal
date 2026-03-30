@@ -7,11 +7,13 @@ import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { useClients, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
-import type { MetaBMStatus, BMAccount } from '@/lib/api/contracts';
+import type { MetaBMStatus, BMAccount, RedditAgencyStatus } from '@/lib/api/contracts';
 import { MOCK_PLATFORMS } from '@/lib/mock/dashboard';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID || '1340998947829390';
 const META_PENDING_CODE_KEY = 'kaivo_meta_oauth_code';
+const REDDIT_CLIENT_ID = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || '';
+const REDDIT_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_REDDIT_REDIRECT_URI || '';
 
 /** Template-matched sync log rows (UI only; no backend). */
 const SYNC_LOG_STATIC_ROWS: {
@@ -69,6 +71,22 @@ function formatDateRelative(iso: string | null | undefined) {
   return new Date(iso).toLocaleDateString();
 }
 
+function getErrorMessage(err: unknown, fallback: string) {
+  if (typeof err === 'object' && err !== null && 'message' in err) {
+    const message = (err as { message?: unknown }).message;
+    if (typeof message === 'string' && message.trim()) return message;
+  }
+  return fallback;
+}
+
+function getRedditRedirectUri() {
+  if (REDDIT_REDIRECT_URI_OVERRIDE.trim()) return REDDIT_REDIRECT_URI_OVERRIDE.trim();
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/integrations/reddit/oauth/callback`;
+  }
+  return '/integrations/reddit/oauth/callback';
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
@@ -82,12 +100,19 @@ export default function IntegrationsPage() {
   const [metaLoading, setMetaLoading] = useState(true);
   const [metaConnecting, setMetaConnecting] = useState(false);
   const [metaAutoLinking, setMetaAutoLinking] = useState(false);
+  const [redditStatus, setRedditStatus] = useState<RedditAgencyStatus | null>(null);
+  const [redditLoading, setRedditLoading] = useState(true);
+  const [redditConnecting, setRedditConnecting] = useState(false);
+  const [redditAutoLinking, setRedditAutoLinking] = useState(false);
 
   // Panels & Modals
   const [showAccountsPanel, setShowAccountsPanel] = useState(false);
+  const [showRedditAccountsPanel, setShowRedditAccountsPanel] = useState(false);
   const [panelEntered, setPanelEntered] = useState(false);
   const [bmAccounts, setBmAccounts] = useState<BMAccount[]>([]);
   const [bmAccountsLoading, setBmAccountsLoading] = useState(false);
+  const [redditAccounts, setRedditAccounts] = useState<BMAccount[]>([]);
+  const [redditAccountsLoading, setRedditAccountsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [panelPlatform, setPanelPlatform] = useState<string | null>(null);
@@ -122,9 +147,26 @@ export default function IntegrationsPage() {
     }
   }, [accessToken, agencyId]);
 
+  const fetchRedditStatus = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    setRedditLoading(true);
+    try {
+      const data = await apiClient.get<RedditAgencyStatus>(
+        API_ENDPOINTS.REDDIT.STATUS(agencyId),
+        { accessToken, agencyId },
+      );
+      setRedditStatus(data);
+    } catch {
+      setRedditStatus(null);
+    } finally {
+      setRedditLoading(false);
+    }
+  }, [accessToken, agencyId]);
+
   useEffect(() => {
     void fetchMetaStatus();
-  }, [fetchMetaStatus]);
+    void fetchRedditStatus();
+  }, [fetchMetaStatus, fetchRedditStatus]);
 
   const fetchBmAccounts = useCallback(async () => {
     if (!accessToken || !agencyId) return;
@@ -139,6 +181,22 @@ export default function IntegrationsPage() {
       setBmAccounts([]);
     } finally {
       setBmAccountsLoading(false);
+    }
+  }, [accessToken, agencyId]);
+
+  const fetchRedditAccounts = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    setRedditAccountsLoading(true);
+    try {
+      const data = await apiClient.get<{ connected: boolean; accounts: BMAccount[] }>(
+        API_ENDPOINTS.REDDIT.ACCOUNTS(agencyId),
+        { accessToken, agencyId },
+      );
+      setRedditAccounts(data.accounts || []);
+    } catch {
+      setRedditAccounts([]);
+    } finally {
+      setRedditAccountsLoading(false);
     }
   }, [accessToken, agencyId]);
 
@@ -185,8 +243,8 @@ export default function IntegrationsPage() {
         );
         toast.success('Meta Business Manager connected!');
         await fetchMetaStatus();
-      } catch (err: any) {
-        toast.error(err?.message || 'Failed to connect Meta');
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, 'Failed to connect Meta'));
       } finally {
         setMetaConnecting(false);
         setPendingMetaCode(null);
@@ -197,12 +255,67 @@ export default function IntegrationsPage() {
     })();
   }, [pendingMetaCode, accessToken, agencyId, metaConnecting, fetchMetaStatus]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('reddit_callback') !== '1') return;
+    const code = params.get('code');
+    const oauthError = params.get('error');
+    const oauthErrorDescription = params.get('error_description');
+
+    if (oauthError) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('reddit_callback');
+      url.searchParams.delete('error');
+      url.searchParams.delete('error_description');
+      url.searchParams.delete('state');
+      window.history.replaceState({}, '', url.toString());
+      toast.error(oauthErrorDescription || oauthError || 'Reddit authorization failed');
+      return;
+    }
+
+    if (!code || !accessToken || !agencyId || redditConnecting) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('reddit_callback');
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    window.history.replaceState({}, '', url.toString());
+
+    (async () => {
+      setRedditConnecting(true);
+      try {
+        const exactRedirectUri = getRedditRedirectUri();
+        await apiClient.post(
+          API_ENDPOINTS.REDDIT.CONNECT(agencyId),
+          { code, redirectUri: exactRedirectUri },
+          { accessToken, agencyId },
+        );
+        toast.success('Reddit connected!');
+        fetchRedditStatus();
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, 'Failed to connect Reddit'));
+      } finally {
+        setRedditConnecting(false);
+      }
+    })();
+  }, [accessToken, agencyId, redditConnecting, fetchRedditStatus]);
+
   const handleConnectTrigger = (platform: string) => {
     if (platform === 'Meta') {
       const redirectUri = `${window.location.origin}/integrations?meta_callback=1`;
       const scopes = ['business_management', 'ads_management', 'ads_read'].join(',');
       const state = Math.random().toString(36).slice(2);
       window.location.href = `https://www.facebook.com/v21.0/dialog/oauth?client_id=${META_APP_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scopes}&state=${state}&response_type=code`;
+    } else if (platform === 'Reddit') {
+      if (!REDDIT_CLIENT_ID) {
+        toast.error('Missing NEXT_PUBLIC_REDDIT_CLIENT_ID');
+        return;
+      }
+      const redirectUri = getRedditRedirectUri();
+      const state = Math.random().toString(36).slice(2);
+      const scopes = 'adsread';
+      window.location.href = `https://www.reddit.com/api/v1/authorize?client_id=${encodeURIComponent(REDDIT_CLIENT_ID)}&response_type=code&state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(redirectUri)}&duration=permanent&scope=${encodeURIComponent(scopes)}`;
     } else {
       toast.info(`${platform} integration coming soon!`);
     }
@@ -216,8 +329,8 @@ export default function IntegrationsPage() {
       toast.success('Meta Business Manager disconnected');
       setMetaStatus(null);
       setBmAccounts([]);
-    } catch (err: any) {
-      toast.error(err?.message || 'Failed to disconnect');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to disconnect'));
     }
   };
 
@@ -231,8 +344,8 @@ export default function IntegrationsPage() {
       toast.success(`Successfully auto-linked ${result.matched} ad accounts.`);
       fetchMetaStatus();
       if (showAccountsPanel) fetchBmAccounts();
-    } catch (err: any) {
-      toast.error(err?.message || 'Auto-link failed');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Auto-link failed'));
     } finally {
       setMetaAutoLinking(false);
     }
@@ -248,14 +361,60 @@ export default function IntegrationsPage() {
       );
       toast.success('Account mapped successfully');
       fetchBmAccounts();
-    } catch (err: any) {
-      toast.error(err?.message || 'Mapping failed');
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Mapping failed'));
+    }
+  };
+
+  const handleDisconnectReddit = async () => {
+    if (!accessToken || !agencyId) return;
+    if (!window.confirm('Disconnect Reddit? This will reset all client mappings.')) return;
+    try {
+      await apiClient.post(API_ENDPOINTS.REDDIT.DISCONNECT(agencyId), {}, { accessToken, agencyId });
+      toast.success('Reddit disconnected');
+      setRedditStatus(null);
+      setRedditAccounts([]);
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to disconnect Reddit'));
+    }
+  };
+
+  const handleAutoLinkReddit = async () => {
+    if (!accessToken || !agencyId) return;
+    setRedditAutoLinking(true);
+    try {
+      const result = await apiClient.post<{ matched: number }>(
+        API_ENDPOINTS.REDDIT.AUTO_LINK(agencyId), {}, { accessToken, agencyId },
+      );
+      toast.success(`Successfully auto-linked ${result.matched} Reddit account(s).`);
+      fetchRedditStatus();
+      if (showRedditAccountsPanel) fetchRedditAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Auto-link failed'));
+    } finally {
+      setRedditAutoLinking(false);
+    }
+  };
+
+  const handleManualLinkReddit = async (clientId: number, adAccountId: string) => {
+    if (!accessToken || !agencyId) return;
+    try {
+      await apiClient.post(
+        API_ENDPOINTS.REDDIT.MANUAL_LINK(String(clientId)),
+        { ad_account_id: adAccountId },
+        { accessToken, agencyId },
+      );
+      toast.success('Reddit account mapped successfully');
+      fetchRedditAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Mapping failed'));
     }
   };
 
   // ── Derived State ──────────────────────────────────────────────────────────
 
   const metaConnected = metaStatus?.connected ?? false;
+  const redditConnected = redditStatus?.connected ?? false;
   const filteredBmAccounts = useMemo(() => {
     if (!searchQuery) return bmAccounts;
     return bmAccounts.filter(acc => 
@@ -270,8 +429,15 @@ export default function IntegrationsPage() {
     );
     return clients.filter((c) => !linkedIds.has(String(c.id)));
   }, [clients, bmAccounts]);
+  const unlinkedRedditClients = useMemo(() => {
+    const linkedIds = new Set(
+      redditAccounts.map((a) => a.linked_client_id).filter((id): id is string => id != null && id !== ''),
+    );
+    return clients.filter((c) => !linkedIds.has(String(c.id)));
+  }, [clients, redditAccounts]);
 
   const activeBmCount = bmAccounts.filter(a => a.linked_client_id !== null).length;
+  const activeRedditCount = redditAccounts.filter(a => a.linked_client_id !== null).length;
 
   const metaManagedSpendDisplay = useMemo(() => {
     if (!bmAccounts.length) return '—';
@@ -282,17 +448,18 @@ export default function IntegrationsPage() {
   // ── Animation Controllers ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (showAccountsPanel || panelPlatform) {
+    if (showAccountsPanel || showRedditAccountsPanel || panelPlatform) {
       const frame = requestAnimationFrame(() => setPanelEntered(true));
       return () => cancelAnimationFrame(frame);
     }
     setPanelEntered(false);
-  }, [showAccountsPanel, panelPlatform]);
+  }, [showAccountsPanel, showRedditAccountsPanel, panelPlatform]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const handleRefreshAll = () => {
     void fetchMetaStatus();
+    void fetchRedditStatus();
     toast.message('Refreshing connected platforms…');
   };
 
@@ -401,6 +568,70 @@ export default function IntegrationsPage() {
                       className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
                     >
                       Connect Meta
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Reddit */}
+              <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40">
+                <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 bg-[#fff0ec] text-[#ff4500] leading-none">
+                    r
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-text-primary">Reddit</h3>
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] font-semibold mt-1 ${redditConnected ? 'text-green' : 'text-text-muted'}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${redditConnected ? 'bg-green' : 'bg-text-muted'}`} />
+                      {redditConnected ? 'Connected · Agency Token' : 'Not connected'}
+                    </div>
+                    {redditConnected && (
+                      <p className="text-[11px] text-text-muted font-semibold mt-2">
+                        {redditAccounts.length
+                          ? `${activeRedditCount} of ${redditAccounts.length} accounts active`
+                          : 'Loading account list…'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="px-3.5 py-3 flex flex-wrap items-center gap-2">
+                  {redditConnected ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowRedditAccountsPanel(true);
+                          fetchRedditAccounts();
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
+                      >
+                        Manage Accounts
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAutoLinkReddit}
+                        disabled={redditAutoLinking}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md disabled:opacity-50"
+                      >
+                        {redditAutoLinking ? 'Linking…' : 'Auto-link'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleDisconnectReddit}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnectTrigger('Reddit')}
+                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
+                    >
+                      Connect Reddit
                     </button>
                   )}
                 </div>
@@ -524,7 +755,7 @@ export default function IntegrationsPage() {
           <div>
             <h2 className="text-[11px] font-bold tracking-[0.06em] uppercase text-text-muted mb-3.5">Available Platforms</h2>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {MOCK_PLATFORMS.filter((p) => p.status !== 'connected').map((p) => (
+              {MOCK_PLATFORMS.filter((p) => p.status !== 'connected' && p.id !== 'reddit').map((p) => (
                 <button
                   key={p.id}
                   type="button"
@@ -756,6 +987,104 @@ export default function IntegrationsPage() {
                 Save &amp; Sync
               </button>
             </footer>
+          </aside>
+        </>
+      )}
+
+      {showRedditAccountsPanel && (
+        <>
+          <div
+            className="fixed inset-0 z-[100] transition-opacity bg-black/40 backdrop-blur-sm"
+            role="presentation"
+            onClick={() => setShowRedditAccountsPanel(false)}
+          />
+          <aside
+            className={`fixed top-0 right-0 h-full w-[480px] max-w-[100vw] bg-white border-l border-border z-[101] shadow-2xl flex flex-col transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${panelEntered ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <header className="px-5 py-[18px] border-b border-border-subtle flex items-center gap-3 bg-white text-text-primary shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[#fff0ec] text-[#ff4500] flex items-center justify-center text-base font-semibold shrink-0 leading-none">
+                r
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] font-bold text-text-primary truncate">Manage Reddit Accounts</h3>
+                <p className="text-[11px] text-text-muted font-medium mt-0.5">
+                  {redditAccounts.length ? `${redditAccounts.length} accounts available` : 'Reddit Ads'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRedditAccountsPanel(false)}
+                className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </header>
+
+            <div className="px-5 py-2 border-b border-border flex items-center gap-2 shrink-0 bg-surface-secondary">
+              <button
+                type="button"
+                onClick={handleAutoLinkReddit}
+                disabled={redditAutoLinking}
+                className="h-9 px-4 rounded-lg bg-[#ff4500] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+              >
+                {redditAutoLinking ? 'Linking…' : '⚡ Auto-link'}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="px-5 py-2 text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted bg-surface-secondary border-y border-border">
+                Reddit ad accounts
+              </div>
+              <div className="divide-y divide-border">
+                {redditAccountsLoading ? (
+                  <div className="p-10 text-center text-text-muted animate-pulse font-semibold italic">Fetching accounts…</div>
+                ) : redditAccounts.length === 0 ? (
+                  <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
+                ) : redditAccounts.map(acc => {
+                  const linkedClient = acc.linked_client_id ? clients.find(c => c.id === Number(acc.linked_client_id)) : null;
+                  return (
+                    <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#faf7f2] transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-4 min-w-0">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#ff7043]">
+                            {acc.account_name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-text-primary leading-tight truncate">{acc.account_name}</div>
+                            <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
+                        {linkedClient ? (
+                          <>
+                            <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">Connected</div>
+                            <div className="text-xs font-semibold text-text-secondary truncate">→ {linkedClient.name}</div>
+                          </>
+                        ) : (
+                          <div className="flex-1 flex items-center gap-2">
+                            <select
+                              className="flex-1 h-9 rounded-lg border border-border bg-white text-[11px] font-semibold px-3 outline-none focus:border-teal-deep transition-colors"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) handleManualLinkReddit(Number(val), acc.account_id);
+                              }}
+                              value=""
+                            >
+                              <option value="">Map to client...</option>
+                              {unlinkedRedditClients.map(c => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </aside>
         </>
       )}

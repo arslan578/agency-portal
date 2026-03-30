@@ -14,12 +14,21 @@ ALTER TABLE accounts ALTER COLUMN tier DROP DEFAULT;
 ALTER TABLE accounts 
     ALTER COLUMN tier TYPE tierenum 
     USING (
-        CASE tier
-            WHEN 0 THEN 'FREE'::tierenum
-            WHEN 1 THEN 'STARTER'::tierenum
-            WHEN 2 THEN 'GROWTH'::tierenum
-            WHEN 3 THEN 'SCALE'::tierenum
-            WHEN 4 THEN 'ENTERPRISE'::tierenum
+        CASE
+            -- If `tier` is still INTEGER (0..4), map it into the ENUM values.
+            WHEN tier::text = '0' THEN 'FREE'::tierenum
+            WHEN tier::text = '1' THEN 'STARTER'::tierenum
+            WHEN tier::text = '2' THEN 'GROWTH'::tierenum
+            WHEN tier::text = '3' THEN 'SCALE'::tierenum
+            WHEN tier::text = '4' THEN 'ENTERPRISE'::tierenum
+
+            -- If `tier` is already an ENUM, preserve the existing value.
+            WHEN tier::text = 'FREE' THEN 'FREE'::tierenum
+            WHEN tier::text = 'STARTER' THEN 'STARTER'::tierenum
+            WHEN tier::text = 'GROWTH' THEN 'GROWTH'::tierenum
+            WHEN tier::text = 'SCALE' THEN 'SCALE'::tierenum
+            WHEN tier::text = 'ENTERPRISE' THEN 'ENTERPRISE'::tierenum
+
             ELSE 'FREE'::tierenum
         END
     );
