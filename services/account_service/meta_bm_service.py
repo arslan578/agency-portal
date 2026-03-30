@@ -620,49 +620,80 @@ def fetch_client_meta_insights(
 
 
 def _fetch_campaigns_live(act_id: str, access_token: str) -> List[Dict[str, Any]]:
-    """Fetch campaigns from Meta Graph API — always live, never cached."""
-    url = f"{META_GRAPH_BASE}/{act_id}/campaigns"
-    params = {
+    """
+    Fetch campaigns and their insights from Meta Graph API.
+    Uses batch-style fetching (insights for all campaigns at once) for performance.
+    """
+    # 1. Fetch Campaign Metadata
+    campaigns_url = f"{META_GRAPH_BASE}/{act_id}/campaigns"
+    campaigns_params = {
         "access_token": access_token,
         "fields": "id,name,objective,status,daily_budget,lifetime_budget,start_time,stop_time",
         "limit": 100,
     }
 
-    campaigns = []
+    raw_campaigns = []
     with httpx.Client(timeout=30.0) as client:
-        resp = client.get(url, params=params)
+        resp = client.get(campaigns_url, params=campaigns_params)
         if resp.status_code != 200:
             logger.error(f"Campaign fetch failed: {resp.text}")
             return []
-        data = resp.json()
+        raw_campaigns = resp.json().get("data", [])
 
-        for camp in data.get("data", []):
-            campaign_id = camp.get("id", "")
+    if not raw_campaigns:
+        return []
 
-            # Fetch insights for this campaign
-            insights = _fetch_campaign_insights(campaign_id, access_token)
+    # 2. Fetch Insights for All Campaigns (Batch approach via the Account edge)
+    # This avoids N sequential HTTP calls.
+    insights_url = f"{META_GRAPH_BASE}/{act_id}/insights"
+    insights_params = {
+        "access_token": access_token,
+        "fields": "campaign_id,impressions,clicks,spend,reach",
+        "level": "campaign",
+        "date_preset": "last_30d",
+        "limit": 500,
+    }
 
-            daily_budget = camp.get("daily_budget")
-            lifetime_budget = camp.get("lifetime_budget")
-            budget_type = "lifetime" if lifetime_budget else "daily"
-            budget_value = float(lifetime_budget or daily_budget or 0) / 100
+    insights_map = {}
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            i_resp = client.get(insights_url, params=insights_params)
+            if i_resp.status_code == 200:
+                insights_data = i_resp.json().get("data", [])
+                for entry in insights_data:
+                    c_id = entry.get("campaign_id")
+                    if c_id:
+                        insights_map[c_id] = entry
+    except Exception as e:
+        logger.warning(f"Batch insights fetch failed: {e}")
 
-            campaigns.append({
-                "campaign_id": campaign_id,
-                "name": camp.get("name", "Unnamed"),
-                "objective": camp.get("objective", ""),
-                "status": camp.get("status", "UNKNOWN"),
-                "budget_type": budget_type,
-                "budget": budget_value,
-                "currency": "USD",  # Will be overridden if available
-                "start_date": camp.get("start_time", ""),
-                "end_date": camp.get("stop_time"),
-                "ad_account_id": act_id,
-                "impressions": insights.get("impressions", 0),
-                "clicks": insights.get("clicks", 0),
-                "spend": insights.get("spend", 0),
-                "reach": insights.get("reach", 0),
-            })
+    # 3. Merge Metadata and Insights
+    campaigns = []
+    for camp in raw_campaigns:
+        campaign_id = camp.get("id", "")
+        insights = insights_map.get(campaign_id, {})
+
+        daily_budget = camp.get("daily_budget")
+        lifetime_budget = camp.get("lifetime_budget")
+        budget_type = "lifetime" if lifetime_budget else "daily"
+        budget_value = float(lifetime_budget or daily_budget or 0) / 100
+
+        campaigns.append({
+            "campaign_id": campaign_id,
+            "name": camp.get("name", "Unnamed"),
+            "objective": camp.get("objective", ""),
+            "status": camp.get("status", "UNKNOWN"),
+            "budget_type": budget_type,
+            "budget": budget_value,
+            "currency": "USD",
+            "start_date": camp.get("start_time", ""),
+            "end_date": camp.get("stop_time"),
+            "ad_account_id": act_id,
+            "impressions": int(insights.get("impressions", 0)),
+            "clicks": int(insights.get("clicks", 0)),
+            "spend": float(insights.get("spend", 0)),
+            "reach": int(insights.get("reach", 0)),
+        })
 
     return campaigns
 
