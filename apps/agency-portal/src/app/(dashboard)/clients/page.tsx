@@ -567,6 +567,18 @@ export default function ClientsPage() {
     }
   }, [accessToken, agencyId, metaFallbackPlatformsByClient, metaLoadingClients]);
 
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onPointerDown = (ev: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(ev.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [profileMenuOpen]);
+
   if (status === 'loading') return <ClientsSkeleton />;
   if (status !== 'authenticated') return null;
 
@@ -665,18 +677,6 @@ export default function ClientsPage() {
     { key: 'alerts', label: 'Alerts' },
     { key: 'ctr', label: 'CTR' },
   ];
-
-  useEffect(() => {
-    if (!profileMenuOpen) return;
-    const onPointerDown = (ev: MouseEvent) => {
-      if (!profileMenuRef.current) return;
-      if (!profileMenuRef.current.contains(ev.target as Node)) {
-        setProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
-  }, [profileMenuOpen]);
 
   return (
     <>
