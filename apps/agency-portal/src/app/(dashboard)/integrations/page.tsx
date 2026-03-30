@@ -25,7 +25,7 @@ const SYNC_LOG_STATIC_ROWS: {
   { icon: 'err', text: (<><strong className="text-text-primary">TikTok</strong> — OAuth token expired · Sync failed · 5 accounts affected · Action required</>), badge: 'Failed', badgeClass: 'bg-red-light text-red', time: '6 hrs ago' },
   { icon: 'ok', text: (<><strong className="text-text-primary">Meta</strong> — Harbor Coffee Co. account added · 5 campaigns pulled · 90-day historical data loaded</>), badge: 'Success', badgeClass: 'bg-green-light text-green', time: '2 days ago' },
   { icon: 'ok', text: (<><strong className="text-text-primary">Google Ads</strong> — Nova Skincare account activated · 6 campaigns · 60-day history loaded</>), badge: 'Success', badgeClass: 'bg-green-light text-green', time: '4 days ago' },
-  { icon: 'ok', text: (<><strong className="text-text-primary">Meta</strong> — Bluebell Boutique deactivated · Account removed from active sync</>), badge: 'Removed', badgeClass: 'bg-cream-dark text-text-muted', time: '6 days ago' },
+  { icon: 'ok', text: (<><strong className="text-text-primary">Meta</strong> — Bluebell Boutique deactivated · Account removed from active sync</>), badge: 'Removed', badgeClass: 'bg-surface-secondary text-text-muted', time: '6 days ago' },
 ];
 
 const DATA_WINDOW_OPTS = ['30 days', '90 days', '6 months', '1 year'] as const;
@@ -264,7 +264,11 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-cream font-sans">
+    <div className="relative flex flex-col h-full bg-surface-secondary font-sans">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-15 blur-3xl rounded-[48px] -z-10"
+      />
       <DashboardHeader
         title="Integrations"
         subtitle="Manage your platform connections and client accounts"
@@ -272,7 +276,7 @@ export default function IntegrationsPage() {
           <button
             type="button"
             onClick={handleRefreshAll}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-bold border-2 border-cream-border bg-white text-text-primary hover:border-teal hover:text-teal transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[12px] font-semibold border border-border bg-white text-text-primary hover:border-aqua hover:text-teal-deep transition-colors"
           >
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
               <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5" />
@@ -287,19 +291,19 @@ export default function IntegrationsPage() {
         <div className="max-w-[1400px] mx-auto flex flex-col gap-5">
 
           <div>
-            <h2 className="text-[11px] font-extrabold tracking-[0.06em] uppercase text-text-muted mb-3.5">Connected Platforms</h2>
+            <h2 className="text-[11px] font-bold tracking-[0.06em] uppercase text-text-muted mb-3.5">Connected Platforms</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
 
               {/* Meta — template plt-card */}
-              <div className="bg-white border-2 border-cream-border rounded-[12px] overflow-hidden transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]">
+              <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40">
                 <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
-                  <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-extrabold shrink-0 bg-[#e8effe] text-[#1877f2] leading-none">
+                  <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 bg-[#e8effe] text-[#1877f2] leading-none">
                     f
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-extrabold text-text-primary">Meta</h3>
+                    <h3 className="text-sm font-bold text-text-primary">Meta</h3>
                     <div
-                      className={`flex items-center gap-1.5 text-[11px] font-bold mt-1 ${metaConnected ? 'text-green' : 'text-text-muted'}`}
+                      className={`flex items-center gap-1.5 text-[11px] font-semibold mt-1 ${metaConnected ? 'text-green' : 'text-text-muted'}`}
                     >
                       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${metaConnected ? 'bg-green' : 'bg-text-muted'}`} />
                       {metaConnected ? 'Connected · Business Manager' : 'Not connected'}
@@ -315,16 +319,16 @@ export default function IntegrationsPage() {
                 </div>
 
                 {metaConnected && (
-                  <div className="grid grid-cols-2 border-t border-b border-cream-border">
-                    <div className="px-4 py-2.5 border-r border-cream-border">
-                      <div className="text-[9px] font-bold tracking-[0.06em] uppercase text-text-muted mb-1">Last sync</div>
-                      <div className="font-mono text-[13px] font-bold text-text-primary">
+                  <div className="grid grid-cols-2 border-t border-b border-border">
+                    <div className="px-4 py-2.5 border-r border-border">
+                      <div className="text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted mb-1">Last sync</div>
+                      <div className="font-mono text-[13px] font-semibold text-text-primary">
                         {formatDateRelative(metaStatus?.connected_at)}
                       </div>
                     </div>
                     <div className="px-4 py-2.5">
-                      <div className="text-[9px] font-bold tracking-[0.06em] uppercase text-text-muted mb-1">Managed spend</div>
-                      <div className="font-mono text-[13px] font-bold text-text-primary">{metaManagedSpendDisplay}</div>
+                      <div className="text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted mb-1">Managed spend</div>
+                      <div className="font-mono text-[13px] font-semibold text-text-primary">{metaManagedSpendDisplay}</div>
                     </div>
                   </div>
                 )}
@@ -338,21 +342,21 @@ export default function IntegrationsPage() {
                           setShowAccountsPanel(true);
                           fetchBmAccounts();
                         }}
-                        className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-teal bg-teal text-white hover:bg-teal-dark transition-colors"
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
                       >
                         Manage Accounts
                       </button>
                       <button
                         type="button"
                         onClick={() => toast.info('Sync runs on a schedule; use Refresh All to pull latest status.')}
-                        className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-cream-border bg-white text-text-secondary hover:border-teal hover:text-teal transition-colors"
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
                       >
                         ↻ Sync
                       </button>
                       <button
                         type="button"
                         onClick={handleDisconnectMeta}
-                        className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-cream-border bg-white text-text-muted hover:border-red hover:text-red transition-colors ml-auto"
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
                       >
                         Disconnect
                       </button>
@@ -361,7 +365,7 @@ export default function IntegrationsPage() {
                     <button
                       type="button"
                       onClick={() => handleConnectTrigger('Meta')}
-                      className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-teal bg-teal text-white hover:bg-teal-dark transition-colors w-full"
+                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
                     >
                       Connect Meta
                     </button>
@@ -375,19 +379,19 @@ export default function IntegrationsPage() {
                 return (
                   <div
                     key={p.id}
-                    className="bg-white border-2 border-cream-border rounded-[12px] overflow-hidden transition-shadow hover:shadow-[0_4px_16px_rgba(0,0,0,0.07)]"
+                    className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40"
                   >
                     <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
                       <div
-                        className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-extrabold shrink-0 leading-none"
+                        className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 leading-none"
                         style={{ background: p.iconBg, color: p.iconColor }}
                       >
                         {p.icon}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-extrabold text-text-primary">{p.name}</h3>
+                        <h3 className="text-sm font-bold text-text-primary">{p.name}</h3>
                         <div
-                          className={`flex items-center gap-1.5 text-[11px] font-bold mt-1 ${isError ? 'text-red' : 'text-green'}`}
+                          className={`flex items-center gap-1.5 text-[11px] font-semibold mt-1 ${isError ? 'text-red' : 'text-green'}`}
                         >
                           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isError ? 'bg-red' : 'bg-green'}`} />
                           {isError
@@ -406,19 +410,19 @@ export default function IntegrationsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 border-t border-b border-cream-border">
-                      <div className="px-4 py-2.5 border-r border-cream-border">
-                        <div className="text-[9px] font-bold tracking-[0.06em] uppercase text-text-muted mb-1">Last sync</div>
+                    <div className="grid grid-cols-2 border-t border-b border-border">
+                      <div className="px-4 py-2.5 border-r border-border">
+                        <div className="text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted mb-1">Last sync</div>
                         <div
-                          className={`font-mono text-[13px] font-bold ${isError ? 'text-red' : 'text-text-primary'}`}
+                          className={`font-mono text-[13px] font-semibold ${isError ? 'text-red' : 'text-text-primary'}`}
                         >
                           {p.lastSynced}
                         </div>
                       </div>
                       <div className="px-4 py-2.5">
-                        <div className="text-[9px] font-bold tracking-[0.06em] uppercase text-text-muted mb-1">Managed spend</div>
+                        <div className="text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted mb-1">Managed spend</div>
                         <div
-                          className={`font-mono text-[13px] font-bold ${isError ? 'text-text-muted' : 'text-text-primary'}`}
+                          className={`font-mono text-[13px] font-semibold ${isError ? 'text-text-muted' : 'text-text-primary'}`}
                         >
                           {isError ? 'Stale' : p.id === 'google' ? '$22,100' : p.spend}
                         </div>
@@ -433,21 +437,21 @@ export default function IntegrationsPage() {
                             onClick={() => {
                               toast.info(`${p.name} re-authorisation coming soon.`);
                             }}
-                            className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-red bg-red text-white hover:opacity-90 transition-opacity"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border-2 border-red bg-red text-white hover:opacity-90 transition-opacity"
                           >
                             ⚠ Reconnect
                           </button>
                           <button
                             type="button"
                             onClick={() => setPanelPlatform(p.id)}
-                            className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-cream-border bg-white text-text-secondary hover:border-teal hover:text-teal transition-colors"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
                           >
                             Manage Accounts
                           </button>
                           <button
                             type="button"
                             onClick={() => toast.info('Disconnect is not available for this demo integration.')}
-                            className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-cream-border bg-white text-text-muted hover:border-red hover:text-red transition-colors ml-auto"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
                           >
                             Disconnect
                           </button>
@@ -457,21 +461,21 @@ export default function IntegrationsPage() {
                           <button
                             type="button"
                             onClick={() => setPanelPlatform(p.id)}
-                            className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-teal bg-teal text-white hover:bg-teal-dark transition-colors"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
                           >
                             Manage Accounts
                           </button>
                           <button
                             type="button"
                             onClick={() => toast.info(`${p.name} sync is not wired yet.`)}
-                            className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-cream-border bg-white text-text-secondary hover:border-teal hover:text-teal transition-colors"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
                           >
                             ↻ Sync
                           </button>
                           <button
                             type="button"
                             onClick={() => toast.info('Disconnect is not available for this demo integration.')}
-                            className="text-[11.5px] font-bold py-1.5 px-3 rounded-[7px] border-2 border-cream-border bg-white text-text-muted hover:border-red hover:text-red transition-colors ml-auto"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
                           >
                             Disconnect
                           </button>
@@ -485,56 +489,56 @@ export default function IntegrationsPage() {
           </div>
 
           <div>
-            <h2 className="text-[11px] font-extrabold tracking-[0.06em] uppercase text-text-muted mb-3.5">Available Platforms</h2>
+            <h2 className="text-[11px] font-bold tracking-[0.06em] uppercase text-text-muted mb-3.5">Available Platforms</h2>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
               {MOCK_PLATFORMS.filter((p) => p.status !== 'connected').map((p) => (
                 <button
                   key={p.id}
                   type="button"
                   onClick={() => setConnectModalPlatform(p.name)}
-                  className="bg-white border-2 border-cream-border rounded-[12px] px-4 py-4 flex items-center gap-3 text-left opacity-75 hover:opacity-100 hover:border-teal hover:shadow-[0_2px_12px_rgba(42,157,143,0.1)] transition-all cursor-pointer"
+                  className="glass-card bg-white border border-border rounded-[12px] px-4 py-4 flex items-center gap-3 text-left opacity-75 hover:opacity-100 hover:border-aqua/60 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
                 >
                   <div
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-extrabold shrink-0 leading-none"
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-semibold shrink-0 leading-none"
                     style={{ background: p.iconBg, color: p.iconColor }}
                   >
                     {p.icon}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-[13px] font-bold text-text-primary truncate">{p.name}</div>
+                    <div className="text-[13px] font-semibold text-text-primary truncate">{p.name}</div>
                     <div className="text-[10px] text-text-muted font-medium mt-0.5 truncate">
                       {'availSub' in p && p.availSub ? p.availSub : 'Connect to get started'}
                     </div>
                   </div>
-                  <span className="text-[11px] font-bold text-teal shrink-0">Connect →</span>
+                  <span className="text-[11px] font-semibold text-teal-deep shrink-0">Connect →</span>
                 </button>
               ))}
             </div>
           </div>
 
-          <div className="bg-white border-2 border-cream-border rounded-[12px] overflow-hidden">
-            <div className="px-[18px] py-3.5 border-b-2 border-cream-border flex items-center justify-between">
-              <h3 className="text-[13px] font-extrabold text-text-primary">Sync Activity</h3>
+          <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden shadow-sm">
+            <div className="px-[18px] py-3.5 border-b border-border-subtle flex items-center justify-between">
+              <h3 className="text-[13px] font-bold text-text-primary">Sync Activity</h3>
               <span className="text-[11px] text-text-muted font-semibold">Last 24 hours</span>
             </div>
             {SYNC_LOG_STATIC_ROWS.map((row, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 px-[18px] py-2.5 border-b border-cream-border last:border-b-0"
+                className="flex items-center gap-3 px-[18px] py-2.5 border-b border-border last:border-b-0 hover:bg-surface-hover/60 transition-colors"
               >
                 <div
-                  className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-bold shrink-0 ${
+                  className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold shrink-0 ${
                     row.icon === 'ok'
                       ? 'bg-green-light text-green'
                       : row.icon === 'err'
                         ? 'bg-red-light text-red'
-                        : 'bg-teal-light text-teal-dark'
+                        : 'bg-teal-light text-teal-deep'
                   }`}
                 >
                   {row.icon === 'err' ? '✕' : '✓'}
                 </div>
                 <div className="flex-1 text-[12px] text-text-secondary font-medium min-w-0">{row.text}</div>
-                <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded shrink-0 ${row.badgeClass}`}>{row.badge}</span>
+                <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${row.badgeClass}`}>{row.badge}</span>
                 <span className="text-[11px] text-text-muted font-semibold whitespace-nowrap shrink-0">{row.time}</span>
               </div>
             ))}
@@ -546,19 +550,19 @@ export default function IntegrationsPage() {
       {showAccountsPanel && (
         <>
           <div
-            className="fixed inset-0 z-[100] transition-opacity bg-[rgba(26,26,46,0.22)]"
+            className="fixed inset-0 z-[100] transition-opacity bg-black/40 backdrop-blur-sm"
             role="presentation"
             onClick={() => setShowAccountsPanel(false)}
           />
           <aside
-            className={`fixed top-0 right-0 h-full w-[480px] max-w-[100vw] bg-white border-l-2 border-cream-border z-[101] shadow-2xl flex flex-col transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${panelEntered ? 'translate-x-0' : 'translate-x-full'}`}
+            className={`fixed top-0 right-0 h-full w-[480px] max-w-[100vw] bg-white border-l border-border z-[101] shadow-2xl flex flex-col transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${panelEntered ? 'translate-x-0' : 'translate-x-full'}`}
           >
-            <header className="px-5 py-[18px] border-b-2 border-cream-border flex items-center gap-3 bg-white text-text-primary shrink-0">
-              <div className="w-9 h-9 rounded-lg bg-[#e8effe] text-[#1877f2] flex items-center justify-center text-base font-extrabold shrink-0 leading-none">
+            <header className="px-5 py-[18px] border-b border-border-subtle flex items-center gap-3 bg-white text-text-primary shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[#e8effe] text-[#1877f2] flex items-center justify-center text-base font-semibold shrink-0 leading-none">
                 f
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-[15px] font-extrabold text-text-primary truncate">Manage Meta Accounts</h3>
+                <h3 className="text-[15px] font-bold text-text-primary truncate">Manage Meta Accounts</h3>
                 <p className="text-[11px] text-text-muted font-medium mt-0.5">
                   {bmAccounts.length
                     ? `${bmAccounts.length} accounts available in your Business Manager`
@@ -568,15 +572,15 @@ export default function IntegrationsPage() {
               <button
                 type="button"
                 onClick={() => setShowAccountsPanel(false)}
-                className="w-7 h-7 rounded-md border-2 border-cream-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
+                className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
                 aria-label="Close"
               >
                 ✕
               </button>
             </header>
 
-            <div className="px-5 py-3 border-b border-cream-border flex items-center gap-2.5 shrink-0 bg-cream">
-              <div className="flex-1 flex items-center gap-2 bg-white border-2 border-cream-border rounded-lg px-2.5 py-1.5 min-w-0">
+            <div className="px-5 py-3 border-b border-border flex items-center gap-2.5 shrink-0 bg-surface-secondary">
+              <div className="flex-1 flex items-center gap-2 bg-white border border-border rounded-lg px-2.5 py-1.5 min-w-0">
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-text-muted">
                   <circle cx="6.5" cy="6.5" r="5" />
                   <path d="M10.5 10.5L14 14" />
@@ -592,21 +596,21 @@ export default function IntegrationsPage() {
               <button
                 type="button"
                 onClick={() => toast.info('Use per-account mapping below.')}
-                className="text-[11px] font-bold text-teal whitespace-nowrap bg-transparent border-none cursor-pointer font-[inherit] p-0 hover:underline"
+                className="text-[11px] font-semibold text-teal-deep whitespace-nowrap bg-transparent border-none cursor-pointer font-[inherit] p-0 hover:underline"
               >
                 Select all
               </button>
               <button
                 type="button"
                 onClick={() => toast.info('Use per-account mapping below.')}
-                className="text-[11px] font-bold text-text-muted whitespace-nowrap bg-transparent border-none cursor-pointer font-[inherit] p-0 hover:underline"
+                className="text-[11px] font-semibold text-text-muted whitespace-nowrap bg-transparent border-none cursor-pointer font-[inherit] p-0 hover:underline"
               >
                 Deselect all
               </button>
             </div>
 
-            <div className="px-5 py-3 border-b border-cream-border bg-cream shrink-0">
-              <div className="text-[10px] font-extrabold tracking-[0.06em] uppercase text-text-muted mb-2">
+            <div className="px-5 py-3 border-b border-border bg-surface-secondary shrink-0">
+              <div className="text-[10px] font-semibold tracking-[0.06em] uppercase text-text-muted mb-2">
                 Historical data to pull
               </div>
               <div className="flex flex-wrap gap-1.5">
@@ -615,10 +619,10 @@ export default function IntegrationsPage() {
                     key={opt}
                     type="button"
                     onClick={() => setPanelDataWindow(opt)}
-                    className={`px-3 py-1 rounded-md border-2 text-[11px] font-bold font-[inherit] cursor-pointer transition-colors ${
+                    className={`px-3 py-1 rounded-md border border-border text-[11px] font-semibold font-[inherit] cursor-pointer transition-colors ${
                       panelDataWindow === opt
-                        ? 'bg-teal border-teal text-white'
-                        : 'bg-white border-cream-border text-text-muted hover:border-teal/40'
+                        ? 'bg-teal-deep border-teal-deep text-white'
+                        : 'bg-white border-border text-text-muted hover:border-aqua/40'
                     }`}
                   >
                     {opt}
@@ -627,56 +631,56 @@ export default function IntegrationsPage() {
               </div>
             </div>
 
-            <div className="px-5 py-2 border-b border-cream-border flex items-center gap-2 shrink-0 bg-cream">
+            <div className="px-5 py-2 border-b border-border flex items-center gap-2 shrink-0 bg-surface-secondary">
               <button
                 type="button"
                 onClick={handleAutoLink}
                 disabled={metaAutoLinking}
-                className="h-9 px-4 rounded-lg bg-[#1877f2] text-white text-[11px] font-bold hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+                className="h-9 px-4 rounded-lg bg-[#1877f2] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
               >
                 {metaAutoLinking ? 'Linking…' : '⚡ Auto-link'}
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto min-h-0">
-              <div className="px-5 py-2 text-[9px] font-extrabold tracking-[0.06em] uppercase text-text-muted bg-cream border-y border-cream-border">
+              <div className="px-5 py-2 text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted bg-surface-secondary border-y border-border">
                 Ad accounts under Business Manager
               </div>
-              <div className="divide-y divide-cream-border">
+              <div className="divide-y divide-border">
                 {bmAccountsLoading ? (
-                  <div className="p-10 text-center text-text-muted animate-pulse font-bold italic">Fetching accounts…</div>
+                  <div className="p-10 text-center text-text-muted animate-pulse font-semibold italic">Fetching accounts…</div>
                 ) : filteredBmAccounts.length === 0 ? (
-                  <div className="p-10 text-center text-text-muted font-bold italic">No accounts found</div>
+                  <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
                 ) : filteredBmAccounts.map(acc => {
                   const linkedClient = acc.linked_client_id ? clients.find(c => c.id === Number(acc.linked_client_id)) : null;
                   return (
                     <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#faf7f2] transition-colors">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-4 min-w-0">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-extrabold text-white shrink-0 shadow-sm`} style={{ background: linkedClient ? '#2a9d8f' : '#e76f51' }}>
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm`} style={{ background: linkedClient ? '#007B5F' : '#FF7043' }}>
                             {acc.account_name.slice(0, 2).toUpperCase()}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-extrabold text-text-primary leading-tight truncate">{acc.account_name}</div>
+                            <div className="text-sm font-bold text-text-primary leading-tight truncate">{acc.account_name}</div>
                             <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency}</div>
                           </div>
                         </div>
                         <div className="text-right shrink-0">
-                          <div className="text-[12px] font-mono font-bold text-text-primary">${acc.spend.toLocaleString()}</div>
-                          <div className="text-[9px] font-bold text-text-muted uppercase tracking-tighter">Spent MTD</div>
+                          <div className="text-[12px] font-mono font-semibold text-text-primary">${acc.spend.toLocaleString()}</div>
+                          <div className="text-[9px] font-semibold text-text-muted uppercase tracking-tighter">Spent MTD</div>
                         </div>
                       </div>
                       
                       <div className="mt-4 flex items-center gap-3">
                         {linkedClient ? (
                           <>
-                             <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-bold border border-green/10">Connected</div>
-                             <div className="text-xs font-bold text-text-secondary truncate">→ {linkedClient.name}</div>
+                             <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">Connected</div>
+                             <div className="text-xs font-semibold text-text-secondary truncate">→ {linkedClient.name}</div>
                           </>
                         ) : (
                           <div className="flex-1 flex items-center gap-2">
                             <select 
-                              className="flex-1 h-9 rounded-lg border-2 border-cream-border bg-white text-[11px] font-bold px-3 outline-none focus:border-teal transition-colors"
+                              className="flex-1 h-9 rounded-lg border border-border bg-white text-[11px] font-semibold px-3 outline-none focus:border-teal-deep transition-colors"
                               onChange={(e) => {
                                 const val = e.target.value;
                                 if (val) handleManualLink(Number(val), acc.account_id);
@@ -697,14 +701,14 @@ export default function IntegrationsPage() {
               </div>
             </div>
 
-            <footer className="px-5 py-3.5 border-t-2 border-cream-border bg-white flex items-center gap-2.5 shrink-0">
+            <footer className="px-5 py-3.5 border-t border-border bg-white flex items-center gap-2.5 shrink-0">
               <div className="text-[11px] text-text-muted font-semibold flex-1 min-w-0">
                 {activeBmCount} account{activeBmCount !== 1 ? 's' : ''} linked to clients
               </div>
               <button
                 type="button"
                 onClick={() => setShowAccountsPanel(false)}
-                className="px-4 py-2.5 rounded-lg bg-white border-2 border-cream-border text-[13px] font-bold text-text-secondary hover:bg-cream/80 transition-colors font-[inherit] cursor-pointer shrink-0"
+                className="px-4 py-2.5 rounded-lg bg-white border border-border text-[13px] font-semibold text-text-secondary hover:bg-surface-secondary/50 transition-colors font-[inherit] cursor-pointer shrink-0"
               >
                 Cancel
               </button>
@@ -714,7 +718,7 @@ export default function IntegrationsPage() {
                   setShowAccountsPanel(false);
                   toast.info('Mappings save as you link accounts. Use Refresh All to pull latest status.');
                 }}
-                className="px-5 py-2.5 rounded-lg bg-teal text-white border-none text-[13px] font-bold font-[inherit] cursor-pointer hover:bg-teal-dark transition-colors shrink-0"
+                className="px-5 py-2.5 rounded-lg bg-teal-deep text-white border-none text-[13px] font-semibold font-[inherit] cursor-pointer hover:bg-teal-deep/90 transition-colors shrink-0"
               >
                 Save &amp; Sync
               </button>
@@ -730,23 +734,23 @@ export default function IntegrationsPage() {
           <>
             <div
               role="presentation"
-              className="fixed inset-0 z-[100] bg-[rgba(26,26,46,0.22)] cursor-pointer"
+              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm cursor-pointer"
               onClick={() => setPanelPlatform(null)}
             />
             <aside
-              className={`fixed top-0 right-0 z-[101] h-full w-[480px] max-w-[100vw] bg-white shadow-2xl flex flex-col border-l-2 border-cream-border transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
+              className={`fixed top-0 right-0 z-[101] h-full w-[480px] max-w-[100vw] bg-white shadow-2xl flex flex-col border-l border-border transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${
                 panelEntered ? 'translate-x-0' : 'translate-x-full'
               }`}
             >
-              <header className="px-5 py-[18px] border-b-2 border-cream-border flex items-center gap-3 shrink-0">
+              <header className="px-5 py-[18px] border-b border-border-subtle flex items-center gap-3 shrink-0">
                 <div
-                  className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-extrabold shrink-0 leading-none"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-semibold shrink-0 leading-none"
                   style={{ background: selectedPlatform.iconBg, color: selectedPlatform.iconColor }}
                 >
                   {selectedPlatform.icon}
                 </div>
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-[15px] font-extrabold text-text-primary truncate">
+                  <h3 className="text-[15px] font-bold text-text-primary truncate">
                     Manage {selectedPlatform.name} Accounts
                   </h3>
                   <p className="text-[11px] text-text-muted font-medium mt-0.5">
@@ -756,27 +760,27 @@ export default function IntegrationsPage() {
                 <button
                   type="button"
                   onClick={() => setPanelPlatform(null)}
-                  className="w-7 h-7 rounded-md border-2 border-cream-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
+                  className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
                   aria-label="Close"
                 >
                   ✕
                 </button>
               </header>
               <div className="flex-1 overflow-y-auto min-h-0 p-5 space-y-4">
-                <div className="rounded-lg border-2 border-cream-border bg-cream px-3 py-2.5">
-                  <div className="text-[10px] font-extrabold tracking-[0.06em] uppercase text-text-muted">Sync status</div>
-                  <div className="text-[12px] font-bold text-text-primary mt-1">Last synced {selectedPlatform.lastSynced}</div>
+                <div className="rounded-lg border border-border bg-surface-secondary px-3 py-2.5">
+                  <div className="text-[10px] font-semibold tracking-[0.06em] uppercase text-text-muted">Sync status</div>
+                  <div className="text-[12px] font-semibold text-text-primary mt-1">Last synced {selectedPlatform.lastSynced}</div>
                 </div>
                 <p className="text-[13px] text-text-muted font-medium py-6 text-center leading-relaxed">
                   Full account mapping and sync controls will appear here when this integration is live.
                 </p>
               </div>
-              <footer className="px-5 py-3.5 border-t-2 border-cream-border bg-white flex items-center gap-2.5 shrink-0">
+              <footer className="px-5 py-3.5 border-t border-border bg-white flex items-center gap-2.5 shrink-0">
                 <div className="text-[11px] text-text-muted font-semibold flex-1">No accounts to save yet</div>
                 <button
                   type="button"
                   onClick={() => setPanelPlatform(null)}
-                  className="px-4 py-2.5 rounded-lg bg-white border-2 border-cream-border text-[13px] font-bold text-text-secondary font-[inherit] cursor-pointer hover:bg-cream/80"
+                  className="px-4 py-2.5 rounded-lg bg-white border border-border text-[13px] font-semibold text-text-secondary font-[inherit] cursor-pointer hover:bg-surface-secondary/50"
                 >
                   Cancel
                 </button>
@@ -785,7 +789,7 @@ export default function IntegrationsPage() {
                   onClick={() => {
                     toast.info(`${selectedPlatform.name} sync is not available yet.`);
                   }}
-                  className="px-5 py-2.5 rounded-lg bg-teal text-white border-none text-[13px] font-bold font-[inherit] cursor-pointer hover:bg-teal-dark"
+                  className="px-5 py-2.5 rounded-lg bg-teal-deep text-white border-none text-[13px] font-semibold font-[inherit] cursor-pointer hover:bg-teal-deep/90"
                 >
                   Save &amp; Sync
                 </button>
@@ -799,7 +803,7 @@ export default function IntegrationsPage() {
       {connectModalPlatform && (() => {
         const cm = CONNECT_MODAL_META[connectModalPlatform] ?? {
           bg: '#e8f5f3',
-          color: '#2a9d8f',
+          color: '#007B5F',
           letter: '🔗',
           sub: `Securely link ${connectModalPlatform} to Kaivo for reporting and performance analysis.`,
         };
@@ -807,20 +811,24 @@ export default function IntegrationsPage() {
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <div
               role="presentation"
-              className="absolute inset-0 bg-[rgba(26,26,46,0.35)]"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
               onClick={() => setConnectModalPlatform(null)}
             />
             <div
-              className="relative bg-white rounded-2xl p-8 w-full max-w-[440px] shadow-[0_20px_60px_rgba(0,0,0,0.18)]"
+              className="relative bg-white rounded-2xl p-8 w-full max-w-[440px] shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div
-                className="w-14 h-14 rounded-[14px] mx-auto mb-4 flex items-center justify-center text-[26px] font-extrabold"
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-teal-deep/15 via-transparent to-coral-light/15"
+              />
+              <div
+                className="w-14 h-14 rounded-[14px] mx-auto mb-4 flex items-center justify-center text-[26px] font-bold"
                 style={{ background: cm.bg, color: cm.color }}
               >
                 {cm.letter}
               </div>
-              <h3 className="text-[17px] font-extrabold text-text-primary text-center mb-1.5">
+              <h3 className="text-[17px] font-bold text-text-primary text-center mb-1.5">
                 Connect {connectModalPlatform}
               </h3>
               <p className="text-[13px] text-text-muted text-center leading-[1.5] mb-6 px-1">{cm.sub}</p>
@@ -828,7 +836,7 @@ export default function IntegrationsPage() {
               <div className="flex flex-col gap-2.5 mb-6">
                 {CONNECT_MODAL_STEPS.map((step, i) => (
                   <div key={step} className="flex items-center gap-3 text-[12.5px] font-medium text-text-secondary">
-                    <div className="w-[22px] h-[22px] rounded-full bg-teal text-white flex items-center justify-center text-[11px] font-extrabold shrink-0">
+                    <div className="w-[22px] h-[22px] rounded-full bg-teal-deep text-white flex items-center justify-center text-[11px] font-semibold shrink-0 shadow-[0_0_24px_rgba(0,123,95,0.25)]">
                       {i + 1}
                     </div>
                     {step}
@@ -837,17 +845,17 @@ export default function IntegrationsPage() {
               </div>
 
               <div className="mb-5">
-                <div className="text-[12px] font-bold text-text-secondary mb-2">Historical data to load</div>
+                <div className="text-[12px] font-semibold text-text-secondary mb-2">Historical data to load</div>
                 <div className="flex flex-wrap gap-1.5">
                   {DATA_WINDOW_OPTS.map((opt) => (
                     <button
                       key={opt}
                       type="button"
                       onClick={() => setConnectDataWindow(opt)}
-                      className={`px-3 py-1 rounded-md border-2 text-[11px] font-bold font-[inherit] cursor-pointer transition-colors ${
+                      className={`px-3 py-1 rounded-md border border-border text-[11px] font-semibold font-[inherit] cursor-pointer transition-colors ${
                         connectDataWindow === opt
-                          ? 'bg-teal border-teal text-white'
-                          : 'bg-white border-cream-border text-text-muted hover:border-teal/40'
+                          ? 'bg-teal-deep border-teal-deep text-white'
+                          : 'bg-white border-border text-text-muted hover:border-aqua/40'
                       }`}
                     >
                       {opt}
@@ -860,7 +868,7 @@ export default function IntegrationsPage() {
                 <button
                   type="button"
                   onClick={() => setConnectModalPlatform(null)}
-                  className="px-4 py-3 rounded-lg bg-white border-2 border-cream-border text-[13px] font-bold text-text-secondary font-[inherit] cursor-pointer hover:bg-cream/50 shrink-0"
+                  className="px-4 py-3 rounded-lg bg-white border border-border text-[13px] font-semibold text-text-secondary font-[inherit] cursor-pointer hover:bg-surface-secondary/60 shrink-0"
                 >
                   Cancel
                 </button>
@@ -870,7 +878,7 @@ export default function IntegrationsPage() {
                     setConnectModalPlatform(null);
                     handleConnectTrigger(connectModalPlatform);
                   }}
-                  className="flex-1 py-3 rounded-lg bg-teal text-white border-none text-[13px] font-bold font-[inherit] cursor-pointer hover:bg-teal-dark"
+                  className="flex-1 py-3 rounded-lg bg-teal-deep text-white border-none text-[13px] font-semibold font-[inherit] cursor-pointer hover:bg-teal-deep/90"
                 >
                   Connect &amp; Authorise →
                 </button>

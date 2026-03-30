@@ -52,7 +52,7 @@ function LoginPageContent() {
   return (
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2">
       {/* LEFT PANEL */}
-      <div className="hidden lg:flex bg-teal flex-col p-12 relative overflow-hidden">
+      <div className="hidden lg:flex bg-gradient-to-br from-dark-bg via-dark-card to-teal-deep flex-col p-12 relative overflow-hidden">
         {/* Background circles */}
         <div className="absolute -bottom-[60px] -right-[60px] w-[320px] h-[320px] rounded-full bg-white/[0.06]" />
         <div className="absolute -top-[40px] right-[80px] w-[180px] h-[180px] rounded-full bg-white/[0.04]" />
@@ -67,7 +67,7 @@ function LoginPageContent() {
 
         {/* Hero */}
         <div className="relative z-10 flex-1 flex flex-col justify-center">
-          <h2 className="text-[36px] font-extrabold text-white leading-[1.2] tracking-[-0.5px] mb-4">
+          <h2 className="text-[36px] font-bold text-white leading-[1.2] tracking-[-0.5px] mb-4">
             The intelligence layer for modern advertising
           </h2>
           <p className="text-[15px] text-white/75 font-medium leading-[1.6] max-w-[360px]">
@@ -96,37 +96,37 @@ function LoginPageContent() {
         <div className="w-full max-w-[400px]">
           {view === "login" ? (
             <>
-              <h1 className="text-[26px] font-extrabold text-text-primary mb-[6px]">Welcome back</h1>
+              <h1 className="text-[26px] font-bold text-text-primary mb-[6px]">Welcome back</h1>
               <p className="text-[13px] text-text-muted font-medium mb-8">Sign in to your agency account</p>
 
               {loginError && (
-                <div className="bg-red-light border-[1.5px] border-[#f5c0c0] rounded-lg px-[14px] py-[10px] text-[12.5px] font-semibold text-red mb-4">
+                <div className="bg-red-light border-[1.5px] border-[#FECDD3] rounded-lg px-[14px] py-[10px] text-[12.5px] font-semibold text-red mb-4">
                   {loginError}
                 </div>
               )}
 
               <form onSubmit={handleSubmit}>
                 <div className="flex flex-col gap-[6px] mb-4">
-                  <label className="text-[11px] font-bold text-text-secondary tracking-wide">Email Address</label>
+                  <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Email Address</label>
                   <input
                     type="email"
                     required
                     placeholder="you@agency.com"
                     autoComplete="email"
-                    className="py-[11px] px-[14px] border-2 border-cream-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal transition-colors"
+                    className="py-[11px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
 
                 <div className="flex flex-col gap-[6px] mb-4">
-                  <label className="text-[11px] font-bold text-text-secondary tracking-wide">Password</label>
+                  <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Password</label>
                   <input
                     type="password"
                     required
                     placeholder="••••••••••"
                     autoComplete="current-password"
-                    className={`py-[11px] px-[14px] border-2 rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal transition-colors ${loginError ? 'border-red' : 'border-cream-border'}`}
+                    className={`py-[11px] px-[14px] border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors ${loginError ? 'border-red' : 'border-border'}`}
                     value={formData.password}
                     onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setLoginError(""); }}
                   />
@@ -136,7 +136,7 @@ function LoginPageContent() {
                   <button
                     type="button"
                     onClick={() => setView("forgot")}
-                    className="text-[12px] font-bold text-teal hover:text-teal-dark"
+                    className="text-[12px] font-semibold text-teal-deep hover:text-teal-deep/80"
                   >
                     Forgot password?
                   </button>
@@ -145,21 +145,21 @@ function LoginPageContent() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-[13px] bg-teal hover:bg-teal-dark text-white font-extrabold text-[14px] rounded-[10px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed mb-6"
+                  className="w-full py-[13px] bg-teal-deep hover:bg-teal-deep/90 text-white font-extrabold text-[14px] rounded-[10px] transition-colors disabled:opacity-60 disabled:cursor-not-allowed mb-6"
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
                 </button>
               </form>
 
               <div className="flex items-center gap-3 mb-5">
-                <div className="flex-1 h-px bg-cream-border" />
+                <div className="flex-1 h-px bg-border" />
                 <span className="text-[11px] text-text-muted font-semibold">New to Kaivo?</span>
-                <div className="flex-1 h-px bg-cream-border" />
+                <div className="flex-1 h-px bg-border" />
               </div>
 
               <p className="text-center text-[13px] text-text-muted font-medium">
                 Don&apos;t have an account?{" "}
-                <a href="mailto:sales@getkaivo.com" className="text-teal font-bold hover:text-teal-dark no-underline">
+                <a href="mailto:sales@getkaivo.com" className="text-teal-deep font-semibold hover:text-teal-deep/80 no-underline">
                   Contact us to get started →
                 </a>
               </p>
@@ -168,37 +168,37 @@ function LoginPageContent() {
             <>
               <button
                 onClick={() => { setView("login"); setResetSent(false); }}
-                className="flex items-center gap-[6px] text-[12px] font-bold text-text-muted hover:text-teal mb-6"
+                className="flex items-center gap-[6px] text-[12px] font-semibold text-text-muted hover:text-teal-deep mb-6"
               >
                 <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 3L5 8l5 5" /></svg>
                 Back to sign in
               </button>
 
-              <h1 className="text-[26px] font-extrabold text-text-primary mb-[6px]">Reset password</h1>
+              <h1 className="text-[26px] font-bold text-text-primary mb-[6px]">Reset password</h1>
               <p className="text-[13px] text-text-muted font-medium mb-8">
                 Enter your email and we&apos;ll send you a reset link
               </p>
 
               {resetSent ? (
-                <div className="bg-teal-light border-[1.5px] border-[#b8e0db] rounded-lg p-[14px] text-[13px] font-semibold text-teal-dark leading-[1.5]">
+                <div className="bg-teal-light border-[1.5px] border-[#A7F3D0] rounded-lg p-[14px] text-[13px] font-semibold text-teal-dark leading-[1.5]">
                   Reset link sent! Check your inbox at <strong>{resetEmail}</strong>. The link expires in 30 minutes.
                 </div>
               ) : (
                 <form onSubmit={handleForgotSubmit}>
                   <div className="flex flex-col gap-[6px] mb-4">
-                    <label className="text-[11px] font-bold text-text-secondary tracking-wide">Email Address</label>
+                    <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Email Address</label>
                     <input
                       type="email"
                       required
                       placeholder="you@agency.com"
-                      className="py-[11px] px-[14px] border-2 border-cream-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal transition-colors"
+                      className="py-[11px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
                       value={resetEmail}
                       onChange={(e) => setResetEmail(e.target.value)}
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-[13px] bg-teal hover:bg-teal-dark text-white font-extrabold text-[14px] rounded-[10px] transition-colors"
+                    className="w-full py-[13px] bg-teal-deep hover:bg-teal-deep/90 text-white font-extrabold text-[14px] rounded-[10px] transition-colors"
                   >
                     Send Reset Link
                   </button>
@@ -215,8 +215,8 @@ function LoginPageContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen w-full flex items-center justify-center bg-cream">
-        <span className="inline-block h-6 w-6 border-2 border-teal/30 border-t-teal rounded-full animate-spin" />
+      <div className="min-h-screen w-full flex items-center justify-center bg-surface-secondary">
+        <span className="inline-block h-6 w-6 border-2 border-teal-deep/30 border-t-teal-deep rounded-full animate-spin" />
       </div>
     }>
       <LoginPageContent />

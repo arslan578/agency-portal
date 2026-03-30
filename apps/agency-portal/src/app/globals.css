@@ -1,74 +1,134 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #f4efe6;
-  --color-foreground: #1a1a2e;
+  /* === Backgrounds === */
+  --color-background: #FFFFFF;
+  --color-foreground: #0F172A;
 
-  --color-cream: #f4efe6;
-  --color-cream-dark: #ece6db;
-  --color-cream-border: #ddd6c8;
+  /* === Kaivo Brand — Tropical Oasis === */
+  --color-teal: #009688;
+  --color-teal-deep: #007B5F;
+  --color-teal-medium: #009688;
+  --color-teal-light: #E6F5F1;
+  --color-teal-50: #E6F5F1;
+  --color-teal-100: #B2E5D9;
+  --color-teal-dark: #007B5F;
 
-  --color-teal: #2a9d8f;
-  --color-teal-dark: #1f7a6e;
-  --color-teal-light: #e8f5f3;
+  --color-aqua: #4DB6AC;
+  --color-aqua-light: #E0F2F1;
 
-  --color-coral: #e76f51;
-  --color-coral-light: #fdf0ec;
-  --color-coral-dark: #c85a3d;
+  --color-coral: #FF7043;
+  --color-coral-light: #FFF4F0;
+  --color-coral-dark: #E65100;
 
-  --color-text-primary: #1a1a2e;
-  --color-text-secondary: #5a5a72;
-  --color-text-muted: #9a9aaa;
+  --color-amber: #FFB74D;
+  --color-amber-light: #FFF8E1;
 
-  --color-green: #2d9e5a;
-  --color-green-light: #e8f7ef;
+  /* === Surfaces === */
+  --color-surface: #FFFFFF;
+  --color-surface-secondary: #F8FAFC;
+  --color-surface-hover: #F1F5F9;
 
-  --color-amber: #d4860a;
-  --color-amber-light: #fef3dc;
+  /* === Text Hierarchy (Slate) === */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #334155;
+  --color-text-muted: #64748B;
 
-  --color-red: #d94040;
-  --color-red-light: #fdeaea;
+  /* === Semantic Tokens === */
+  --color-white: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-card-foreground: #0F172A;
 
-  --color-purple: #5c54c8;
-  --color-purple-light: #eeeeff;
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
 
-  --color-white: #ffffff;
-  --color-card: #ffffff;
-  --color-card-foreground: #1a1a2e;
+  --color-border: #E2E8F0;
+  --color-border-subtle: #F1F5F9;
+  --color-input: #E2E8F0;
+  --color-ring: #007B5F;
 
-  --color-muted: #f4efe6;
-  --color-muted-foreground: #9a9aaa;
+  --color-primary: #007B5F;
+  --color-primary-foreground: #FFFFFF;
 
-  --color-border: #ddd6c8;
-  --color-input: #ddd6c8;
-  --color-ring: #2a9d8f;
+  /* Cream aliases — backwards compat for any residual refs */
+  --color-cream: #F8FAFC;
+  --color-cream-dark: #F1F5F9;
+  --color-cream-border: #E2E8F0;
 
-  --color-primary: #2a9d8f;
-  --color-primary-foreground: #ffffff;
+  /* === Status Colors === */
+  --color-green: #059669;
+  --color-green-light: #ECFDF5;
 
-  --spacing-nav-width: 232px;
+  --color-red: #DC2626;
+  --color-red-light: #FEF2F2;
+
+  --color-purple: #7C3AED;
+  --color-purple-light: #F5F3FF;
+
+  /* === Dark Surfaces (Sidebar) === */
+  --color-dark-bg: #0B0F19;
+  --color-dark-card: #141B2D;
+  --color-dark-border: #1E293B;
+
+  /* === Layout === */
+  --spacing-nav-width: 260px;
   --radius-default: 12px;
 
-  --font-sans: 'Space Grotesk', sans-serif;
-  --font-mono: 'Space Mono', monospace;
+  /* === Typography === */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 :root {
-  --background: #f4efe6;
-  --foreground: #1a1a2e;
+  --background: #FFFFFF;
+  --foreground: #0F172A;
+  --kaivo-teal-rgb: 0, 150, 136;
+  --kaivo-aqua-rgb: 77, 182, 172;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Custom Scrollbar */
+/* ===========================
+   Glass Utilities
+   =========================== */
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(77, 182, 172, 0.25);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.glass-card {
+  background: #FFFFFF;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(77, 182, 172, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s ease;
+}
+
+.glass-card:hover {
+  border-color: rgba(77, 182, 172, 0.5);
+  box-shadow: 0 4px 12px rgba(77, 182, 172, 0.1), 0 8px 24px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+}
+
+/* ===========================
+   Premium Scrollbar
+   =========================== */
+
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
@@ -76,10 +136,43 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #ddd6c8;
+  background: #CBD5E1;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2a9d8f;
+  background: #009688;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ===========================
+   Animated Background
+   =========================== */
+
+.bg-gradient-animate {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(var(--kaivo-teal-rgb), 0.08), transparent 50%),
+    radial-gradient(circle at 0% 50%, rgba(var(--kaivo-aqua-rgb), 0.05), transparent 50%);
+  animation: pulse-glow 8s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: fade-in 0.4s ease-out both;
 }

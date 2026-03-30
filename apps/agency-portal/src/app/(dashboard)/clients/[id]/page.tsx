@@ -43,7 +43,7 @@ function PlatformTag({ name }: { name: string }) {
 function ScoreBadge({ score }: { score: number }) {
   const cls = score >= 80 ? 'bg-green-light text-green' : score >= 60 ? 'bg-amber-light text-amber' : 'bg-red-light text-red';
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-extrabold font-mono ${cls}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[12px] font-bold font-mono ${cls}`}>
       {score.toFixed(1)}
     </span>
   );
@@ -53,10 +53,10 @@ function PacingBar({ pacing }: { pacing: number }) {
   const color = pacing >= 90 ? 'bg-green' : pacing >= 80 ? 'bg-teal' : pacing >= 70 ? 'bg-amber' : 'bg-coral';
   return (
     <div className="flex items-center gap-2 min-w-[100px]">
-      <div className="flex-1 max-w-[72px] h-[6px] rounded-full bg-cream-dark overflow-hidden">
+      <div className="flex-1 max-w-[72px] h-[5px] rounded-full bg-surface-secondary overflow-hidden">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${Math.min(100, pacing)}%` }} />
       </div>
-      <span className="text-[11px] font-bold text-text-muted font-mono tabular-nums">{pacing}%</span>
+      <span className="text-[11px] font-semibold text-text-muted font-mono tabular-nums">{pacing}%</span>
     </div>
   );
 }
@@ -68,7 +68,7 @@ function SeverityBadge({ severity }: { severity: string }) {
     opportunity: 'bg-teal-light text-teal',
   };
   return (
-    <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${styles[severity] ?? 'bg-cream text-text-muted'}`}>
+    <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wide ${styles[severity] ?? 'bg-surface-secondary text-text-muted'}`}>
       {severity}
     </span>
   );
@@ -141,7 +141,7 @@ function CampaignSkeleton() {
   return (
     <div className="animate-pulse space-y-3 p-5">
       {[1, 2, 3].map((i) => (
-        <div key={i} className="h-10 bg-cream-dark rounded-lg" />
+        <div key={i} className="h-10 bg-surface-secondary rounded-lg" />
       ))}
     </div>
   );
@@ -260,13 +260,13 @@ export default function ClientDetailPage() {
 
   if (clientsLoading) {
     return (
-      <div className="flex flex-col h-full bg-cream overflow-hidden">
+      <div className="flex flex-col h-full bg-surface-secondary overflow-hidden">
         <DashboardHeader title="Loading..." />
         <main className="flex-1 overflow-auto p-6">
           <div className="animate-pulse space-y-4">
-            <div className="h-24 bg-cream-dark rounded-xl" />
-            <div className="grid grid-cols-4 gap-4">{[1, 2, 3, 4].map((i) => <div key={i} className="h-24 bg-cream-dark rounded-xl" />)}</div>
-            <div className="h-64 bg-cream-dark rounded-xl" />
+            <div className="h-24 bg-surface-secondary rounded-xl border border-border" />
+            <div className="grid grid-cols-4 gap-4">{[1, 2, 3, 4].map((i) => <div key={i} className="h-24 bg-surface-secondary rounded-xl border border-border" />)}</div>
+            <div className="h-64 bg-surface-secondary rounded-xl border border-border" />
           </div>
         </main>
       </div>
@@ -275,19 +275,19 @@ export default function ClientDetailPage() {
 
   if (!client || Number.isNaN(clientId)) {
     return (
-      <div className="flex flex-col h-full bg-cream overflow-hidden">
+      <div className="flex flex-col h-full bg-surface-secondary overflow-hidden">
         <div className="px-6 pt-4 pb-2 shrink-0">
-          <Link href="/clients" className="text-[13px] font-bold text-teal hover:text-teal-dark transition-colors">
+          <Link href="/clients" className="text-[13px] font-semibold text-teal-deep hover:text-teal-deep/80 transition-colors">
             ← Back to Clients
           </Link>
         </div>
         <DashboardHeader title="Client not found" subtitle="This client is not in your agency or the link is invalid." />
         <main className="flex-1 overflow-auto p-6">
-          <div className="bg-white rounded-xl border-2 border-cream-border p-8 max-w-lg">
+          <div className="bg-white rounded-xl border border-border p-8 max-w-lg shadow-sm">
             <p className="text-[15px] text-text-secondary leading-relaxed">
               We could not find a client matching this URL. Return to the clients list to pick an account.
             </p>
-            <Link href="/clients" className="inline-flex mt-5 px-4 py-2 rounded-lg bg-teal text-white text-[13px] font-bold hover:opacity-95">
+            <Link href="/clients" className="inline-flex mt-5 px-4 py-2 rounded-lg bg-teal-deep text-white text-[13px] font-semibold hover:bg-teal-deep/90 transition-colors shadow-sm">
               View all clients
             </Link>
           </div>
@@ -297,9 +297,9 @@ export default function ClientDetailPage() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-cream overflow-hidden">
-      <div className="px-6 pt-4 pb-2 shrink-0 border-b-2 border-cream-border bg-white">
-        <Link href="/clients" className="text-[13px] font-bold text-teal hover:text-teal-dark transition-colors">
+    <div className="flex flex-col h-full bg-surface-secondary overflow-hidden">
+      <div className="px-6 pt-4 pb-2 shrink-0 border-b border-border bg-white">
+        <Link href="/clients" className="text-[13px] font-semibold text-teal-deep hover:text-teal-deep/80 transition-colors">
           ← Back to Clients
         </Link>
       </div>
@@ -307,18 +307,18 @@ export default function ClientDetailPage() {
 
       <main className="flex-1 overflow-auto p-6 space-y-5">
         {/* Client header card */}
-        <section className="bg-white rounded-xl border-2 border-cream-border p-5">
+        <section className="bg-white rounded-xl border border-border p-5 shadow-sm">
           <div className="flex flex-wrap items-start gap-4 justify-between">
             <div className="flex items-start gap-4 min-w-0">
               <div
-                className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-[15px] font-extrabold text-white"
+                className="w-12 h-12 rounded-xl shrink-0 flex items-center justify-center text-[15px] font-bold text-white"
                 style={{ backgroundColor: client.color }}
                 aria-hidden
               >
                 {client.initials}
               </div>
               <div className="min-w-0">
-                <h1 className="text-[18px] font-extrabold text-text-primary leading-tight truncate">{client.name}</h1>
+                <h1 className="text-[18px] font-bold text-text-primary leading-tight truncate">{client.name}</h1>
                 <p className="text-[13px] text-text-muted font-medium mt-0.5">{client.type}</p>
                 <div className="flex flex-wrap items-center gap-2 mt-3">
                   <ScoreBadge score={client.score} />
@@ -329,18 +329,18 @@ export default function ClientDetailPage() {
                 </div>
               </div>
             </div>
-            <div className="flex rounded-lg border-2 border-cream-border overflow-hidden bg-cream-dark/40 p-0.5" role="group" aria-label="View mode">
+            <div className="flex rounded-lg border border-border overflow-hidden bg-surface-secondary p-0.5" role="group" aria-label="View mode">
               <button
                 type="button"
                 onClick={() => setViewMode('agency')}
-                className={`px-3 py-1.5 text-[12px] font-bold rounded-md transition-colors ${viewMode === 'agency' ? 'bg-teal text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-all ${viewMode === 'agency' ? 'bg-teal-deep text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
               >
                 Agency View
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('client')}
-                className={`px-3 py-1.5 text-[12px] font-bold rounded-md transition-colors ${viewMode === 'client' ? 'bg-teal text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
+                className={`px-3 py-1.5 text-[12px] font-medium rounded-md transition-all ${viewMode === 'client' ? 'bg-teal-deep text-white shadow-sm' : 'text-text-secondary hover:text-text-primary'}`}
               >
                 Client Portal View
               </button>
@@ -359,8 +359,8 @@ export default function ClientDetailPage() {
             { label: 'Avg ROAS', value: avgRoas > 0 ? avgRoas.toFixed(2) : '—' },
             { label: 'Avg CPA', value: avgCpa > 0 ? formatUsd(avgCpa) : '—' },
           ].map((kpi) => (
-            <div key={kpi.label} className="bg-white rounded-xl border-2 border-cream-border p-5 flex flex-col gap-2">
-              <div className="text-[11px] font-bold text-text-muted uppercase tracking-wide">{kpi.label}</div>
+            <div key={kpi.label} className="bg-white rounded-xl border border-border p-5 flex flex-col gap-2 shadow-sm">
+              <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{kpi.label}</div>
               <div className="text-[28px] font-extrabold font-mono text-text-primary leading-none tabular-nums">{kpi.value}</div>
             </div>
           ))}
@@ -379,10 +379,10 @@ export default function ClientDetailPage() {
         )}
 
         {/* Campaigns table */}
-        <section className="bg-white rounded-xl border-2 border-cream-border overflow-hidden">
-          <div className="px-5 py-4 border-b-2 border-cream-border bg-cream-dark/30 flex items-center justify-between">
+        <section className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
+          <div className="px-5 py-4 border-b border-border-subtle bg-surface-secondary/50 flex items-center justify-between">
             <div>
-              <h2 className="text-[14px] font-extrabold text-text-primary">Campaigns</h2>
+              <h2 className="text-[14px] font-bold text-text-primary">Campaigns</h2>
               <p className="text-[12px] text-text-muted font-medium mt-0.5">
                 {hc ? 'Metrics from usage (hierarchy API)' : apiCampaigns.length > 0 ? 'Campaign list from API' : 'No campaign data yet'}
                 {' · '}
@@ -396,7 +396,7 @@ export default function ClientDetailPage() {
                   void refreshHierarchy();
                   void refreshCampaigns();
                 }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-bold border-2 border-cream-border bg-white text-text-primary hover:border-teal hover:text-teal transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium border border-border bg-white text-text-primary hover:border-aqua hover:text-teal-deep transition-colors"
               >
                 <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5" /><path d="M13.5 2.5v4h-4" />
@@ -411,17 +411,17 @@ export default function ClientDetailPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[13px]">
                 <thead>
-                  <tr className="border-b-2 border-cream-border bg-cream/80">
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide">Campaign</th>
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide">Platform</th>
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide">Status</th>
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide font-mono">Budget</th>
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide font-mono">Spend</th>
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide">Pacing</th>
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide font-mono">ROAS</th>
-                    <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide font-mono">CPA</th>
+                  <tr className="border-b border-border bg-surface-secondary/50">
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Campaign</th>
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Platform</th>
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Status</th>
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">Budget</th>
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">Spend</th>
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Pacing</th>
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">ROAS</th>
+                    <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider font-mono">CPA</th>
                     {viewMode === 'agency' && (
-                      <th className="px-5 py-3 font-bold text-text-muted uppercase text-[11px] tracking-wide">Action</th>
+                      <th className="px-5 py-3 font-semibold text-text-muted uppercase text-[10.5px] tracking-wider">Action</th>
                     )}
                   </tr>
                 </thead>
@@ -436,12 +436,12 @@ export default function ClientDetailPage() {
                     campaigns.map((row) => {
                       const isActive = row.status === 'active' || row.status === 'running';
                       return (
-                        <tr key={row.id} className="border-b border-cream-border last:border-b-0 hover:bg-cream-dark/20">
-                          <td className="px-5 py-3 font-bold text-text-primary">{row.name}</td>
+                        <tr key={row.id} className="border-b border-border-subtle last:border-b-0 hover:bg-surface-secondary/60 transition-colors">
+                          <td className="px-5 py-3 font-semibold text-text-primary">{row.name}</td>
                           <td className="px-5 py-3"><PlatformTag name={row.platform} /></td>
                           <td className="px-5 py-3">
                             <span className={`inline-flex px-2 py-0.5 rounded-md text-[10.5px] font-bold capitalize ${
-                              isActive ? 'bg-green-light text-green' : row.status === 'paused' ? 'bg-amber-light text-amber' : 'bg-cream text-text-muted'
+                              isActive ? 'bg-green-light text-green' : row.status === 'paused' ? 'bg-amber-light text-amber' : 'bg-surface-secondary text-text-muted'
                             }`}>
                               {row.status}
                             </span>
@@ -481,9 +481,9 @@ export default function ClientDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* AI recommendations */}
-          <section className="bg-white rounded-xl border-2 border-cream-border overflow-hidden">
-            <div className="px-5 py-4 border-b-2 border-cream-border bg-cream-dark/30">
-              <h2 className="text-[14px] font-extrabold text-text-primary">AI recommendations</h2>
+          <section className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-border-subtle bg-surface-secondary/50">
+              <h2 className="text-[14px] font-bold text-text-primary">AI recommendations</h2>
               <p className="text-[12px] text-text-muted font-medium mt-0.5">Prioritized actions for this client.</p>
             </div>
             <div className="p-5 space-y-4 max-h-[480px] overflow-y-auto">
@@ -491,21 +491,21 @@ export default function ClientDetailPage() {
                 <p className="text-[13px] text-text-muted font-medium">No recommendations for this client.</p>
               ) : (
                 visibleInsights.map((ins) => (
-                  <article key={ins.id} className="rounded-xl border-2 border-cream-border p-4 bg-cream/40 space-y-3">
+                  <article key={ins.id} className="rounded-xl border border-border p-4 bg-surface-secondary/40 space-y-3 hover:border-aqua/40 transition-colors">
                     <div className="flex flex-wrap items-center gap-2">
                       <SeverityBadge severity={ins.severity} />
                       <PlatformTag name={ins.platform} />
                     </div>
                     <p className="text-[13px] text-text-secondary leading-snug">{ins.text}</p>
-                    <p className="text-[12px] font-bold text-teal">Est. impact: {ins.impact}</p>
+                    <p className="text-[12px] font-semibold text-teal-deep">Est. impact: {ins.impact}</p>
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <button type="button" className="px-3 py-1.5 rounded-lg bg-teal text-white text-[12px] font-bold hover:opacity-95">
+                      <button type="button" className="px-3 py-1.5 rounded-lg bg-teal-deep text-white text-[12px] font-semibold hover:bg-teal-deep/90 transition-colors shadow-sm">
                         Apply
                       </button>
                       <button
                         type="button"
                         onClick={() => setDismissedInsightIds((prev) => new Set(prev).add(ins.id))}
-                        className="px-3 py-1.5 rounded-lg border-2 border-cream-border bg-white text-text-secondary text-[12px] font-bold hover:bg-cream-dark/40"
+                        className="px-3 py-1.5 rounded-lg border border-border bg-white text-text-secondary text-[12px] font-medium hover:bg-surface-hover transition-colors"
                       >
                         Dismiss
                       </button>
@@ -517,9 +517,9 @@ export default function ClientDetailPage() {
           </section>
 
           {/* Activity timeline */}
-          <section className="bg-white rounded-xl border-2 border-cream-border overflow-hidden">
-            <div className="px-5 py-4 border-b-2 border-cream-border bg-cream-dark/30">
-              <h2 className="text-[14px] font-extrabold text-text-primary">Recent activity</h2>
+          <section className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b border-border-subtle bg-surface-secondary/50">
+              <h2 className="text-[14px] font-bold text-text-primary">Recent activity</h2>
               <p className="text-[12px] text-text-muted font-medium mt-0.5">Latest changes and sync events.</p>
             </div>
             <div className="p-5">
@@ -527,9 +527,9 @@ export default function ClientDetailPage() {
                 {activityEntries.map((entry, idx) => (
                   <li key={entry.id} className="flex gap-3">
                     <div className="flex flex-col items-center pt-1">
-                      <span className="w-2.5 h-2.5 rounded-full bg-teal shrink-0 ring-4 ring-teal-light" />
+                      <span className="w-2.5 h-2.5 rounded-full bg-teal-deep shrink-0 ring-4 ring-teal-light" />
                       {idx < activityEntries.length - 1 && (
-                        <span className="w-0.5 flex-1 min-h-[28px] bg-cream-border mt-1" aria-hidden />
+                        <span className="w-0.5 flex-1 min-h-[28px] bg-border mt-1" aria-hidden />
                       )}
                     </div>
                     <div className="pb-6">

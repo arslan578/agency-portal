@@ -47,11 +47,11 @@ const TIMEZONES = [
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD'];
 
 const inputClass =
-  'w-full h-[44px] px-3 border-2 border-cream-border rounded-[10px] bg-cream text-[13.5px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-teal';
-const labelClass = 'block text-[12.5px] font-bold text-text-primary mb-[6px]';
+  'w-full h-[44px] px-3 border border-border rounded-[10px] bg-surface-secondary text-[13.5px] text-text-primary placeholder:text-text-muted focus:outline-none focus:border-teal-deep';
+const labelClass = 'block text-[12.5px] font-semibold text-text-primary mb-[6px]';
 const btnPrimary =
-  'bg-teal text-white font-bold rounded-[10px] h-[40px] px-4 inline-flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-95 transition-opacity';
-const sectionTitle = 'text-[15px] font-extrabold text-text-primary';
+  'bg-teal-deep text-white font-semibold rounded-[10px] h-[40px] px-4 inline-flex items-center justify-center gap-2 disabled:opacity-50 hover:opacity-95 transition-opacity';
+const sectionTitle = 'text-[15px] font-bold text-text-primary';
 
 const MATRIX_ROLES: AgencyRole[] = [
   'agency_admin',
@@ -101,8 +101,8 @@ function roleBadgeClass(roleLabel: string) {
   if (r === 'admin')
     return 'bg-coral-light text-coral border border-coral/25';
   if (r === 'manager')
-    return 'bg-teal-light text-teal border border-teal/25';
-  return 'bg-cream-dark text-text-secondary border border-cream-border';
+    return 'bg-teal-light text-teal-deep border border-teal/25';
+  return 'bg-surface-secondary text-text-secondary border border-border';
 }
 
 function statusBadgeClass(status: 'active' | 'invited') {
@@ -133,7 +133,7 @@ function initialsFromName(name: string, email: string) {
 }
 
 function mapApiMembersToDisplay(members: TeamMember[]): DisplayMember[] {
-  const palette = ['#e76f51', '#2a9d8f', '#5c54c8', '#d4860a', '#5b21b6'];
+  const palette = ['#FF7043', '#007B5F', '#7C3AED', '#FFB74D', '#4DB6AC'];
   return members.map((m, i) => ({
     id: m.id,
     name: m.full_name?.trim() || m.email.split('@')[0],
@@ -177,8 +177,8 @@ function ToggleSwitch({
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-        checked ? 'bg-teal' : 'bg-cream-dark'
+      className={`relative w-11 h-6 shrink-0 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-deep focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
+        checked ? 'bg-teal-deep' : 'bg-surface-secondary'
       }`}
     >
       <span
@@ -215,9 +215,9 @@ export default function SettingsPage() {
 
   const [wlPortalName, setWlPortalName] = useState('');
   const [wlSubdomain, setWlSubdomain] = useState('');
-  const [wlPrimary, setWlPrimary] = useState('#2a9d8f');
-  const [wlSecondary, setWlSecondary] = useState('#e76f51');
-  const [wlAccent, setWlAccent] = useState('#1a1a2e');
+  const [wlPrimary, setWlPrimary] = useState('#007B5F');
+  const [wlSecondary, setWlSecondary] = useState('#FF7043');
+  const [wlAccent, setWlAccent] = useState('#0F172A');
   const [wlShowKaivoBranding, setWlShowKaivoBranding] = useState(false);
   const [wlShowPerformanceScore, setWlShowPerformanceScore] = useState(true);
   const [wlShowActualSpend, setWlShowActualSpend] = useState(true);
@@ -269,11 +269,11 @@ export default function SettingsPage() {
 
   if (status === 'loading') {
     return (
-      <div className="flex flex-col h-full bg-cream">
-        <div className="h-14 bg-white border-b-2 border-cream-border animate-pulse" />
+      <div className="flex flex-col h-full bg-surface-secondary">
+        <div className="h-14 bg-white border-b border-border-subtle animate-pulse" />
         <div className="flex flex-1 p-6 gap-6">
-          <div className="w-[210px] bg-white border-2 border-cream-border rounded-[10px] animate-pulse" />
-          <div className="flex-1 bg-white border-2 border-cream-border rounded-[10px] animate-pulse" />
+          <div className="w-[210px] bg-white border border-border rounded-[10px] animate-pulse" />
+          <div className="flex-1 bg-white border border-border rounded-[10px] animate-pulse" />
         </div>
       </div>
     );
@@ -382,14 +382,14 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-cream">
+    <div className="flex flex-col h-full min-h-0 bg-surface-secondary">
       <DashboardHeader
         title="Settings"
         subtitle={tabSubtitle}
       />
       <div className="flex flex-1 min-h-0 overflow-hidden">
         <nav
-          className="w-[210px] shrink-0 bg-white border-r-2 border-cream-border py-4 px-2 flex flex-col gap-1 overflow-y-auto"
+          className="w-[210px] shrink-0 bg-white border-r border-border py-4 px-2 flex flex-col gap-1 overflow-y-auto"
           aria-label="Settings sections"
         >
           {TABS.map((tab) => (
@@ -399,8 +399,8 @@ export default function SettingsPage() {
               onClick={() => setActiveTab(tab.id)}
               className={`w-full text-left rounded-[10px] px-3 py-2.5 text-[13px] font-semibold transition-colors ${
                 activeTab === tab.id
-                  ? 'bg-teal text-white'
-                  : 'text-text-secondary hover:bg-cream'
+                  ? 'bg-teal-deep text-white'
+                  : 'text-text-secondary hover:bg-surface-secondary'
               }`}
             >
               {tab.label}
@@ -412,11 +412,11 @@ export default function SettingsPage() {
           {activeTab === 'agency' && (
             <div className="max-w-2xl space-y-6">
               <h2 className={sectionTitle}>Agency Profile</h2>
-              <div className="bg-white border-2 border-cream-border rounded-[12px] p-6 space-y-5">
+              <div className="bg-white border border-border rounded-[12px] p-6 space-y-5">
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
-                    className="relative w-20 h-20 rounded-full border-2 border-cream-border bg-cream flex items-center justify-center text-text-muted hover:border-teal transition-colors"
+                    className="relative w-20 h-20 rounded-full border border-border bg-surface-secondary flex items-center justify-center text-text-muted hover:border-aqua transition-colors"
                     aria-label="Upload agency logo"
                   >
                     <CameraIcon className="w-8 h-8" />
@@ -552,8 +552,8 @@ export default function SettingsPage() {
               </div>
 
               {showInviteForm && isAdmin && (
-                <div className="bg-white border-2 border-cream-border rounded-[12px] p-5 space-y-4">
-                  <p className="text-[13px] font-bold text-text-primary">
+                <div className="bg-white border border-border rounded-[12px] p-5 space-y-4">
+                  <p className="text-[13px] font-semibold text-text-primary">
                     Invite a teammate
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -599,11 +599,11 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              <div className="bg-white border-2 border-cream-border rounded-[12px] overflow-hidden">
+              <div className="bg-white border border-border rounded-[12px] overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-[13px]">
                     <thead>
-                      <tr className="border-b-2 border-cream-border bg-cream/40 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">
+                      <tr className="border-b border-border-subtle bg-surface-secondary/50 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">
                         <th className="px-4 py-3">Member</th>
                         <th className="px-4 py-3">Email</th>
                         <th className="px-4 py-3">Role</th>
@@ -615,12 +615,12 @@ export default function SettingsPage() {
                       {displayMembers.map((row) => (
                         <tr
                           key={row.id}
-                          className="border-b border-cream-border hover:bg-cream/30"
+                          className="border-b border-border hover:bg-surface-secondary/50"
                         >
                           <td className="px-4 py-3">
                             <div className="flex items-center gap-2">
                               <div
-                                className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
                                 style={{ backgroundColor: row.color }}
                               >
                                 {row.initials}
@@ -635,7 +635,7 @@ export default function SettingsPage() {
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-bold capitalize ${roleBadgeClass(
+                              className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${roleBadgeClass(
                                 formatRoleDisplay(row.roleKey),
                               )}`}
                             >
@@ -644,7 +644,7 @@ export default function SettingsPage() {
                           </td>
                           <td className="px-4 py-3">
                             <span
-                              className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-bold capitalize ${statusBadgeClass(
+                              className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${statusBadgeClass(
                                 row.status,
                               )}`}
                             >
@@ -665,10 +665,10 @@ export default function SettingsPage() {
                 <h3 className={`${sectionTitle} mb-3`}>
                   Role permissions
                 </h3>
-                <div className="bg-white border-2 border-cream-border rounded-[12px] overflow-x-auto">
+                <div className="bg-white border border-border rounded-[12px] overflow-x-auto">
                   <table className="w-full text-[12px] min-w-[640px]">
                     <thead>
-                      <tr className="border-b-2 border-cream-border bg-cream/40">
+                      <tr className="border-b border-border-subtle bg-surface-secondary/50">
                         <th className="px-3 py-2 text-left font-bold text-text-primary">
                           Capability
                         </th>
@@ -690,7 +690,7 @@ export default function SettingsPage() {
                       {matrixCapabilities.map((cap) => (
                         <tr
                           key={cap}
-                          className="border-b border-cream-border/80"
+                          className="border-b border-border"
                         >
                           <td className="px-3 py-2 text-text-secondary">
                             {cap}
@@ -700,7 +700,7 @@ export default function SettingsPage() {
                               {ROLE_PERMISSIONS[r].capabilities.includes(
                                 cap,
                               ) ? (
-                                <span className="text-teal font-bold" aria-label="Yes">
+                                <span className="text-teal-deep font-semibold" aria-label="Yes">
                                   ✓
                                 </span>
                               ) : (
@@ -722,7 +722,7 @@ export default function SettingsPage() {
           {activeTab === 'whitelabel' && (
             <div className="max-w-2xl space-y-6">
               <h2 className={sectionTitle}>White-label</h2>
-              <div className="bg-white border-2 border-cream-border rounded-[12px] p-6 space-y-5">
+              <div className="bg-white border border-border rounded-[12px] p-6 space-y-5">
                 <div>
                   <label className={labelClass} htmlFor="wl-name">
                     Portal name
@@ -738,7 +738,7 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
-                    className="relative w-20 h-20 rounded-full border-2 border-cream-border bg-cream flex items-center justify-center text-text-muted"
+                    className="relative w-20 h-20 rounded-full border border-border bg-surface-secondary flex items-center justify-center text-text-muted"
                     aria-label="Upload brand logo"
                   >
                     <CameraIcon className="w-8 h-8" />
@@ -763,7 +763,7 @@ export default function SettingsPage() {
                         <input
                           type="color"
                           aria-label={`${c.label} brand color`}
-                          className="h-[44px] w-14 p-1 border-2 border-cream-border rounded-[10px] bg-cream cursor-pointer"
+                          className="h-[44px] w-14 p-1 border border-border rounded-[10px] bg-surface-secondary cursor-pointer"
                           value={c.value}
                           onChange={(e) => c.set(e.target.value)}
                         />
@@ -790,7 +790,7 @@ export default function SettingsPage() {
                   </p>
                 </div>
                 <div className="space-y-3">
-                  <p className="text-[12.5px] font-bold text-text-primary">
+                  <p className="text-[12.5px] font-semibold text-text-primary">
                     Client view
                   </p>
                   {[
@@ -827,7 +827,7 @@ export default function SettingsPage() {
                   ].map((t) => (
                     <div
                       key={t.id}
-                      className="flex items-center justify-between gap-3 py-2 border-b border-cream-border"
+                      className="flex items-center justify-between gap-3 py-2 border-b border-border"
                     >
                       <label
                         htmlFor={t.id}
@@ -854,7 +854,7 @@ export default function SettingsPage() {
           {activeTab === 'account' && (
             <div className="max-w-xl space-y-6">
               <h2 className={sectionTitle}>Account</h2>
-              <div className="bg-white border-2 border-cream-border rounded-[12px] p-6 space-y-4">
+              <div className="bg-white border border-border rounded-[12px] p-6 space-y-4">
                 <div>
                   <label className={labelClass}>Owner email</label>
                   <input
@@ -884,7 +884,7 @@ export default function SettingsPage() {
                 </div>
                 <button
                   type="button"
-                  className="text-[13px] font-bold text-red hover:underline"
+                  className="text-[13px] font-semibold text-red hover:underline"
                   onClick={() =>
                     toast.message('Close account', {
                       description: 'This is a mock action. Contact support to close your account.',
@@ -900,11 +900,11 @@ export default function SettingsPage() {
           {activeTab === 'profile' && (
             <div className="max-w-xl space-y-6">
               <h2 className={sectionTitle}>My Profile</h2>
-              <div className="bg-white border-2 border-cream-border rounded-[12px] p-6 space-y-5">
+              <div className="bg-white border border-border rounded-[12px] p-6 space-y-5">
                 <div className="flex items-center gap-4">
                   <button
                     type="button"
-                    className="relative w-20 h-20 rounded-full border-2 border-cream-border bg-cream flex items-center justify-center text-text-muted"
+                    className="relative w-20 h-20 rounded-full border border-border bg-surface-secondary flex items-center justify-center text-text-muted"
                     aria-label="Upload profile photo"
                   >
                     <CameraIcon className="w-8 h-8" />
@@ -950,8 +950,8 @@ export default function SettingsPage() {
                   {profileSaving ? 'Saving…' : 'Save profile'}
                 </button>
 
-                <div className="border-t-2 border-cream-border pt-5 mt-2 space-y-4">
-                  <p className="text-[14px] font-extrabold text-text-primary">
+                <div className="border-t border-border pt-5 mt-2 space-y-4">
+                  <p className="text-[14px] font-bold text-text-primary">
                     Password
                   </p>
                   <form onSubmit={handlePasswordSave} className="space-y-4">
@@ -1006,7 +1006,7 @@ export default function SettingsPage() {
           {activeTab === 'notifications' && (
             <div className="max-w-xl space-y-6">
               <h2 className={sectionTitle}>Notifications</h2>
-              <div className="bg-white border-2 border-cream-border rounded-[12px] p-6 space-y-1">
+              <div className="bg-white border border-border rounded-[12px] p-6 space-y-1">
                 {[
                   {
                     id: 'n-campaign',
@@ -1041,7 +1041,7 @@ export default function SettingsPage() {
                 ].map((n) => (
                   <div
                     key={n.id}
-                    className="flex items-center justify-between gap-3 py-3 border-b border-cream-border"
+                    className="flex items-center justify-between gap-3 py-3 border-b border-border"
                   >
                     <label
                       htmlFor={n.id}

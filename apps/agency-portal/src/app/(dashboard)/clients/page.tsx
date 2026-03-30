@@ -46,18 +46,18 @@ function platformSubtitle(c: HierarchyClientRow): string {
 
 function ScoreBadge({ score }: { score: number }) {
   const cls = score >= 80 ? 'bg-green-light text-green' : score >= 60 ? 'bg-amber-light text-amber' : 'bg-red-light text-red';
-  return <span className={`inline-flex items-center px-[7px] py-[2px] rounded-[6px] text-[11.5px] font-bold tabular-nums ${cls}`}>{score.toFixed(1)}</span>;
+  return <span className={`inline-flex items-center px-2 py-[2px] rounded-md text-[11.5px] font-semibold tabular-nums ${cls}`}>{score.toFixed(1)}</span>;
 }
 
 function PacingCell({ pacing, label }: { pacing: number; label: string }) {
   const barCls = pacing >= 90 ? 'bg-green' : pacing >= 83 ? 'bg-teal' : 'bg-coral';
-  const textCls = pacing >= 90 ? 'text-green' : pacing >= 83 ? 'text-teal' : 'text-coral';
+  const textCls = pacing >= 90 ? 'text-green' : pacing >= 83 ? 'text-teal-deep' : 'text-coral';
   return (
     <div className="min-w-[110px]">
-      <div className="w-full h-[5px] rounded-full bg-cream-dark overflow-hidden mb-[3px]">
+      <div className="w-full h-[5px] rounded-full bg-surface-secondary overflow-hidden mb-[3px]">
         <div className={`h-full rounded-full ${barCls}`} style={{ width: `${Math.min(100, pacing)}%` }} />
       </div>
-      <span className={`text-[10.5px] font-bold ${textCls}`}>{pacing}% · {label}</span>
+      <span className={`text-[10.5px] font-semibold ${textCls}`}>{pacing}% · {label}</span>
     </div>
   );
 }
@@ -65,20 +65,20 @@ function PacingCell({ pacing, label }: { pacing: number; label: string }) {
 function AlertsCell({ count, severity }: { count: number; severity: string }) {
   if (count === 0) {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-green">
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-green">
         <span className="text-[11px]">✓</span> All Clear
       </span>
     );
   }
   if (severity === 'critical') {
     return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-coral">
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-coral">
         <span className="text-[11px]">↑</span> {count} Critical
       </span>
     );
   }
   return (
-    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber">
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber">
       <span className="text-[11px]">⚠</span> {count} Advisory
     </span>
   );
@@ -87,20 +87,20 @@ function AlertsCell({ count, severity }: { count: number; severity: string }) {
 function StatusBadge({ status }: { status: string }) {
   const live = status.toLowerCase() === 'active' || status === 'Live';
   if (live) {
-    return <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-green">● Live</span>;
+    return <span className="inline-flex items-center gap-[4px] text-[11px] font-semibold text-green">● Live</span>;
   }
-  return <span className="inline-flex items-center gap-[4px] text-[11px] font-bold text-amber">● Paused</span>;
+  return <span className="inline-flex items-center gap-[4px] text-[11px] font-semibold text-amber">● Paused</span>;
 }
 
 function AiModeBadge({ mode }: { mode: string }) {
   const styles: Record<string, { cls: string; icon: string }> = {
-    auto: { cls: 'text-teal', icon: '●' },
+    auto: { cls: 'text-teal-deep', icon: '●' },
     hybrid: { cls: 'text-purple', icon: '◎' },
     manual: { cls: 'text-text-muted', icon: '◎' },
   };
   const s = styles[mode] || styles.manual;
   return (
-    <span className={`inline-flex items-center gap-[3px] text-[11px] font-bold capitalize ${s.cls}`}>
+    <span className={`inline-flex items-center gap-[3px] text-[11px] font-semibold capitalize ${s.cls}`}>
       {s.icon} {mode === 'auto' ? 'Auto' : mode === 'hybrid' ? 'Hybrid' : 'Manual'}
     </span>
   );
@@ -125,19 +125,19 @@ function MetricsRowCells({
   return (
     <>
       <td className="px-3 py-3"><ScoreBadge score={m.score} /></td>
-      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">${m.spend.toLocaleString()}</td>
-      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">${m.budget.toLocaleString()}</td>
-      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">${m.cpc.toFixed(2)}</td>
-      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">{m.ctr.toFixed(1)}%</td>
-      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">{m.conversions.toLocaleString()}</td>
-      <td className="px-3 py-3 text-[12px] font-bold text-text-primary font-mono">${m.cost_per_conversion.toFixed(2)}</td>
+      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${m.spend.toLocaleString()}</td>
+      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${m.budget.toLocaleString()}</td>
+      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${m.cpc.toFixed(2)}</td>
+      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">{m.ctr.toFixed(1)}%</td>
+      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">{m.conversions.toLocaleString()}</td>
+      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${m.cost_per_conversion.toFixed(2)}</td>
       <td className="px-3 py-3"><PacingCell pacing={m.pacing} label={pl} /></td>
       <td className="px-3 py-3"><AlertsCell count={m.alerts.count} severity={m.alerts.severity} /></td>
     </>
   );
 }
 
-const inputClass = 'h-[40px] px-3 border-2 border-cream-border rounded-[10px] bg-cream text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-teal/25 focus:border-teal';
+const inputClass = 'h-[40px] px-3 border border-border rounded-lg bg-surface-secondary text-[13px] text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-teal-deep/20 focus:border-teal-deep transition-colors';
 
 export default function ClientsPage() {
   const { status } = useRequireAuth();
@@ -326,7 +326,7 @@ export default function ClientsPage() {
                 setFormData({ name: '', industry: '', website: '' });
                 setAddOpen(true);
               }}
-              className="h-[40px] px-4 rounded-[10px] bg-teal text-white text-[12.5px] font-bold hover:bg-teal-dark transition-colors shrink-0"
+              className="h-[40px] px-4 rounded-lg bg-teal-deep text-white text-[12.5px] font-semibold hover:bg-teal-deep/90 transition-colors shrink-0 shadow-sm"
             >
               + Add Client
             </button>
@@ -334,7 +334,7 @@ export default function ClientsPage() {
         }
       />
 
-      <main className="flex-1 overflow-y-auto bg-cream p-6">
+      <main className="flex-1 overflow-y-auto bg-surface-secondary p-6">
         <div className="max-w-[1400px] mx-auto space-y-4">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <div className="flex gap-[6px]">
@@ -342,10 +342,10 @@ export default function ClientsPage() {
                 <button
                   key={t.key}
                   onClick={() => setTab(t.key)}
-                  className={`px-3 py-[6px] rounded-lg text-[12px] font-bold transition-colors ${
+                  className={`px-3 py-[6px] rounded-lg text-[12px] font-medium transition-all ${
                     tab === t.key
-                      ? 'bg-teal text-white'
-                      : 'bg-white text-text-secondary border border-cream-border hover:border-teal/30'
+                      ? 'bg-teal-deep text-white shadow-sm'
+                      : 'bg-white text-text-secondary border border-border hover:border-aqua/40'
                   }`}
                 >
                   {t.label} ({t.count})
@@ -353,17 +353,17 @@ export default function ClientsPage() {
               ))}
             </div>
 
-            <div className="w-px h-6 bg-cream-border mx-1" />
+            <div className="w-px h-6 bg-border mx-1" />
 
             <div className="flex gap-[4px]">
               {periods.map((p) => (
                 <button
                   key={p.key}
                   onClick={() => setPeriod(p.key)}
-                  className={`px-3 py-[6px] rounded-lg text-[11.5px] font-bold transition-colors ${
+                  className={`px-3 py-[6px] rounded-lg text-[11.5px] font-medium transition-all ${
                     period === p.key
-                      ? 'bg-teal text-white'
-                      : 'bg-white text-text-muted border border-cream-border hover:border-teal/30'
+                      ? 'bg-teal-deep text-white shadow-sm'
+                      : 'bg-white text-text-muted border border-border hover:border-aqua/40'
                   }`}
                 >
                   {p.label}
@@ -372,13 +372,13 @@ export default function ClientsPage() {
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <span className="text-[11px] font-bold text-text-muted">Sort by</span>
+              <span className="text-[11px] font-medium text-text-muted">Sort by</span>
               {sortPills.map((s) => (
                 <button
                   key={s.key}
                   onClick={() => toggleSort(s.key)}
-                  className={`px-2 py-[5px] rounded-md text-[11px] font-bold transition-colors ${
-                    sortKey === s.key ? 'bg-teal text-white' : 'text-text-secondary hover:bg-cream-dark'
+                  className={`px-2 py-[5px] rounded-md text-[11px] font-medium transition-all ${
+                    sortKey === s.key ? 'bg-teal-deep text-white shadow-sm' : 'text-text-secondary hover:bg-surface-hover'
                   }`}
                 >
                   {s.label}
@@ -386,19 +386,19 @@ export default function ClientsPage() {
                 </button>
               ))}
 
-              <div className="w-px h-5 bg-cream-border mx-1" />
+              <div className="w-px h-5 bg-border mx-1" />
 
               <button
                 type="button"
                 onClick={expandAllKeys}
-                className="px-2 py-[5px] text-[11px] font-bold text-text-secondary hover:bg-cream-dark rounded-md"
+                className="px-2 py-[5px] text-[11px] font-medium text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
               >
                 Expand All
               </button>
               <button
                 type="button"
                 onClick={collapseAll}
-                className="px-2 py-[5px] text-[11px] font-bold text-text-secondary hover:bg-cream-dark rounded-md"
+                className="px-2 py-[5px] text-[11px] font-medium text-text-secondary hover:bg-surface-hover rounded-md transition-colors"
               >
                 Collapse All
               </button>
@@ -406,10 +406,10 @@ export default function ClientsPage() {
           </div>
 
           {hier404 && !hierarchyLoading && !clientsLoading && (
-            <div className="rounded-xl border-2 border-amber/40 bg-amber-light/50 px-4 py-3 text-[12.5px] text-text-primary">
+            <div className="rounded-xl border border-amber/40 bg-amber-light/50 px-4 py-3 text-[12.5px] text-text-primary">
               <span className="font-bold">Hierarchy API unavailable (404).</span>{' '}
               Showing clients from the list endpoint only (no platform tree / usage metrics). Restart the backend from the latest code, or open{' '}
-              <a href="http://localhost:8000/docs" className="text-teal font-bold underline" target="_blank" rel="noreferrer">
+              <a href="http://localhost:8000/docs" className="text-teal-deep font-semibold underline" target="_blank" rel="noreferrer">
                 /docs
               </a>{' '}
               and confirm <code className="text-[11px] bg-white/60 px-1 rounded">GET /agency/&#123;agency_id&#125;/clients/hierarchy</code> exists.
@@ -419,42 +419,42 @@ export default function ClientsPage() {
           {showFullSkeleton ? (
             <ClientsSkeleton />
           ) : hierarchyError && !hier404 ? (
-            <div className="bg-white rounded-xl border-2 border-cream-border p-12 text-center">
+            <div className="bg-white rounded-xl border border-border p-12 text-center shadow-sm">
               <p className="text-text-primary font-bold">Could not load client hierarchy</p>
               <button
                 type="button"
                 onClick={() => refreshHierarchy()}
-                className="mt-3 text-teal font-bold text-[13px] hover:underline"
+                className="mt-3 text-teal-deep font-semibold text-[13px] hover:underline"
               >
                 Retry
               </button>
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-white rounded-xl border-2 border-cream-border p-12 text-center">
+            <div className="bg-white rounded-xl border border-border p-12 text-center shadow-sm">
               <p className="text-text-primary font-bold text-[15px]">No clients found</p>
               <p className="text-text-muted text-[13px] mt-2">
                 {search ? `No matches for "${search}"` : apiClients.length === 0 ? 'Add a client to get started.' : 'Try adjusting filters.'}
               </p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border-2 border-cream-border overflow-hidden">
+            <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
                   <thead>
-                    <tr className="border-b-2 border-cream-border">
+                    <tr className="border-b border-border">
                       <th className="w-[40px] pl-4 pr-0 py-3" />
-                      <th className="pl-2 pr-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Client / Name</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Score</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Spend</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Budget</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">CPC</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">CTR</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Conv.</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Cost/Conv.</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider min-w-[120px]">Pacing</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Alerts</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">Status</th>
-                      <th className="px-3 py-3 text-[10.5px] font-bold text-text-muted uppercase tracking-wider">AI Mode</th>
+                      <th className="pl-2 pr-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Client / Name</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Score</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Spend</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Budget</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">CPC</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">CTR</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Conv.</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Cost/Conv.</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider min-w-[120px]">Pacing</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Alerts</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Status</th>
+                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">AI Mode</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -466,7 +466,7 @@ export default function ClientsPage() {
                       const live = c.is_active !== false;
                       return (
                         <Fragment key={cKey}>
-                          <tr className="border-b border-cream-border/60 hover:bg-cream/30 transition-colors group">
+                          <tr className="border-b border-border-subtle hover:bg-surface-secondary/60 transition-colors group">
                             <td className="pl-4 pr-0 py-3">
                               <button
                                 type="button"
@@ -481,13 +481,13 @@ export default function ClientsPage() {
                             <td className="pl-2 pr-3 py-3">
                               <Link href={`/clients/${c.id}`} className="flex items-center gap-3 min-w-[220px]">
                                 <div
-                                  className="w-[34px] h-[34px] rounded-lg flex items-center justify-center text-[11px] font-extrabold text-white shrink-0"
+                                  className="w-[34px] h-[34px] rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
                                   style={{ background: avatarColorFromId(c.id) }}
                                 >
                                   {initialsFromName(c.name)}
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="text-[12.5px] font-bold text-text-primary truncate group-hover:text-teal transition-colors">{c.name}</div>
+                                  <div className="text-[12.5px] font-semibold text-text-primary truncate group-hover:text-teal-deep transition-colors">{c.name}</div>
                                   <div className="text-[10.5px] text-text-muted truncate">{platformSubtitle(c)}</div>
                                 </div>
                               </Link>
@@ -518,8 +518,8 @@ export default function ClientsPage() {
                 </table>
               </div>
 
-              <div className="px-5 py-3 border-t-2 border-cream-border flex items-center justify-between bg-cream/30">
-                <span className="text-[11.5px] text-text-muted font-semibold">
+              <div className="px-5 py-3 border-t border-border flex items-center justify-between bg-surface-secondary/50">
+                <span className="text-[11.5px] text-text-muted font-medium">
                   Showing {filtered.length} of {allClients.length} clients
                   {counts
                     ? ` · ${counts.platforms} platforms · ${counts.campaigns} campaigns · ${counts.ad_sets} ad sets`
@@ -529,7 +529,7 @@ export default function ClientsPage() {
                   <button
                     type="button"
                     onClick={() => setTab('all')}
-                    className="text-[11.5px] font-bold text-teal hover:underline"
+                    className="text-[11.5px] font-semibold text-teal-deep hover:underline"
                   >
                     View all {allClients.length} clients →
                   </button>
@@ -542,21 +542,21 @@ export default function ClientsPage() {
 
       {addOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-text-primary/40"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
           onClick={() => !saving && setAddOpen(false)}
           role="presentation"
         >
           <div
-            className="bg-white rounded-xl border-2 border-cream-border w-full max-w-md p-6 shadow-xl"
+            className="bg-white rounded-xl border border-border w-full max-w-md p-6 shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal
           >
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-[16px] font-extrabold text-text-primary">Add Client</h2>
+              <h2 className="text-[16px] font-bold text-text-primary">Add Client</h2>
               <button
                 type="button"
-                className="h-9 w-9 rounded-[10px] border-2 border-cream-border text-text-muted hover:bg-cream text-[18px] leading-none"
+                className="h-9 w-9 rounded-lg border border-border text-text-muted hover:bg-surface-secondary text-[18px] leading-none transition-colors"
                 onClick={() => !saving && setAddOpen(false)}
               >
                 ×
@@ -564,7 +564,7 @@ export default function ClientsPage() {
             </div>
             <div className="space-y-4">
               <div>
-                <label className="block text-[12px] font-bold text-text-secondary mb-1.5">Client Name *</label>
+                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Client Name *</label>
                 <input
                   className={`${inputClass} w-full`}
                   value={formData.name}
@@ -573,7 +573,7 @@ export default function ClientsPage() {
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-secondary mb-1.5">Industry</label>
+                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Industry</label>
                 <input
                   className={`${inputClass} w-full`}
                   value={formData.industry}
@@ -582,7 +582,7 @@ export default function ClientsPage() {
                 />
               </div>
               <div>
-                <label className="block text-[12px] font-bold text-text-secondary mb-1.5">Website</label>
+                <label className="block text-[12px] font-semibold text-text-secondary mb-1.5">Website</label>
                 <input
                   className={`${inputClass} w-full`}
                   value={formData.website}
@@ -594,14 +594,14 @@ export default function ClientsPage() {
             <div className="flex gap-3 mt-6">
               <button
                 type="button"
-                className="flex-1 h-[44px] rounded-[10px] border-2 border-cream-border bg-cream text-[13px] font-bold text-text-secondary"
+                className="flex-1 h-[44px] rounded-lg border border-border bg-surface-secondary text-[13px] font-medium text-text-secondary hover:bg-surface-hover transition-colors"
                 onClick={() => !saving && setAddOpen(false)}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="flex-1 h-[44px] rounded-[10px] bg-teal text-white text-[13px] font-bold hover:bg-teal-dark disabled:opacity-50"
+                className="flex-1 h-[44px] rounded-lg bg-teal-deep text-white text-[13px] font-semibold hover:bg-teal-deep/90 disabled:opacity-50 transition-colors shadow-sm"
                 disabled={!formData.name.trim() || saving}
                 onClick={handleCreate}
               >
@@ -634,7 +634,7 @@ function PlatformRows({
 
   return (
     <>
-      <tr className="border-b border-cream-border/50 bg-cream/40 text-[12px]">
+      <tr className="border-b border-border-subtle bg-surface-secondary/40 text-[12px]">
         <td className="pl-4 pr-0 py-2">
           <button
             type="button"
@@ -646,10 +646,10 @@ function PlatformRows({
             ▶
           </button>
         </td>
-        <td className="pl-8 pr-3 py-2 text-text-secondary font-bold" colSpan={1}>
+        <td className="pl-8 pr-3 py-2 text-text-secondary font-semibold" colSpan={1}>
           <div className="flex flex-col gap-1 min-w-0">
             <div>
-              <span className="text-teal">{platform.display_name}</span>
+              <span className="text-teal-deep">{platform.display_name}</span>
               <span className="text-text-muted font-medium text-[10px] ml-2">· client #{clientId}</span>
             </div>
             {(platform.linked_accounts?.length ?? 0) > 0 ? (
@@ -657,7 +657,7 @@ function PlatformRows({
                 {platform.linked_accounts!.map((acc) => (
                   <span
                     key={acc.id}
-                    className="inline-flex px-1.5 py-0.5 rounded bg-cream-dark text-[9.5px] font-mono text-text-muted truncate max-w-[200px]"
+                    className="inline-flex px-1.5 py-0.5 rounded bg-surface-secondary text-[9.5px] font-mono text-text-muted truncate max-w-[200px]"
                     title={acc.external_id}
                   >
                     {acc.external_id || `id:${acc.id}`}
@@ -669,7 +669,7 @@ function PlatformRows({
                 {platform.account_ids.map((aid, i) => (
                   <span
                     key={`${aid}-${i}`}
-                    className="inline-flex px-1.5 py-0.5 rounded bg-cream-dark text-[9.5px] font-mono text-text-muted truncate max-w-[200px]"
+                    className="inline-flex px-1.5 py-0.5 rounded bg-surface-secondary text-[9.5px] font-mono text-text-muted truncate max-w-[200px]"
                     title={aid}
                   >
                     {aid}
@@ -716,7 +716,7 @@ function CampaignRows({
 
   return (
     <>
-      <tr className="border-b border-cream-border/40 bg-white text-[11.5px]">
+      <tr className="border-b border-border-subtle/60 bg-white text-[11.5px]">
         <td className="pl-4 pr-0 py-2">
           {hasAds ? (
             <button
@@ -732,7 +732,7 @@ function CampaignRows({
             <span className="inline-block w-6" />
           )}
         </td>
-        <td className="pl-12 pr-3 py-2 font-semibold text-text-primary">{campaign.name}</td>
+        <td className="pl-12 pr-3 py-2 font-medium text-text-primary">{campaign.name}</td>
         <MetricsRowCells m={m} />
         <td className="px-3 py-2">
           <StatusBadge status={campaign.status} />
@@ -741,7 +741,7 @@ function CampaignRows({
       </tr>
       {campOpen &&
         ads.map((ad) => (
-          <tr key={`${campKey}-ad-${ad.id}`} className="border-b border-cream-border/30 bg-cream/20 text-[11px]">
+          <tr key={`${campKey}-ad-${ad.id}`} className="border-b border-border-subtle/40 bg-surface-secondary/30 text-[11px]">
             <td className="pl-4 pr-0 py-1.5" />
             <td className="pl-16 pr-3 py-1.5 text-text-muted">{ad.name}</td>
             <MetricsRowCells m={ad.metrics} />
@@ -755,19 +755,19 @@ function CampaignRows({
 
 function ClientsSkeleton() {
   return (
-    <div className="bg-white rounded-xl border-2 border-cream-border overflow-hidden">
+    <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
       {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-cream-border/50 animate-pulse">
-          <div className="w-6 h-6 bg-cream-dark rounded" />
-          <div className="w-[34px] h-[34px] bg-cream-dark rounded-lg shrink-0" />
+        <div key={i} className="flex items-center gap-4 px-5 py-4 border-b border-border-subtle animate-pulse">
+          <div className="w-6 h-6 bg-surface-secondary rounded" />
+          <div className="w-[34px] h-[34px] bg-surface-secondary rounded-lg shrink-0" />
           <div className="flex-1 space-y-2">
-            <div className="h-3 bg-cream-dark rounded w-1/3" />
-            <div className="h-2 bg-cream-dark rounded w-1/4" />
+            <div className="h-3 bg-surface-secondary rounded w-1/3" />
+            <div className="h-2 bg-surface-secondary rounded w-1/4" />
           </div>
-          <div className="h-4 w-10 bg-cream-dark rounded" />
-          <div className="h-4 w-14 bg-cream-dark rounded" />
-          <div className="h-4 w-14 bg-cream-dark rounded" />
-          <div className="h-4 w-10 bg-cream-dark rounded" />
+          <div className="h-4 w-10 bg-surface-secondary rounded" />
+          <div className="h-4 w-14 bg-surface-secondary rounded" />
+          <div className="h-4 w-14 bg-surface-secondary rounded" />
+          <div className="h-4 w-10 bg-surface-secondary rounded" />
         </div>
       ))}
     </div>

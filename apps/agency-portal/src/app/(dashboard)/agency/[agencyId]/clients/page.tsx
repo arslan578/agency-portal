@@ -20,8 +20,8 @@ export default function AgencyScopedClientsPage() {
 
   if (status === 'loading') {
     return (
-      <div className="flex flex-col flex-1 bg-cream items-center justify-center p-8 min-h-[40vh]">
-        <p className="text-sm font-bold text-text-muted">Loading workspace…</p>
+      <div className="flex flex-col flex-1 bg-surface-secondary items-center justify-center p-8 min-h-[40vh]">
+        <p className="text-sm font-semibold text-text-muted">Loading workspace…</p>
       </div>
     );
   }
@@ -33,15 +33,15 @@ export default function AgencyScopedClientsPage() {
 
   if (paramAgency && sessionAgency && paramAgency !== sessionAgency) {
     return (
-      <div className="flex flex-col flex-1 bg-cream p-8 max-w-lg mx-auto">
-        <h1 className="text-lg font-extrabold text-text-primary">Wrong workspace</h1>
+      <div className="flex flex-col flex-1 bg-surface-secondary p-8 max-w-lg mx-auto">
+        <h1 className="text-lg font-bold text-text-primary">Wrong workspace</h1>
         <p className="text-sm text-text-secondary mt-2 leading-relaxed">
           This URL is for agency <span className="font-mono">{paramAgency}</span>, but your session
           is for agency <span className="font-mono">{sessionAgency}</span>.
         </p>
         <button
           type="button"
-          className="mt-5 text-left text-teal font-bold text-sm hover:underline"
+          className="mt-5 text-left text-teal-deep font-semibold text-sm hover:underline"
           onClick={() => router.push('/clients')}
         >
           Open my clients →

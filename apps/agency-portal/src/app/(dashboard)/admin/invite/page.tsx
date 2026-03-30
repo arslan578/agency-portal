@@ -96,7 +96,7 @@ export default function AdminInvitePage() {
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-6 w-6 animate-spin text-teal" />
+        <Loader2 className="h-6 w-6 animate-spin text-teal-deep" />
       </div>
     );
   }
@@ -177,7 +177,7 @@ export default function AdminInvitePage() {
 
   const roleBadge = (r: string) => {
     const colors: Record<string, string> = {
-      agency_admin: 'bg-teal/10 text-teal border-teal/20',
+      agency_admin: 'bg-teal/10 text-teal-deep border-teal/20',
       agency_viewer: 'bg-blue-100 text-blue-600 border-blue-200',
       agency_member: 'bg-purple-100 text-purple-600 border-purple-200',
     };
@@ -198,7 +198,7 @@ export default function AdminInvitePage() {
       {/* Header */}
       <div>
         <div className="flex items-center gap-2 mb-1">
-          <ShieldCheck className="h-5 w-5 text-teal" />
+          <ShieldCheck className="h-5 w-5 text-teal-deep" />
           <h1 className="text-3xl font-bold text-text-primary tracking-tight">Admin Invites</h1>
         </div>
         <p className="text-text-muted text-sm font-medium">
@@ -207,33 +207,33 @@ export default function AdminInvitePage() {
       </div>
 
       {/* Invite Form */}
-      <div className="bg-white rounded-2xl border-2 border-cream-border p-6">
+      <div className="bg-white rounded-2xl border border-border p-6">
         <h2 className="text-lg font-bold text-text-primary mb-5 flex items-center gap-2">
-          <UserPlus className="h-4 w-4 text-teal" />
+          <UserPlus className="h-4 w-4 text-teal-deep" />
           Send New Invite
         </h2>
         <form onSubmit={handleSendInvite} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Email */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold text-text-secondary tracking-wide">Email Address *</label>
+              <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Email Address *</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="user@agency.com"
-                className="py-[10px] px-[14px] border-2 border-cream-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal transition-colors"
+                className="py-[10px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
               />
             </div>
 
             {/* Role */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold text-text-secondary tracking-wide">Role *</label>
+              <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Role *</label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as InviteRole)}
-                className="py-[10px] px-[14px] border-2 border-cream-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white focus:outline-none focus:border-teal transition-colors appearance-none"
+                className="py-[10px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white focus:outline-none focus:border-teal-deep transition-colors appearance-none"
               >
                 {INVITE_ROLES.map((r) => (
                   <option key={r.value} value={r.value}>{r.label} — {r.description}</option>
@@ -243,12 +243,12 @@ export default function AdminInvitePage() {
 
             {/* Agency */}
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold text-text-secondary tracking-wide">Agency (optional)</label>
+              <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Agency (optional)</label>
               <select
                 value={agencyId}
                 onChange={(e) => setAgencyId(e.target.value)}
                 disabled={agenciesLoading}
-                className="py-[10px] px-[14px] border-2 border-cream-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white focus:outline-none focus:border-teal transition-colors appearance-none disabled:opacity-50"
+                className="py-[10px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white focus:outline-none focus:border-teal-deep transition-colors appearance-none disabled:opacity-50"
               >
                 <option value="">No agency</option>
                 {agencies.map((a) => (
@@ -261,7 +261,7 @@ export default function AdminInvitePage() {
           <button
             type="submit"
             disabled={!email.trim() || sending}
-            className="flex items-center gap-2 px-6 py-[11px] rounded-[10px] bg-teal text-white font-bold text-[14px] hover:bg-teal-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-6 py-[11px] rounded-[10px] bg-teal-deep text-white font-bold text-[14px] hover:bg-teal-deep/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             Send Invite
@@ -273,7 +273,7 @@ export default function AdminInvitePage() {
             'mt-5 p-4 rounded-xl border-2',
             lastEmailSent ? 'bg-emerald-50 border-emerald-200' : 'bg-amber-50 border-amber-200',
           )}>
-            <p className={cn('text-[12px] font-bold mb-2', lastEmailSent ? 'text-emerald-700' : 'text-amber-700')}>
+            <p className={cn('text-[12px] font-semibold mb-2', lastEmailSent ? 'text-emerald-700' : 'text-amber-700')}>
               {lastEmailSent ? 'Email sent! You can also share this link directly:' : 'Email could not be sent. Share this invite link manually:'}
             </p>
             <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export default function AdminInvitePage() {
                   navigator.clipboard.writeText(lastInviteLink);
                   toast.success('Link copied!');
                 }}
-                className="flex items-center gap-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[12px] font-bold text-text-secondary hover:text-teal transition-colors"
+                className="flex items-center gap-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-[12px] font-semibold text-text-secondary hover:text-teal-deep transition-colors"
               >
                 <Copy className="h-3.5 w-3.5" />
                 Copy
@@ -300,13 +300,13 @@ export default function AdminInvitePage() {
       </div>
 
       {/* Invite History */}
-      <div className="bg-white rounded-2xl border-2 border-cream-border p-6">
+      <div className="bg-white rounded-2xl border border-border p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-text-primary">Invite History</h2>
           <button
             onClick={fetchInvites}
             disabled={invitesLoading}
-            className="flex items-center gap-1.5 text-[12px] font-bold text-text-muted hover:text-teal transition-colors disabled:opacity-50"
+            className="flex items-center gap-1.5 text-[12px] font-semibold text-text-muted hover:text-teal-deep transition-colors disabled:opacity-50"
           >
             <RefreshCw className={cn('h-3.5 w-3.5', invitesLoading && 'animate-spin')} />
             Refresh
@@ -316,7 +316,7 @@ export default function AdminInvitePage() {
         {invitesLoading ? (
           <div className="space-y-3">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-14 bg-cream/50 rounded-xl animate-pulse" />
+              <div key={i} className="h-14 bg-surface-secondary/50 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : invites.length === 0 ? (
@@ -327,18 +327,18 @@ export default function AdminInvitePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="border-b-2 border-cream-border">
-                  <th className="text-[11px] font-bold text-text-secondary tracking-wide py-3 pr-4">Email</th>
-                  <th className="text-[11px] font-bold text-text-secondary tracking-wide py-3 pr-4">Role</th>
-                  <th className="text-[11px] font-bold text-text-secondary tracking-wide py-3 pr-4">Agency</th>
-                  <th className="text-[11px] font-bold text-text-secondary tracking-wide py-3 pr-4">Status</th>
-                  <th className="text-[11px] font-bold text-text-secondary tracking-wide py-3 pr-4">Sent</th>
-                  <th className="text-[11px] font-bold text-text-secondary tracking-wide py-3">Actions</th>
+                <tr className="border-b border-border-subtle">
+                  <th className="text-[11px] font-semibold text-text-secondary tracking-wide py-3 pr-4">Email</th>
+                  <th className="text-[11px] font-semibold text-text-secondary tracking-wide py-3 pr-4">Role</th>
+                  <th className="text-[11px] font-semibold text-text-secondary tracking-wide py-3 pr-4">Agency</th>
+                  <th className="text-[11px] font-semibold text-text-secondary tracking-wide py-3 pr-4">Status</th>
+                  <th className="text-[11px] font-semibold text-text-secondary tracking-wide py-3 pr-4">Sent</th>
+                  <th className="text-[11px] font-semibold text-text-secondary tracking-wide py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {invites.map((inv) => (
-                  <tr key={inv.id} className="border-b border-cream-border/50 last:border-0">
+                  <tr key={inv.id} className="border-b border-border-subtle last:border-0">
                     <td className="py-3 pr-4 text-[13px] font-medium text-text-primary">{inv.email}</td>
                     <td className="py-3 pr-4">{roleBadge(inv.role)}</td>
                     <td className="py-3 pr-4 text-[13px] text-text-muted">{inv.agency_name || '—'}</td>
@@ -351,7 +351,7 @@ export default function AdminInvitePage() {
                         <button
                           onClick={() => handleResend(inv.email)}
                           disabled={resendingId === inv.email}
-                          className="flex items-center gap-1.5 text-[12px] font-bold text-teal hover:text-teal-dark transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 text-[12px] font-semibold text-teal-deep hover:text-teal-dark transition-colors disabled:opacity-50"
                         >
                           {resendingId === inv.email ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
                           Resend

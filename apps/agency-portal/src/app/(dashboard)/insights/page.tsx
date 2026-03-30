@@ -21,7 +21,7 @@ const PRIORITY_BADGE: Record<string, string> = {
 const IMPACT_COLOR: Record<string, string> = {
   red: 'text-red',
   green: 'text-green',
-  teal: 'text-teal',
+  teal: 'text-teal-deep',
   amber: 'text-amber',
   purple: 'text-purple',
 };
@@ -88,7 +88,11 @@ export default function InsightsPage() {
   }, [dismissedIds, appliedIds]);
 
   return (
-    <div className="flex flex-col h-full bg-cream overflow-hidden">
+    <div className="relative flex flex-col h-full bg-surface-secondary overflow-hidden">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-20 blur-3xl rounded-[48px]"
+      />
       <DashboardHeader
         title="AI Insights"
         subtitle={`Cross-portfolio · ${clientCount} clients`}
@@ -99,7 +103,7 @@ export default function InsightsPage() {
             </span>
             <button
               type="button"
-              className="flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[12px] font-bold border-2 border-cream-border bg-white text-text-primary hover:border-teal hover:text-teal transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-[7px] rounded-lg text-[12px] font-semibold border border-border bg-white text-text-primary hover:border-aqua hover:text-teal-deep transition-colors"
             >
               <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M13.5 8A5.5 5.5 0 1 1 8 2.5" />
@@ -112,7 +116,11 @@ export default function InsightsPage() {
       />
 
       {/* Impact banner */}
-      <div className="bg-teal text-white px-6 py-3.5 flex items-center gap-0 border-b-2 border-teal-dark shrink-0">
+      <div className="relative bg-gradient-to-r from-teal-deep via-teal-deep to-teal text-white px-6 py-3.5 flex items-center gap-0 border-b border-white/10 shrink-0">
+        <div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_20%_50%,rgba(255,255,255,0.18),transparent_55%)]"
+        />
         {[
           { num: String(pendingCount), label: 'Insights pending' },
           { num: String(criticalCount), label: 'Critical issues' },
@@ -124,7 +132,9 @@ export default function InsightsPage() {
             key={stat.label}
             className={`flex flex-col items-center px-6 ${idx < 4 ? 'border-r border-white/20' : ''} ${idx === 0 ? 'pl-0' : ''}`}
           >
-            <span className="font-mono text-[22px] font-bold leading-none">{stat.num}</span>
+              <span className="font-mono text-[22px] font-bold leading-none drop-shadow-[0_10px_18px_rgba(0,0,0,0.18)]">
+                {stat.num}
+              </span>
             <span className="text-[10px] font-semibold opacity-75 mt-[3px] tracking-[0.4px] uppercase whitespace-nowrap">
               {stat.label}
             </span>
@@ -133,26 +143,26 @@ export default function InsightsPage() {
         <button
           type="button"
           onClick={handleApplyAll}
-          className="ml-auto bg-white/15 border-2 border-white/30 text-white rounded-lg px-4 py-2 text-[12px] font-bold hover:bg-white/25 transition-colors whitespace-nowrap"
+            className="ml-auto bg-white/10 border border-white/25 text-white rounded-lg px-4 py-2 text-[12px] font-semibold shadow-sm hover:bg-white/20 hover:shadow-md transition-all whitespace-nowrap"
         >
           Apply All Recommended →
         </button>
       </div>
 
       {/* Content */}
-      <main className="flex-1 overflow-auto p-5 space-y-4">
+      <main className="relative flex-1 overflow-auto p-5 space-y-4">
         {/* Filter bar */}
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex bg-white border-2 border-cream-border rounded-[10px] overflow-hidden">
+          <div className="flex bg-white/70 border border-border-subtle rounded-2xl overflow-hidden shadow-sm p-1">
             {INSIGHT_FILTER_TABS.map((tab) => (
               <button
                 key={tab.key}
                 type="button"
                 onClick={() => setActiveTab(tab.key)}
-                className={`px-3.5 py-[7px] text-[12px] font-bold flex items-center gap-1.5 whitespace-nowrap border-r border-cream-border last:border-r-0 transition-colors ${
+                className={`px-3.5 py-[8px] text-[12px] font-semibold flex items-center gap-1.5 whitespace-nowrap rounded-xl transition-all ${
                   activeTab === tab.key
-                    ? 'bg-teal text-white'
-                    : 'text-text-muted hover:bg-cream hover:text-text-primary'
+                    ? 'bg-teal-deep text-white shadow-sm ring-1 ring-teal-deep/30'
+                    : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
                 }`}
               >
                 {tab.label}
@@ -171,7 +181,7 @@ export default function InsightsPage() {
             <select
               value={clientFilter}
               onChange={(e) => setClientFilter(e.target.value)}
-              className="bg-white border-2 border-cream-border rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-secondary outline-none cursor-pointer"
+              className="bg-white border border-border rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-secondary outline-none cursor-pointer shadow-sm"
             >
               {INSIGHT_CLIENTS.map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
@@ -180,7 +190,7 @@ export default function InsightsPage() {
             <select
               value={sortMode}
               onChange={(e) => setSortMode(e.target.value as SortMode)}
-              className="bg-white border-2 border-cream-border rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-secondary outline-none cursor-pointer"
+              className="bg-white border border-border rounded-lg px-2.5 py-1.5 text-[12px] font-semibold text-text-secondary outline-none cursor-pointer shadow-sm"
             >
               <option value="impact">Sort: Impact (High → Low)</option>
               <option value="recent">Sort: Most Recent</option>
@@ -192,8 +202,8 @@ export default function InsightsPage() {
         {/* Insights list */}
         <div className="flex flex-col gap-3">
           {visibleInsights.length === 0 && (
-            <div className="bg-white border-2 border-cream-border rounded-xl p-10 text-center">
-              <p className="text-[14px] font-bold text-text-muted">No insights match the current filters.</p>
+            <div className="glass-card bg-white border border-border rounded-2xl p-10 text-center shadow-sm">
+              <p className="text-[14px] font-semibold text-text-muted">No insights match the current filters.</p>
             </div>
           )}
 
@@ -202,7 +212,9 @@ export default function InsightsPage() {
             return (
               <div
                 key={ins.id}
-                className={`bg-white border-2 border-cream-border rounded-xl overflow-hidden transition-shadow hover:shadow-[0_4px_20px_rgba(0,0,0,0.07)] ${isApplied ? 'opacity-60' : ''}`}
+                className={`glass-card bg-white border border-border rounded-xl overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md ${
+                  isApplied ? 'opacity-60' : ''
+                }`}
               >
                 {/* Accent bar */}
                 <div className="h-[3px] w-full" style={{ background: ins.accentColor }} />
@@ -222,7 +234,7 @@ export default function InsightsPage() {
                         {ins.title}
                       </h3>
                       <span
-                        className={`shrink-0 text-[9px] font-extrabold tracking-[0.8px] uppercase px-2 py-[3px] rounded-[5px] ${PRIORITY_BADGE[ins.priority] ?? ''}`}
+                      className={`shrink-0 text-[9px] font-bold tracking-[0.8px] uppercase px-2 py-[3px] rounded-[5px] ${PRIORITY_BADGE[ins.priority] ?? ''}`}
                       >
                         {ins.priority === 'opportunity' ? 'Opportunity' : ins.priority}
                       </span>
@@ -237,19 +249,19 @@ export default function InsightsPage() {
                       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold px-2 py-[3px] rounded-[5px] bg-coral-light text-coral border border-coral-light">
                         🏪 {ins.clientName}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-[3px] rounded-[5px] bg-cream text-text-secondary border border-cream-border">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-[3px] rounded-[5px] bg-surface-secondary text-text-secondary border border-border">
                         {ins.platformTag}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-[3px] rounded-[5px] bg-cream text-text-secondary border border-cream-border">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-[3px] rounded-[5px] bg-surface-secondary text-text-secondary border border-border">
                         {ins.categoryIcon} {ins.categoryLabel}
                       </span>
                     </div>
 
                     {/* Impact grid */}
-                    <div className="bg-cream border border-cream-border rounded-lg px-3.5 py-2.5 flex gap-5 flex-wrap mb-3">
+                    <div className="bg-surface-secondary border border-border rounded-xl px-3.5 py-2.5 flex gap-5 flex-wrap mb-3 shadow-sm">
                       {ins.impactMetrics.map((m) => (
                         <div key={m.label} className="flex flex-col gap-0.5">
-                          <span className="text-[9px] font-bold uppercase tracking-[0.6px] text-text-muted">
+                          <span className="text-[9px] font-semibold uppercase tracking-[0.6px] text-text-muted">
                             {m.label}
                           </span>
                           <span className={`font-mono text-[13px] font-bold ${IMPACT_COLOR[m.color] ?? ''}`}>
@@ -261,7 +273,7 @@ export default function InsightsPage() {
 
                     {/* Actions */}
                     {isApplied ? (
-                      <span className="inline-flex items-center gap-1.5 text-[12px] font-bold text-green bg-green-light rounded-md px-3 py-1.5">
+                      <span className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-green bg-green-light rounded-md px-3 py-1.5">
                         ✓ Applied — monitoring results
                       </span>
                     ) : (
@@ -269,26 +281,26 @@ export default function InsightsPage() {
                         <button
                           type="button"
                           onClick={() => handleApply(ins.id)}
-                          className="bg-teal text-white border-none rounded-[7px] px-[18px] py-2 text-[12px] font-bold hover:bg-teal-dark transition-colors"
+                          className="bg-teal-deep text-white border-none rounded-[7px] px-[18px] py-2 text-[12px] font-semibold hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
                         >
                           {ins.applyLabel}
                         </button>
                         <button
                           type="button"
-                          className="bg-white text-text-primary border-2 border-cream-border rounded-[7px] px-4 py-[7px] text-[12px] font-bold hover:border-teal hover:text-teal transition-colors"
+                          className="bg-white text-text-primary border border-border rounded-[7px] px-4 py-[7px] text-[12px] font-semibold hover:border-aqua hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
                         >
                           {ins.reviewLabel}
                         </button>
                         <Link
                           href="/clients"
-                          className="bg-coral-light text-coral border-2 border-coral-light rounded-[7px] px-3.5 py-[7px] text-[12px] font-bold hover:border-coral transition-colors"
+                          className="bg-coral-light text-coral border-2 border-coral-light rounded-[7px] px-3.5 py-[7px] text-[12px] font-semibold hover:border-coral transition-colors"
                         >
                           Open {ins.clientName.split(' ')[0]} →
                         </Link>
                         <button
                           type="button"
                           onClick={() => handleDismiss(ins.id)}
-                          className="ml-auto bg-transparent border-none text-text-muted text-[12px] font-semibold px-2.5 py-[7px] rounded-[7px] hover:bg-cream hover:text-red transition-colors"
+                          className="ml-auto bg-transparent border-none text-text-muted text-[12px] font-semibold px-2.5 py-[7px] rounded-[7px] hover:bg-surface-secondary hover:text-red transition-colors"
                         >
                           Dismiss ×
                         </button>
