@@ -264,7 +264,11 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-surface-secondary font-sans">
+    <div className="relative flex flex-col h-full bg-surface-secondary font-sans">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-15 blur-3xl rounded-[48px] -z-10"
+      />
       <DashboardHeader
         title="Integrations"
         subtitle="Manage your platform connections and client accounts"
@@ -291,7 +295,7 @@ export default function IntegrationsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
 
               {/* Meta — template plt-card */}
-              <div className="bg-white border border-border rounded-[12px] overflow-hidden transition-shadow hover:shadow-md">
+              <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40">
                 <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
                   <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 bg-[#e8effe] text-[#1877f2] leading-none">
                     f
@@ -338,21 +342,21 @@ export default function IntegrationsPage() {
                           setShowAccountsPanel(true);
                           fetchBmAccounts();
                         }}
-                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors"
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
                       >
                         Manage Accounts
                       </button>
                       <button
                         type="button"
                         onClick={() => toast.info('Sync runs on a schedule; use Refresh All to pull latest status.')}
-                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua hover:text-teal-deep transition-colors"
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
                       >
                         ↻ Sync
                       </button>
                       <button
                         type="button"
                         onClick={handleDisconnectMeta}
-                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors ml-auto"
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
                       >
                         Disconnect
                       </button>
@@ -361,7 +365,7 @@ export default function IntegrationsPage() {
                     <button
                       type="button"
                       onClick={() => handleConnectTrigger('Meta')}
-                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors w-full"
+                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
                     >
                       Connect Meta
                     </button>
@@ -375,7 +379,7 @@ export default function IntegrationsPage() {
                 return (
                   <div
                     key={p.id}
-                    className="bg-white border border-border rounded-[12px] overflow-hidden transition-shadow hover:shadow-md"
+                    className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40"
                   >
                     <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
                       <div
@@ -440,14 +444,14 @@ export default function IntegrationsPage() {
                           <button
                             type="button"
                             onClick={() => setPanelPlatform(p.id)}
-                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua hover:text-teal-deep transition-colors"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
                           >
                             Manage Accounts
                           </button>
                           <button
                             type="button"
                             onClick={() => toast.info('Disconnect is not available for this demo integration.')}
-                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors ml-auto"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
                           >
                             Disconnect
                           </button>
@@ -457,21 +461,21 @@ export default function IntegrationsPage() {
                           <button
                             type="button"
                             onClick={() => setPanelPlatform(p.id)}
-                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
                           >
                             Manage Accounts
                           </button>
                           <button
                             type="button"
                             onClick={() => toast.info(`${p.name} sync is not wired yet.`)}
-                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua hover:text-teal-deep transition-colors"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
                           >
                             ↻ Sync
                           </button>
                           <button
                             type="button"
                             onClick={() => toast.info('Disconnect is not available for this demo integration.')}
-                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors ml-auto"
+                            className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
                           >
                             Disconnect
                           </button>
@@ -492,7 +496,7 @@ export default function IntegrationsPage() {
                   key={p.id}
                   type="button"
                   onClick={() => setConnectModalPlatform(p.name)}
-                  className="bg-white border border-border rounded-[12px] px-4 py-4 flex items-center gap-3 text-left opacity-75 hover:opacity-100 hover:border-aqua hover:shadow-[0_2px_12px_rgba(42,157,143,0.1)] transition-all cursor-pointer"
+                  className="glass-card bg-white border border-border rounded-[12px] px-4 py-4 flex items-center gap-3 text-left opacity-75 hover:opacity-100 hover:border-aqua/60 hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer"
                 >
                   <div
                     className="w-9 h-9 rounded-lg flex items-center justify-center text-base font-semibold shrink-0 leading-none"
@@ -512,7 +516,7 @@ export default function IntegrationsPage() {
             </div>
           </div>
 
-          <div className="bg-white border border-border rounded-[12px] overflow-hidden">
+          <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden shadow-sm">
             <div className="px-[18px] py-3.5 border-b border-border-subtle flex items-center justify-between">
               <h3 className="text-[13px] font-bold text-text-primary">Sync Activity</h3>
               <span className="text-[11px] text-text-muted font-semibold">Last 24 hours</span>
@@ -520,7 +524,7 @@ export default function IntegrationsPage() {
             {SYNC_LOG_STATIC_ROWS.map((row, i) => (
               <div
                 key={i}
-                className="flex items-center gap-3 px-[18px] py-2.5 border-b border-border last:border-b-0"
+                className="flex items-center gap-3 px-[18px] py-2.5 border-b border-border last:border-b-0 hover:bg-surface-hover/60 transition-colors"
               >
                 <div
                   className={`w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold shrink-0 ${
@@ -811,9 +815,13 @@ export default function IntegrationsPage() {
               onClick={() => setConnectModalPlatform(null)}
             />
             <div
-              className="relative bg-white rounded-2xl p-8 w-full max-w-[440px] shadow-2xl"
+              className="relative bg-white rounded-2xl p-8 w-full max-w-[440px] shadow-2xl overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0 bg-gradient-to-r from-teal-deep/15 via-transparent to-coral-light/15"
+              />
               <div
                 className="w-14 h-14 rounded-[14px] mx-auto mb-4 flex items-center justify-center text-[26px] font-bold"
                 style={{ background: cm.bg, color: cm.color }}
@@ -828,7 +836,7 @@ export default function IntegrationsPage() {
               <div className="flex flex-col gap-2.5 mb-6">
                 {CONNECT_MODAL_STEPS.map((step, i) => (
                   <div key={step} className="flex items-center gap-3 text-[12.5px] font-medium text-text-secondary">
-                    <div className="w-[22px] h-[22px] rounded-full bg-teal-deep text-white flex items-center justify-center text-[11px] font-semibold shrink-0">
+                    <div className="w-[22px] h-[22px] rounded-full bg-teal-deep text-white flex items-center justify-center text-[11px] font-semibold shrink-0 shadow-[0_0_24px_rgba(0,123,95,0.25)]">
                       {i + 1}
                     </div>
                     {step}

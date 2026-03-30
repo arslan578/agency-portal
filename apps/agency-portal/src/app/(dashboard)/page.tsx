@@ -116,10 +116,18 @@ export default function DashboardPage() {
         }
       />
       <main className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-[1400px] mx-auto space-y-6">
+        <div className="relative max-w-[1400px] mx-auto space-y-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-25 blur-3xl rounded-[48px] -z-10"
+          />
           {/* KPI Strip */}
-          <div className="grid grid-cols-4 gap-4">
-            <div className="bg-gradient-to-br from-teal-deep to-teal rounded-xl p-5 text-white relative overflow-hidden shadow-sm">
+          <div className="relative z-10 grid grid-cols-4 gap-4">
+            <div className="bg-gradient-to-br from-teal-deep to-teal rounded-xl p-5 text-white relative overflow-hidden shadow-sm transition-all hover:shadow-md">
+              <div
+                aria-hidden
+                className="absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,rgba(255,255,255,0.20),transparent_55%)] opacity-80"
+              />
               <div className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Portfolio Score</div>
               <div className="text-[32px] font-extrabold mt-1 font-mono tracking-tight">
                 {clients.length > 0
@@ -141,18 +149,22 @@ export default function DashboardPage() {
           <div className="grid grid-cols-[1fr_380px] gap-5">
             {/* Client Table */}
             <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
-              <div className="px-5 pt-4 pb-3 flex items-center gap-2 border-b border-border-subtle">
-                {tabs.map(t => (
-                  <button
-                    key={t.key}
-                    onClick={() => setTab(t.key)}
-                    className={`text-[12px] font-medium px-3 py-[5px] rounded-lg transition-all ${
-                      tab === t.key ? 'bg-teal-deep text-white shadow-sm' : 'text-text-muted hover:bg-surface-secondary hover:text-text-primary'
-                    }`}
-                  >
-                    {t.label}
-                  </button>
-                ))}
+              <div className="px-5 pt-4 pb-3 border-b border-border-subtle">
+                <div className="flex items-center gap-1 bg-surface-secondary border border-border-subtle rounded-xl p-1">
+                  {tabs.map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => setTab(t.key)}
+                      className={`flex-1 text-center text-[12px] font-semibold px-3 py-[7px] rounded-lg transition-all ${
+                        tab === t.key
+                          ? 'bg-teal-deep text-white shadow-[0_0_0_3px_rgba(0,123,95,0.18)] ring-1 ring-teal-deep/30'
+                          : 'text-text-muted hover:bg-surface-hover hover:text-text-primary'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  ))}
+                </div>
               </div>
               <table className="w-full text-left">
                 <thead>
@@ -168,7 +180,10 @@ export default function DashboardPage() {
                 </thead>
                 <tbody>
                   {filtered.map((c) => (
-                    <tr key={c.id} className="border-b border-border-subtle/60 hover:bg-surface-secondary/60 transition-colors cursor-pointer">
+                    <tr
+                      key={c.id}
+                      className="border-b border-border-subtle/60 hover:bg-surface-hover/40 hover:shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-shadow transition-colors cursor-pointer"
+                    >
                       <td className="px-5 py-3">
                         <Link href={`/clients/${c.id}`} className="flex items-center gap-3">
                           <div
@@ -200,14 +215,23 @@ export default function DashboardPage() {
             </div>
 
             {/* AI Insights Panel */}
-            <div className="bg-white rounded-xl border border-border flex flex-col overflow-hidden shadow-sm">
+            <div className="glass-panel rounded-xl border border-border flex flex-col overflow-hidden shadow-sm">
               <div className="px-5 pt-4 pb-3 border-b border-border-subtle flex items-center justify-between">
-                <h3 className="text-[13px] font-bold text-text-primary">AI Insights</h3>
-                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md">{MOCK_INSIGHTS.length}</span>
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="inline-flex w-2.5 h-2.5 rounded-full bg-teal-deep shadow-[0_0_24px_rgba(0,123,95,0.35)]"
+                  />
+                  <h3 className="text-[13px] font-bold text-text-primary">AI Insights</h3>
+                </div>
+                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md shadow-sm">{MOCK_INSIGHTS.length}</span>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {MOCK_INSIGHTS.map((insight) => (
-                  <div key={insight.id} className="border border-border rounded-xl p-4 space-y-2 hover:border-aqua/50 hover:shadow-sm transition-all">
+                  <div
+                    key={insight.id}
+                    className="glass-card border border-border rounded-xl p-4 space-y-2 transition-all hover:border-aqua/60 hover:-translate-y-0.5 hover:shadow-md"
+                  >
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-[11px] font-semibold text-text-primary">{insight.client}</span>
                       <PlatformTag name={insight.platform} className={insight.platformClass} />
@@ -218,8 +242,8 @@ export default function DashboardPage() {
                       Estimated impact: {insight.impact}
                     </div>
                     <div className="flex items-center gap-2 pt-1">
-                      <button className="bg-teal-deep text-white text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-teal-deep/90 transition-colors">Apply</button>
-                      <button className="bg-surface-secondary text-text-secondary text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-surface-hover border border-border">Review</button>
+                      <button className="bg-teal-deep text-white text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md">Apply</button>
+                      <button className="bg-surface-secondary text-text-secondary text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-surface-hover border border-border hover:border-aqua/40 transition-colors">Review</button>
                       <button className="text-text-muted text-[10.5px] font-medium px-2 py-[4px] hover:text-text-primary transition-colors">Dismiss</button>
                     </div>
                   </div>
@@ -247,7 +271,7 @@ export default function DashboardPage() {
               ]}
               negative
             />
-            <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
+            <div className="bg-white rounded-xl border border-border p-5 shadow-sm transition-all hover:shadow-md hover:border-aqua/50">
               <h4 className="text-[12px] font-bold text-text-primary mb-4">Platform Performance</h4>
               <div className="space-y-3">
                 {[
@@ -273,11 +297,17 @@ export default function DashboardPage() {
 
 function KpiCard({ label, value, delta, positive }: { label: string; value: string; delta: string; positive: boolean }) {
   return (
-    <div className="bg-white rounded-xl p-5 border border-border shadow-sm">
-      <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{label}</div>
-      <div className="text-[28px] font-extrabold text-text-primary mt-1 font-mono tracking-tight">{value}</div>
-      <div className={`flex items-center gap-1 mt-1 text-[11px] font-medium ${positive ? 'text-green' : 'text-coral'}`}>
+    <div className="group relative bg-white rounded-xl p-5 border border-border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/60">
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(0,123,95,0.22),transparent_55%)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
+      />
+      <div className="relative">
+        <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{label}</div>
+        <div className="text-[28px] font-extrabold text-text-primary mt-1 font-mono tracking-tight">{value}</div>
+        <div className={`flex items-center gap-1 mt-1 text-[11px] font-medium ${positive ? 'text-green' : 'text-coral'}`}>
         {positive ? '▲' : ''} {delta}
+        </div>
       </div>
     </div>
   );
@@ -285,7 +315,7 @@ function KpiCard({ label, value, delta, positive }: { label: string; value: stri
 
 function LeaderboardCard({ title, items, negative }: { title: string; items: { name: string; score: number; color: string }[]; negative?: boolean }) {
   return (
-    <div className="bg-white rounded-xl border border-border p-5 shadow-sm">
+    <div className="bg-white rounded-xl border border-border p-5 shadow-sm transition-all hover:shadow-md hover:border-aqua/50">
       <h4 className="text-[12px] font-bold text-text-primary mb-4">{title}</h4>
       <div className="space-y-3">
         {items.map((item, i) => (
