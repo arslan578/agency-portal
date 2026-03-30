@@ -31,6 +31,7 @@ PLATFORM_LABELS: Dict[str, str] = {
     "meta": "Meta",
     "tiktok": "TikTok",
     "google": "Google Ads",
+    "reddit": "Reddit",
     "linkedin": "LinkedIn",
     "youtube": "YouTube",
     "snapchat": "Snapchat",

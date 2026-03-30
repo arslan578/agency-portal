@@ -103,6 +103,11 @@ class Agency(Base):
     meta_agency_access_token = Column(Text, nullable=True)
     meta_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     meta_connected_at = Column(DateTime(timezone=True), nullable=True)
+    # --- Reddit Agency OAuth ---
+    reddit_agency_access_token = Column(Text, nullable=True)
+    reddit_refresh_token = Column(Text, nullable=True)
+    reddit_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    reddit_connected_at = Column(DateTime(timezone=True), nullable=True)
     
     memberships = relationship("packages.db.models.AgencyMembership", back_populates="agency")
     clients = relationship("packages.db.models.Client", back_populates="agency")
@@ -183,6 +188,11 @@ class Client(Base):
     meta_account_status = Column(String(30), default="agency_not_connected")
     meta_account_name = Column(String(255), nullable=True)
     meta_linked_at = Column(DateTime(timezone=True), nullable=True)
+    # --- Reddit account linking ---
+    agency_reddit_account_id = Column(String(100), nullable=True)
+    reddit_account_status = Column(String(30), default="agency_not_connected")
+    reddit_account_name = Column(String(255), nullable=True)
+    reddit_linked_at = Column(DateTime(timezone=True), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
