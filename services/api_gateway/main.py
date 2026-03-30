@@ -203,9 +203,16 @@ if extra_origins:
         if o and o not in origins:
             origins.append(o)
 
+# Allow tunneled dev domains (e.g. ngrok) and optional custom regex from env.
+origin_regex = os.getenv(
+    "CORS_ALLOWED_ORIGIN_REGEX",
+    r"https://.*\.ngrok-free\.app",
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

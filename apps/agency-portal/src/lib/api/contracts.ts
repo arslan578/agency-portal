@@ -280,3 +280,46 @@ export interface MetaBMStatus {
   token_warning: boolean;
 }
 
+export interface RedditAdAccount {
+  account_id: string;
+  account_name: string;
+  currency: string;
+  status: string;
+  spend?: number;
+}
+
+export interface RedditCampaign {
+  campaign_id: string;
+  name: string;
+  objective: string;
+  status: string;
+  budget_type: string;
+  budget: number;
+  currency: string;
+  start_date: string;
+  end_date: string | null;
+  ad_account_id: string;
+  impressions: number;
+  clicks: number;
+  spend: number;
+  reach: number;
+}
+
+export interface RedditInsights {
+  connected: boolean;
+  reason?: 'agency_not_connected' | 'not_linked' | 'token_expired';
+  reddit_account_status: string;
+  ad_accounts: RedditAdAccount[];
+  campaigns: RedditCampaign[];
+  token_valid: boolean;
+  token_expires_at: string | null;
+}
+
+export interface RedditAgencyStatus {
+  connected: boolean;
+  connected_at: string | null;
+  token_valid: boolean;
+  token_expires_at: string | null;
+  token_warning: boolean;
+}
+

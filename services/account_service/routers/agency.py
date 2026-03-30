@@ -809,3 +809,144 @@ def get_client_meta_insights(
         raise HTTPException(status_code=403, detail="Agency does not own this client")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch insights: {str(e)}")
+
+
+# ── Reddit Agency Endpoints ───────────────────────────────────────────────────
+
+@router.post("/agency/{agency_id}/reddit/connect")
+def connect_reddit_agency(
+    agency_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.reddit_agency_service import connect_reddit_agency as _connect
+
+    code = body.get("code")
+    redirect_uri = body.get("redirectUri")
+    if not code:
+        raise HTTPException(status_code=400, detail="OAuth code is required")
+
+    try:
+        return _connect(db, agency_id, code, user_id=ctx.get("user_id"), redirect_uri=redirect_uri)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect Reddit: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/reddit/disconnect")
+def disconnect_reddit_agency(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.reddit_agency_service import disconnect_reddit_agency as _disconnect
+
+    try:
+        return _disconnect(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/reddit/status")
+def get_reddit_agency_status(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.reddit_agency_service import get_reddit_status
+
+    try:
+        return get_reddit_status(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/reddit/accounts")
+def get_reddit_agency_accounts(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.reddit_agency_service import get_reddit_agency_accounts
+
+    try:
+        return get_reddit_agency_accounts(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch Reddit accounts: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/reddit/auto-link")
+def auto_link_reddit_clients(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.reddit_agency_service import auto_link_reddit_clients
+
+    try:
+        return auto_link_reddit_clients(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-link failed: {str(e)}")
+
+
+@router.post("/clients/{client_id}/reddit/manual-link")
+def manual_link_reddit_client(
+    client_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    from services.account_service.reddit_agency_service import manual_link_reddit_client
+
+    ad_account_id = body.get("ad_account_id")
+    if not ad_account_id:
+        raise HTTPException(status_code=400, detail="ad_account_id is required")
+
+    try:
+        return manual_link_reddit_client(
+            db=db,
+            client_id=client_id,
+            ad_account_id=ad_account_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Manual link failed: {str(e)}")
+
+
+@router.get("/clients/{client_id}/reddit-insights")
+def get_client_reddit_insights(
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    from services.account_service.reddit_agency_service import fetch_client_reddit_insights
+
+    try:
+        return fetch_client_reddit_insights(
+            db,
+            client_id=client_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch Reddit insights: {str(e)}")
