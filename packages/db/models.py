@@ -82,6 +82,13 @@ class Agency(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False)
     stripe_customer_id = Column(String, nullable=True)
+    # Optional contact/profile fields used in the agency portal
+    email = Column(String, nullable=True)
+    logo_url = Column(String, nullable=True)
+    website = Column(String, nullable=True)
+    phone = Column(String, nullable=True)
+    timezone = Column(String, nullable=True)
+    currency = Column(String(8), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

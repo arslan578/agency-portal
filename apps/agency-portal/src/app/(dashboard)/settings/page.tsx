@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { useDashboard, useMembers, useApiAuth } from '@/hooks/useAgencyApi';
+import { useDashboard, useMembers, useInvites, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
@@ -196,6 +196,7 @@ export default function SettingsPage() {
   const { data: dashboard, isLoading: dashboardLoading, refresh: refreshDashboard } =
     useDashboard();
   const { members, refresh: refreshMembers } = useMembers();
+  const { invites, refresh: refreshInvites } = useInvites();
   const { accessToken, agencyId } = useApiAuth();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('agency');
@@ -204,9 +205,11 @@ export default function SettingsPage() {
   const [agencyEmail, setAgencyEmail] = useState('');
   const [agencyWebsite, setAgencyWebsite] = useState('');
   const [agencyPhone, setAgencyPhone] = useState('');
+  const [agencyLogoUrl, setAgencyLogoUrl] = useState<string | null>(null);
   const [agencyTimezone, setAgencyTimezone] = useState('America/New_York');
   const [agencyCurrency, setAgencyCurrency] = useState('USD');
   const [agencySaving, setAgencySaving] = useState(false);
+  const [agencyLogoUploading, setAgencyLogoUploading] = useState(false);
 
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -226,6 +229,7 @@ export default function SettingsPage() {
 
   const [profileName, setProfileName] = useState('');
   const [profileEmail, setProfileEmail] = useState('');
+  const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
   const [profileSaving, setProfileSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -238,12 +242,36 @@ export default function SettingsPage() {
   const [notifMonthly, setNotifMonthly] = useState(true);
   const [digestSchedule, setDigestSchedule] = useState('Weekly');
 
-  const isAdmin = session?.user?.agencyRole === 'agency_admin';
+  const isAdmin =
+    session?.user?.isSuperuser === true ||
+    session?.user?.agencyRole === 'agency_admin';
 
   const displayMembers = useMemo((): DisplayMember[] => {
-    if (members.length > 0) return mapApiMembersToDisplay(members);
-    return mapMockToDisplay(MOCK_TEAM);
-  }, [members]);
+    const baseMembers =
+      members.length > 0 ? mapApiMembersToDisplay(members) : [];
+
+    if (!invites || invites.length === 0) return baseMembers;
+
+    const palette = ['#FF7043', '#007B5F', '#7C3AED', '#FFB74D', '#4DB6AC'];
+    const inviteDisplays: DisplayMember[] = invites.map((invite, index) => {
+      const email = invite.email;
+      const name = email.split('@')[0];
+      return {
+        id: Number(`9${invite.id}`), // avoid clashing with member ids
+        name,
+        email,
+        initials: initialsFromName(name, email),
+        color: palette[(baseMembers.length + index) % palette.length],
+        roleKey: invite.role,
+        status: 'invited',
+        lastActive: invite.created_at
+          ? new Date(invite.created_at).toLocaleDateString()
+          : 'Invited',
+      };
+    });
+
+    return [...baseMembers, ...inviteDisplays];
+  }, [members, invites]);
 
   const matrixCapabilities = useMemo(() => {
     const set = new Set<string>();
@@ -259,13 +287,22 @@ export default function SettingsPage() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (dashboard?.agency?.name) setAgencyName(dashboard.agency.name);
-  }, [dashboard?.agency?.name]);
+    if (!dashboard?.agency) return;
+    const a = dashboard.agency;
+    if (a.name) setAgencyName(a.name);
+    if (a.email) setAgencyEmail(a.email);
+    if (a.website) setAgencyWebsite(a.website || '');
+    if (a.phone) setAgencyPhone(a.phone || '');
+    if (a.timezone) setAgencyTimezone(a.timezone);
+    if (a.currency) setAgencyCurrency(a.currency);
+    setAgencyLogoUrl(a.logo_url ?? null);
+  }, [dashboard?.agency]);
 
   useEffect(() => {
     if (session?.user?.name) setProfileName(session.user.name);
     if (session?.user?.email) setProfileEmail(session.user.email);
-  }, [session?.user?.name, session?.user?.email]);
+    if (session?.user?.image) setProfileAvatarUrl(session.user.image);
+  }, [session?.user?.name, session?.user?.email, session?.user?.image]);
 
   if (status === 'loading') {
     return (
@@ -297,6 +334,7 @@ export default function SettingsPage() {
         {
           name: agencyName.trim(),
           email: agencyEmail.trim() || undefined,
+          logo_url: agencyLogoUrl || undefined,
           website: agencyWebsite.trim() || undefined,
           phone: agencyPhone.trim() || undefined,
           timezone: agencyTimezone,
@@ -311,6 +349,42 @@ export default function SettingsPage() {
     } finally {
       setAgencySaving(false);
     }
+  }
+
+  async function uploadImageToCloudinary(file: File): Promise<string> {
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      throw new Error(
+        'Image uploading is not configured. Ask your admin to set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.',
+      );
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
+
+    const res = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      },
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(
+        `Upload failed with status ${res.status}${text ? `: ${text}` : ''}`,
+      );
+    }
+
+    const data = (await res.json()) as { secure_url?: string };
+    if (!data.secure_url) {
+      throw new Error('Cloudinary response did not include secure_url');
+    }
+    return data.secure_url;
   }
 
   async function handleInvite() {
@@ -349,7 +423,10 @@ export default function SettingsPage() {
     try {
       await apiClient.patch(
         API_ENDPOINTS.AUTH.PROFILE,
-        { full_name: profileName.trim() || undefined },
+        {
+          full_name: profileName.trim() || undefined,
+          avatar_url: profileAvatarUrl || undefined,
+        },
         { accessToken, agencyId },
       );
       toast.success('Profile updated');
@@ -414,15 +491,62 @@ export default function SettingsPage() {
               <h2 className={sectionTitle}>Agency Profile</h2>
               <div className="bg-white border border-border rounded-[12px] p-6 space-y-5">
                 <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    className="relative w-20 h-20 rounded-full border border-border bg-surface-secondary flex items-center justify-center text-text-muted hover:border-aqua transition-colors"
-                    aria-label="Upload agency logo"
-                  >
-                    <CameraIcon className="w-8 h-8" />
-                  </button>
+                  <div className="relative">
+                    <input
+                      id="agency-logo-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      disabled={!isAdmin || agencyLogoUploading}
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        if (!isAdmin) {
+                          toast.error('Only agency admins can change the logo');
+                          return;
+                        }
+                        try {
+                          setAgencyLogoUploading(true);
+                          const url = await uploadImageToCloudinary(file);
+                          setAgencyLogoUrl(url);
+                          toast.success('Logo uploaded. Click Save to apply.');
+                        } catch (err) {
+                          const msg =
+                            err instanceof Error ? err.message : 'Upload failed';
+                          toast.error(msg);
+                        } finally {
+                          setAgencyLogoUploading(false);
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="relative w-20 h-20 rounded-full border border-border bg-surface-secondary flex items-center justify-center text-text-muted hover:border-aqua transition-colors overflow-hidden"
+                      aria-label="Upload agency logo"
+                      onClick={() => {
+                        if (!isAdmin) return;
+                        const input = document.getElementById(
+                          'agency-logo-input',
+                        ) as HTMLInputElement | null;
+                        input?.click();
+                      }}
+                    >
+                      {agencyLogoUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={agencyLogoUrl}
+                          alt="Agency logo"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <CameraIcon className="w-8 h-8" />
+                      )}
+                    </button>
+                  </div>
                   <p className="text-[13px] text-text-secondary">
-                    Logo upload is coming soon. Recommended: square PNG or SVG, 256×256.
+                    Recommended: square PNG or SVG, 256×256. Uploads are stored securely and linked
+                    to your agency profile.
                   </p>
                 </div>
 
@@ -538,28 +662,158 @@ export default function SettingsPage() {
 
           {activeTab === 'team' && (
             <div className="space-y-6 max-w-5xl">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className={sectionTitle}>Team & Access</h2>
-                {isAdmin && (
+            <div className="space-y-2">
+              <h2 className={sectionTitle}>Team &amp; Access</h2>
+              <p className="text-[12.5px] text-text-muted">
+                Manage who can access your agency portal and what they can do. Pending invites are
+                shown alongside active members.
+              </p>
+            </div>
+
+            <div className="bg-white border border-border rounded-[12px] overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border-subtle">
+                <div>
+                  <p className="text-[13px] font-bold text-text-primary">Team members</p>
+                  <p className="text-[11px] text-text-muted font-medium mt-0.5">
+                    {members.length > 0
+                      ? `${members.length} active member${members.length === 1 ? '' : 's'}`
+                      : 'Using sample team data until members are added'}
+                  </p>
+                </div>
+                {isAdmin ? (
                   <button
                     type="button"
-                    className={btnPrimary}
-                    onClick={() => setShowInviteForm((v) => !v)}
+                    className={`${btnPrimary} h-[34px] text-[12px] px-3`}
+                    onClick={() => setShowInviteForm(true)}
                   >
-                    {showInviteForm ? 'Cancel' : 'Invite Member'}
+                    Invite member
                   </button>
+                ) : (
+                  <p className="text-[11px] text-text-muted">
+                    Only admins can invite or remove team members.
+                  </p>
                 )}
               </div>
 
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-[13px]">
+                  <thead>
+                    <tr className="border-b border-border-subtle bg-surface-secondary/50 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">
+                      <th className="px-4 py-3">Member</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3">Last active</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayMembers.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-4 py-4 text-[12px] text-text-muted text-center"
+                        >
+                          No team members yet. Use “Invite member” to add your first teammate.
+                        </td>
+                      </tr>
+                    )}
+                    {displayMembers.map((row) => (
+                      <tr
+                        key={row.id}
+                        className="border-b border-border last:border-b-0 hover:bg-surface-secondary/50"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-9 h-9 rounded-lg flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
+                              style={{ backgroundColor: row.color }}
+                            >
+                              {row.initials}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-text-primary">
+                                {row.name}
+                              </span>
+                              <span className="text-[11px] text-text-muted">
+                                {row.email}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${roleBadgeClass(
+                              formatRoleDisplay(row.roleKey),
+                            )}`}
+                          >
+                            {formatRoleDisplay(row.roleKey)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${statusBadgeClass(
+                              row.status,
+                            )}`}
+                          >
+                            {row.status === 'invited' ? 'Invited' : 'Active'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-text-muted">
+                          {row.lastActive}
+                        </td>
+                        <td className="px-4 py-3 text-right">
+                          {isAdmin && row.status === 'active' ? (
+                            <button
+                              type="button"
+                              className="text-[11px] font-semibold text-red hover:underline"
+                              disabled={
+                                members.find((m) => m.email === row.email)?.user_id ===
+                                Number(session?.user?.id)
+                              }
+                              onClick={async () => {
+                                const member = members.find((m) => m.email === row.email);
+                                if (!member) return;
+                                if (
+                                  !window.confirm(
+                                    `Remove ${row.name} from your team? They will lose access immediately.`,
+                                  )
+                                ) {
+                                  return;
+                                }
+                                try {
+                                  await apiClient.delete(
+                                    API_ENDPOINTS.AGENCY.REMOVE_MEMBER(
+                                      agencyId!,
+                                      member.id,
+                                    ),
+                                    { accessToken, agencyId },
+                                  );
+                                  toast.success('Member removed');
+                                  refreshMembers();
+                                } catch (err: unknown) {
+                                  toast.error(
+                                    (err as { message?: string })?.message ||
+                                      'Failed to remove member',
+                                  );
+                                }
+                              }}
+                            >
+                              Remove
+                            </button>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
               {showInviteForm && isAdmin && (
-                <div className="bg-white border border-border rounded-[12px] p-5 space-y-4">
-                  <p className="text-[13px] font-semibold text-text-primary">
-                    Invite a teammate
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="border-t border-border-subtle bg-surface-secondary/40 px-4 py-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <div>
                       <label className={labelClass} htmlFor="invite-email">
-                        Email
+                        Email address
                       </label>
                       <input
                         id="invite-email"
@@ -567,7 +821,7 @@ export default function SettingsPage() {
                         className={inputClass}
                         value={inviteEmail}
                         onChange={(e) => setInviteEmail(e.target.value)}
-                        placeholder="name@company.com"
+                        placeholder="colleague@agency.com"
                       />
                     </div>
                     <div>
@@ -588,80 +842,34 @@ export default function SettingsPage() {
                       </select>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    className={btnPrimary}
-                    onClick={handleInvite}
-                    disabled={inviteSending}
-                  >
-                    {inviteSending ? 'Sending…' : 'Send invite'}
-                  </button>
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      type="button"
+                      className="px-3 h-[34px] rounded-[10px] border border-border text-[12px] font-semibold text-text-muted hover:bg-surface-secondary transition-colors"
+                      onClick={() => {
+                        setShowInviteForm(false);
+                        setInviteEmail('');
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className={`${btnPrimary} h-[34px] text-[12px] px-3`}
+                      onClick={async () => {
+                        await handleInvite();
+                        refreshInvites();
+                      }}
+                      disabled={inviteSending}
+                    >
+                      {inviteSending ? 'Sending…' : 'Send invite'}
+                    </button>
+                  </div>
                 </div>
               )}
+            </div>
 
-              <div className="bg-white border border-border rounded-[12px] overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-[13px]">
-                    <thead>
-                      <tr className="border-b border-border-subtle bg-surface-secondary/50 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">
-                        <th className="px-4 py-3">Member</th>
-                        <th className="px-4 py-3">Email</th>
-                        <th className="px-4 py-3">Role</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Last active</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {displayMembers.map((row) => (
-                        <tr
-                          key={row.id}
-                          className="border-b border-border hover:bg-surface-secondary/50"
-                        >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <div
-                                className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-semibold text-white shrink-0"
-                                style={{ backgroundColor: row.color }}
-                              >
-                                {row.initials}
-                              </div>
-                              <span className="font-semibold text-text-primary">
-                                {row.name}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-text-secondary">
-                            {row.email}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${roleBadgeClass(
-                                formatRoleDisplay(row.roleKey),
-                              )}`}
-                            >
-                              {formatRoleDisplay(row.roleKey)}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3">
-                            <span
-                              className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${statusBadgeClass(
-                                row.status,
-                              )}`}
-                            >
-                              {row.status}
-                            </span>
-                          </td>
-                          <td className="px-4 py-3 text-text-muted">
-                            {row.lastActive}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div>
+            <div>
                 <h3 className={`${sectionTitle} mb-3`}>
                   Role permissions
                 </h3>
@@ -902,13 +1110,53 @@ export default function SettingsPage() {
               <h2 className={sectionTitle}>My Profile</h2>
               <div className="bg-white border border-border rounded-[12px] p-6 space-y-5">
                 <div className="flex items-center gap-4">
-                  <button
-                    type="button"
-                    className="relative w-20 h-20 rounded-full border border-border bg-surface-secondary flex items-center justify-center text-text-muted"
-                    aria-label="Upload profile photo"
-                  >
-                    <CameraIcon className="w-8 h-8" />
-                  </button>
+                  <div className="relative">
+                    <input
+                      id="profile-avatar-input"
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await uploadImageToCloudinary(file);
+                          setProfileAvatarUrl(url);
+                          toast.success(
+                            'Profile photo uploaded. Click Save profile to apply.',
+                          );
+                        } catch (err) {
+                          const msg =
+                            err instanceof Error ? err.message : 'Upload failed';
+                          toast.error(msg);
+                        } finally {
+                          (e.target as HTMLInputElement).value = '';
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="relative w-20 h-20 rounded-full border border-border bg-surface-secondary flex items-center justify-center text-text-muted overflow-hidden"
+                      aria-label="Upload profile photo"
+                      onClick={() => {
+                        const input = document.getElementById(
+                          'profile-avatar-input',
+                        ) as HTMLInputElement | null;
+                        input?.click();
+                      }}
+                    >
+                      {profileAvatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={profileAvatarUrl}
+                          alt="Profile avatar"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <CameraIcon className="w-8 h-8" />
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass} htmlFor="prof-name">

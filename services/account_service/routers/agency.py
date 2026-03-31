@@ -15,6 +15,7 @@ from typing import List, Optional
 
 from packages.db.database import get_db
 from packages.db.models import Agency, Client, AgencyMembership, AgencyRole, User, AgencyInvite, InviteStatus, Campaign, CampaignStatus
+from services.account_service.email import send_agency_invite_email
 from services.account_service import schemas_agency
 from services.account_service.agency_access import ensure_agency_scope
 from services.account_service.hierarchy_builder import build_client_hierarchy
@@ -71,6 +72,7 @@ def get_agency_dashboard(
         "agency": {
             "id": agency.id,
             "name": agency.name,
+            "logo_url": agency.logo_url,
             "current_plan": agency.current_plan.value if agency.current_plan else "free",
             "credits": float(agency.credits) if agency.credits is not None else 0,
             "billing_status": agency.billing_status or "active",
@@ -96,6 +98,20 @@ def update_agency(
     
     if update.name is not None:
         agency.name = update.name
+    if update.stripe_customer_id is not None:
+        agency.stripe_customer_id = update.stripe_customer_id
+    if update.email is not None:
+        agency.email = update.email
+    if update.logo_url is not None:
+        agency.logo_url = update.logo_url
+    if update.website is not None:
+        agency.website = update.website
+    if update.phone is not None:
+        agency.phone = update.phone
+    if update.timezone is not None:
+        agency.timezone = update.timezone
+    if update.currency is not None:
+        agency.currency = update.currency
     
     db.commit()
     db.refresh(agency)
@@ -199,17 +215,36 @@ def invite_member(
     
     # Generate invite link (frontend will handle this route)
     import os
+
     frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
     invite_link = f"{frontend_url}/auth/accept-invite?token={token}"
-    
-    # TODO: Send email with invite link (for now, just return the link)
-    
+
+    # Role display mapping for user-friendly emails
+    role_display_map = {
+        "agency_admin": "Admin",
+        "agency_member": "Member",
+        "agency_viewer": "Viewer"
+    }
+    role_label = role_display_map.get(invite.role, "Collaborator")
+
+    email_sent, email_debug = send_agency_invite_email(
+        to_email=email,
+        invite_url=invite_link,
+        agency_name=agency.name,
+        role_label=role_label,
+    )
+
     return {
         "success": True,
-        "message": f"Invite sent to {email}",
+        "message": (
+            f"Invite created for {email}"
+            + ("; email sent." if email_sent else "; email not sent — check RESEND_API_KEY or use invite_link manually.")
+        ),
         "invite_id": db_invite.id,
         "invite_link": invite_link,
-        "expires_at": str(expires_at)
+        "expires_at": str(expires_at),
+        "email_sent": email_sent,
+        "email_debug": email_debug,
     }
 
 

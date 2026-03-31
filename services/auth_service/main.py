@@ -439,6 +439,40 @@ def verify_magic_token(token: str, db: Session = Depends(get_db)):
                 role=magic.role or AgencyRole.VIEWER,
             )
             db.add(membership)
+    else:
+        # No explicit agency_id on the magic token. If the user does not yet have
+        # an agency membership and this is an admin invite, create a new agency
+        # and attach them as ADMIN so the portal has proper context.
+        from packages.db.models import Agency, Client, PlanTier
+
+        existing_ctx = get_user_agency_context(db, user.id)
+        if not existing_ctx.get("agency_id") and magic.role == AgencyRole.ADMIN:
+            agency_name = f"{user.full_name or user.email.split('@')[0]}'s Agency"
+            agency = Agency(
+                name=agency_name,
+                current_plan=PlanTier.FREE,
+                credits=0.00,
+                billing_status="active",
+            )
+            db.add(agency)
+            db.commit()
+            db.refresh(agency)
+
+            membership = AgencyMembership(
+                user_id=user.id,
+                agency_id=agency.id,
+                role=AgencyRole.ADMIN,
+            )
+            db.add(membership)
+
+            # Create a default client so the dashboard has something to attach to,
+            # mirroring the /register and Google sign-in flows.
+            default_client = Client(
+                agency_id=agency.id,
+                name="Default Brand",
+                is_active=True,
+            )
+            db.add(default_client)
 
     db.commit()
     db.refresh(user)

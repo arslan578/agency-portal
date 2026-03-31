@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaivo — Agency Clients</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --cream: #f4efe6; --cream-dark: #ece6db; --cream-border: #ddd6c8;
+    --teal: #2a9d8f; --teal-dark: #1f7a6e; --teal-light: #e8f5f3;
+    --coral: #e76f51; --coral-light: #fdf0ec; --coral-dark: #c85a3d;
+    --text-primary: #1a1a2e; --text-secondary: #5a5a72; --text-muted: #9a9aaa;
+    --green: #2d9e5a; --green-light: #e8f7ef;
+    --amber: #d4860a; --amber-light: #fef3dc;
+    --red: #d94040; --red-light: #fdeaea;
+    --purple: #5c54c8; --purple-light: #eeeeff;
+    --white: #ffffff; --nav-width: 232px; --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Space Grotesk', sans-serif; background: var(--cream); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
+
+  /* ── SIDEBAR ── */
+  .sidebar { width: var(--nav-width); background: var(--white); border-right: 2px solid var(--cream-border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; z-index: 10; }
+  .logo-row { padding: 14px 18px; border-bottom: 2px solid var(--cream-border); display: flex; align-items: center; gap: 10px; }
+  .logo-text { font-size: 17px; font-weight: 800; color: var(--teal); letter-spacing: 2.5px; }
+  .nav-section { padding: 12px 10px 4px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--text-secondary); font-size: 13px; font-weight: 600; transition: all 0.15s; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--cream); color: var(--text-primary); }
+  .nav-item.active { background: var(--teal); color: #fff; }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-pip { margin-left: auto; min-width: 18px; height: 18px; padding: 0 4px; background: var(--coral); border-radius: 5px; font-size: 10px; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; }
+  .sidebar-footer { margin-top: auto; padding: 14px 10px; border-top: 2px solid var(--cream-border); }
+  .user-card { background: var(--cream); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; border: 1px solid var(--cream-border); }
+  .avatar { width: 34px; height: 34px; border-radius: 8px; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .user-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+  .user-role { font-size: 11px; color: var(--text-muted); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 56px; background: var(--white); border-bottom: 2px solid var(--cream-border); display: flex; align-items: center; padding: 0 24px; gap: 10px; flex-shrink: 0; }
+  .breadcrumb { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .breadcrumb strong { color: var(--text-primary); font-weight: 700; }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .search-box { display: flex; align-items: center; gap: 8px; background: var(--cream); border: 2px solid var(--cream-border); border-radius: 8px; padding: 6px 12px; width: 220px; transition: all 0.12s; }
+  .search-box:focus-within { border-color: var(--teal); background: var(--white); }
+  .search-box input { border: none; background: none; font-family: inherit; font-size: 12.5px; color: var(--text-primary); outline: none; width: 100%; }
+  .search-box input::placeholder { color: var(--text-muted); }
+  .topbar-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; border: 2px solid var(--cream-border); background: var(--white); color: var(--text-primary); transition: all 0.12s; }
+  .topbar-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .topbar-btn.primary { background: var(--coral); border-color: var(--coral); color: #fff; }
+  .topbar-btn.primary:hover { background: var(--coral-dark); border-color: var(--coral-dark); }
+
+  .content { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; }
+  .filter-tabs { display: flex; background: var(--white); border: 2px solid var(--cream-border); border-radius: 8px; overflow: hidden; }
+  .filter-tab { padding: 6px 14px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; border: none; background: none; color: var(--text-muted); transition: all 0.12s; white-space: nowrap; }
+  .filter-tab.active { background: var(--teal); color: #fff; }
+  .filter-tab:hover:not(.active) { color: var(--text-primary); background: var(--cream); }
+  .toolbar-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .ctrl-btn { font-size: 11px; font-weight: 700; padding: 5px 12px; border-radius: 7px; border: 2px solid var(--cream-border); background: var(--white); color: var(--text-secondary); font-family: inherit; cursor: pointer; transition: all 0.12s; }
+  .ctrl-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .sort-wrap { display: flex; align-items: center; gap: 0; background: var(--white); border: 2px solid var(--cream-border); border-radius: 8px; overflow: hidden; }
+  .sort-wrap label { font-size: 11px; color: var(--text-muted); font-weight: 600; padding: 5px 8px 5px 12px; border-right: 1px solid var(--cream-border); white-space: nowrap; }
+  .sort-btn { font-size: 11px; font-weight: 700; font-family: inherit; color: var(--text-muted); background: none; border: none; border-right: 1px solid var(--cream-border); padding: 5px 11px; cursor: pointer; transition: all 0.12s; white-space: nowrap; }
+  .sort-btn:last-child { border-right: none; }
+  .sort-btn:hover { background: var(--cream); color: var(--text-primary); }
+  .sort-btn.active { background: var(--teal); color: #fff; font-weight: 800; }
+
+
+  /* ── TABLE ── */
+  .table-card { background: var(--white); border: 2px solid var(--cream-border); border-radius: var(--radius); overflow: hidden; }
+  .table-scroll { overflow-x: auto; }
+  .camp-table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+  .camp-table thead tr { background: var(--cream); border-bottom: 2px solid var(--cream-border); }
+  .camp-table th { padding: 9px 12px; text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+
+  /* ── LEVEL ROWS ── */
+  /* lvl-0: Client */
+  .camp-table tr.lvl-0 { cursor: pointer; border-bottom: 1px solid var(--cream-border); }
+  .camp-table tr.lvl-0 td { padding: 12px 12px; vertical-align: middle; background: var(--white); transition: background 0.1s; }
+  .camp-table tr.lvl-0:hover td { background: #faf7f2; }
+  .camp-table tr.lvl-0.expanded td { background: #faf7f2; border-bottom: none; }
+
+  /* lvl-1: Platform */
+  .camp-table tr.lvl-1 { cursor: pointer; border-bottom: 1px solid var(--cream-border); display: none; }
+  .camp-table tr.lvl-1.visible { display: table-row; }
+  .camp-table tr.lvl-1 td { padding: 9px 12px; vertical-align: middle; background: #f8f4ed; transition: background 0.1s; }
+  .camp-table tr.lvl-1:hover td { background: #f3ede3; }
+  .camp-table tr.lvl-1.expanded td { background: #f3ede3; border-bottom: none; }
+
+  /* lvl-2: Campaign */
+  .camp-table tr.lvl-2 { cursor: pointer; border-bottom: 1px solid var(--cream-border); display: none; }
+  .camp-table tr.lvl-2.visible { display: table-row; }
+  .camp-table tr.lvl-2 td { padding: 8px 12px; vertical-align: middle; background: #f1ece2; transition: background 0.1s; }
+  .camp-table tr.lvl-2:hover td { background: #ece5d8; }
+  .camp-table tr.lvl-2.expanded td { background: #ece5d8; border-bottom: none; }
+
+  /* lvl-3: Ad Set */
+  .camp-table tr.lvl-3 { border-bottom: 1px solid var(--cream-border); display: none; }
+  .camp-table tr.lvl-3.visible { display: table-row; }
+  .camp-table tr.lvl-3 td { padding: 7px 12px; vertical-align: middle; background: #e8e1d4; }
+  .camp-table tr.lvl-3 .xbtn { visibility: hidden; pointer-events: none; }
+
+  .camp-table tr.grp-end td { border-bottom: 2px solid var(--cream-border) !important; }
+
+  /* ── EXPAND BTN ── */
+  .expand-col { width: 20px; padding-right: 0 !important; }
+  .xbtn { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--cream-border); background: var(--white); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 11px; font-weight: 700; color: var(--text-muted); transition: transform 0.2s, background 0.15s, border-color 0.15s, color 0.15s; flex-shrink: 0; line-height: 1; padding: 0; }
+  .xbtn:hover { border-color: var(--teal); color: var(--teal); background: var(--teal-light); }
+  .xbtn.open { background: var(--teal); border-color: var(--teal); color: #fff; transform: rotate(90deg); }
+
+  /* ── INDENT ── */
+  .i1 { padding-left: 28px !important; }
+  .i2 { padding-left: 48px !important; }
+  .i3 { padding-left: 64px !important; }
+
+  /* ── NAME CELLS ── */
+  .client-cell { display: flex; align-items: center; gap: 10px; }
+  .client-dot { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .client-name { font-size: 13px; font-weight: 800; color: var(--text-primary); }
+  .client-meta { font-size: 10.5px; color: var(--text-muted); margin-top: 1px; font-weight: 500; }
+
+  .plt-name-cell { display: flex; align-items: center; gap: 8px; }
+  .plt-badge { width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+  .plt-label { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+
+  .camp-name-cell { display: flex; flex-direction: column; }
+  .camp-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+  .camp-type { font-size: 10px; color: var(--text-muted); margin-top: 1px; font-weight: 500; }
+
+  .adset-name { font-size: 11.5px; font-weight: 600; color: var(--text-secondary); }
+  .adset-meta { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+
+  /* ── BADGES ── */
+  .score-badge { display: inline-flex; font-family: 'Space Mono', monospace; font-size: 11.5px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
+  .s-green { background: var(--green-light); color: var(--green); }
+  .s-amber { background: var(--amber-light); color: var(--amber); }
+  .s-red   { background: var(--red-light);   color: var(--red); }
+
+  .mono { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; white-space: nowrap; }
+  .vg { color: var(--green); }
+  .va { color: var(--amber); }
+  .vr { color: var(--red); }
+  .vm { color: var(--text-muted); }
+
+  .status-dot { font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .st-live   { color: var(--green); }
+  .st-paused { color: var(--text-muted); }
+  .st-review { color: var(--amber); }
+
+  .ai-mode { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 700; padding: 3px 7px; border-radius: 5px; white-space: nowrap; }
+  .ai-auto   { background: var(--teal-light);   color: var(--teal-dark); }
+  .ai-hybrid { background: var(--purple-light);  color: var(--purple); }
+  .ai-manual { background: var(--cream-dark);    color: var(--text-muted); border: 1px solid var(--cream-border); }
+
+  .alert-pip { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; padding: 3px 8px; border-radius: 5px; white-space: nowrap; }
+  .a-crit { background: var(--red-light);   color: var(--red); }
+  .a-warn { background: var(--amber-light); color: var(--amber); }
+  .a-ok   { background: var(--green-light); color: var(--green); }
+
+  /* pacing bar */
+  .pace-wrap { display: flex; flex-direction: column; gap: 3px; min-width: 80px; }
+  .pace-bar  { height: 5px; width: 80px; background: var(--cream-dark); border-radius: 4px; overflow: hidden; }
+  .pace-fill { height: 100%; border-radius: 4px; }
+  .pace-label { font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+  /* ── DOT MENU ── */
+  .action-col { width: 36px; text-align: center; }
+  .dot-menu-wrap { position: relative; display: inline-block; }
+  .dot-btn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid transparent; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; font-weight: 900; opacity: 0; letter-spacing: 1px; line-height: 1; transition: opacity 0.12s; }
+  .camp-table tbody tr:hover > td .dot-btn { opacity: 1; }
+  .dot-btn:hover, .dot-btn.menu-open { opacity: 1 !important; border-color: var(--cream-border); background: var(--cream); color: var(--text-primary); }
+  .dot-menu { position: absolute; right: 0; top: 32px; background: var(--white); border: 2px solid var(--cream-border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.13); z-index: 300; min-width: 190px; overflow: hidden; display: none; }
+  .dot-menu.open { display: block; }
+  .dot-menu-item { display: flex; align-items: center; gap: 9px; padding: 9px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: background 0.1s; white-space: nowrap; }
+  .dot-menu-item:hover { background: var(--cream); color: var(--text-primary); }
+  .dot-menu-divider { height: 1px; background: var(--cream-border); margin: 3px 0; }
+  .dot-menu-item.danger { color: var(--red); }
+  .dot-menu-item.danger:hover { background: var(--red-light); }
+
+  /* ── PERIOD TOGGLE ── */
+  .period-toggle { display: flex; background: var(--white); border: 2px solid var(--cream-border); border-radius: 8px; overflow: hidden; }
+  .period-btn { padding: 5px 12px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; border: none; background: none; color: var(--text-muted); transition: all 0.12s; white-space: nowrap; border-right: 1px solid var(--cream-border); }
+  .period-btn:last-child { border-right: none; }
+  .period-btn.active { background: var(--teal); color: #fff; }
+  .period-btn:hover:not(.active) { background: var(--cream); color: var(--text-primary); }
+
+  /* ── TABLE FOOTER ── */
+  .table-footer { padding: 11px 18px; background: var(--cream); border-top: 2px solid var(--cream-border); display: flex; align-items: center; justify-content: space-between; }
+  .footer-info { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+
+  /* ── PANEL ── */
+  .panel-overlay { position: fixed; inset: 0; background: rgba(26,26,46,0.22); z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.22s; }
+  .panel-overlay.open { opacity: 1; pointer-events: all; }
+  .detail-panel { position: fixed; top: 0; right: 0; width: 380px; height: 100vh; background: var(--white); border-left: 2px solid var(--cream-border); z-index: 101; display: flex; flex-direction: column; transform: translateX(100%); transition: transform 0.26s cubic-bezier(0.4,0,0.2,1); overflow: hidden; }
+  .detail-panel.open { transform: translateX(0); }
+  .panel-header { padding: 16px 18px; border-bottom: 2px solid var(--cream-border); display: flex; align-items: flex-start; gap: 10px; flex-shrink: 0; }
+  .panel-header-text { flex: 1; min-width: 0; }
+  .panel-level-tag { display: inline-flex; font-size: 9px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; margin-bottom: 5px; }
+  .panel-name { font-size: 14px; font-weight: 800; color: var(--text-primary); line-height: 1.3; }
+  .panel-meta { font-size: 11px; color: var(--text-muted); font-weight: 500; margin-top: 2px; }
+  .panel-close { width: 26px; height: 26px; border-radius: 6px; border: 2px solid var(--cream-border); background: var(--white); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--text-muted); transition: all 0.12s; flex-shrink: 0; }
+  .panel-close:hover { border-color: var(--coral); color: var(--coral); }
+  .panel-body { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+  .panel-signal { padding: 16px 18px; border-bottom: 2px solid var(--cream-border); }
+  .panel-block-label { font-size: 9px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+  .panel-block-label::after { content: ""; flex: 1; height: 1px; background: var(--cream-border); }
+  .panel-signal-stat { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--cream-border); }
+  .panel-signal-stat:last-child { border-bottom: none; }
+  .panel-signal-key { font-size: 11px; font-weight: 600; color: var(--text-muted); }
+  .panel-signal-val { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; }
+  .panel-signal-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-top: 10px; }
+  .panel-rec { padding: 16px 18px; background: var(--cream); flex: 1; }
+  .panel-rec-text { font-size: 13px; color: var(--text-primary); line-height: 1.65; font-weight: 500; margin-bottom: 12px; }
+  .panel-impact-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .panel-impact-chip { background: var(--white); border: 1.5px solid var(--cream-border); border-radius: 6px; padding: 5px 10px; }
+  .panel-impact-chip-label { font-size: 8px; font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase; color: var(--text-muted); }
+  .panel-impact-chip-val { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; margin-top: 1px; }
+  .panel-trajectory { padding: 10px 12px; border-radius: 8px; margin-bottom: 12px; font-size: 12px; font-weight: 600; line-height: 1.5; }
+  .traj-warn { background: var(--red-light);  color: var(--red);      border: 1px solid #f5c0c0; }
+  .traj-ok   { background: var(--teal-light); color: var(--teal-dark); border: 1px solid #b8e0db; }
+  .panel-confidence { display: flex; align-items: center; gap: 8px; font-size: 11px; color: var(--text-muted); font-weight: 600; }
+  .conf-dots { display: flex; gap: 3px; }
+  .conf-dot { width: 8px; height: 8px; border-radius: 2px; }
+  .panel-actions { padding: 14px 18px; border-top: 2px solid var(--cream-border); display: flex; gap: 8px; flex-shrink: 0; background: var(--white); }
+  .panel-btn-apply { flex: 1; background: var(--teal); color: #fff; border: none; border-radius: 8px; padding: 10px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: background 0.12s; }
+  .panel-btn-apply:hover { background: var(--teal-dark); }
+  .panel-btn-dismiss { background: var(--white); color: var(--text-secondary); border: 2px solid var(--cream-border); border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 700; font-family: inherit; cursor: pointer; transition: all 0.12s; }
+  .panel-btn-dismiss:hover { border-color: var(--red); color: var(--red); }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--cream-border); border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo-row">
+    <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+      <path d="M20 4 L20 20 L34 12 Z" fill="#e8614a" opacity="0.95"/>
+      <path d="M20 20 L34 28 L34 12 Z" fill="#e8614a" opacity="0.7"/>
+      <path d="M20 20 L20 36 L34 28 Z" fill="#e8614a" opacity="0.5"/>
+      <path d="M20 20 L6 28 L20 36 Z" fill="#e8614a" opacity="0.7"/>
+      <path d="M20 20 L6 12 L6 28 Z" fill="#e8614a" opacity="0.85"/>
+      <path d="M20 4 L6 12 L20 20 Z" fill="#e8614a" opacity="0.6"/>
+    </svg>
+    <span class="logo-text">KAIVO</span>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v4l2.5 1.5"/></svg>
+      AI Insights
+      <span class="nav-pip">7</span>
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12V5l6-3 6 3v7l-6 3-6-3z"/></svg>
+      Clients
+      <span class="nav-pip" style="background:var(--teal-dark);">12</span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="14" height="14" rx="2"/><path d="M2 10l4-4 3 3 5-5"/></svg>
+      Reporting
+    </div>
+    <div class="nav-item" style="position:relative;">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 3H3a1 1 0 00-1 1v1.5l5 4.5v4l2 1v-5l5-4.5V4a1 1 0 00-1-1z"/></svg>
+      Integrations
+      <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:auto;flex-shrink:0;"></span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M1 7h14"/></svg>
+      Billing
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>
+      Settings
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="avatar">MC</div>
+      <div>
+        <div class="user-name">Media Co Agency</div>
+        <div class="user-role">Agency Plan</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="breadcrumb">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12V5l6-3 6 3v7l-6 3-6-3z"/></svg>
+      <strong>Clients</strong>
+    </div>
+    <div class="topbar-right">
+      <div class="search-box">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6.5" cy="6.5" r="5"/><path d="M10.5 10.5L14 14"/></svg>
+        <input type="text" placeholder="Search clients…">
+      </div>
+      <button class="topbar-btn primary">+ Add Client</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="filter-tabs">
+        <button class="filter-tab active">All (12)</button>
+        <button class="filter-tab">Needs Action (3)</button>
+        <button class="filter-tab">Top Performers (5)</button>
+        <button class="filter-tab">Manual AI (3)</button>
+      </div>
+      <div class="period-toggle">
+        <button class="period-btn" onclick="setPeriod('today',this)">Today</button>
+        <button class="period-btn active" onclick="setPeriod('7d',this)">7D</button>
+        <button class="period-btn" onclick="setPeriod('mtd',this)">MTD</button>
+        <button class="period-btn" onclick="setPeriod('30d',this)">Last 30D</button>
+      </div>
+      <div class="toolbar-right">
+        <div class="sort-wrap">
+          <label>Sort by</label>
+          <button class="sort-btn active" data-field="score" onclick="applySort(this)">Score ↓</button>
+          <button class="sort-btn" data-field="spend" onclick="applySort(this)">Spend</button>
+          <button class="sort-btn" data-field="alerts" onclick="applySort(this)">Alerts</button>
+          <button class="sort-btn" data-field="ctr" onclick="applySort(this)">CTR</button>
+        </div>
+        <button class="ctrl-btn" onclick="expandAll()">Expand All</button>
+        <button class="ctrl-btn" onclick="collapseAll()">Collapse All</button>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-card">
+      <div class="table-scroll">
+        <table class="camp-table">
+          <thead>
+            <tr>
+              <th class="expand-col"></th>
+              <th style="min-width:220px;">Client / Name</th>
+              <th>Score</th>
+              <th>Spend</th>
+              <th>Budget</th>
+              <th>CPC</th>
+              <th>CTR</th>
+              <th>Conv.</th>
+              <th>Cost/Conv.</th>
+              <th>Pacing</th>
+              <th>Alerts</th>
+              <th>Status</th>
+              <th>AI Mode</th>
+              <th class="action-col"></th>
+            </tr>
+          </thead>
+          <tbody>
+
+            <!-- ══════════════════════════════════════════
+                 CLIENT 1: HARBOR COFFEE CO. — CRITICAL
+            ══════════════════════════════════════════ -->
+            <tr class="lvl-0" onclick="toggle('hc',this)" id="hc-row">
+              <td><button class="xbtn" id="hc-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="client-cell">
+                  <div class="client-dot" style="background:#e76f51;">HC</div>
+                  <div>
+                    <div class="client-name" onclick="event.stopPropagation();openPanel('hc')">Harbor Coffee Co.</div>
+                    <div class="client-meta">Shopify · E-commerce · 3 platforms</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="score-badge s-red">48.2</span></td>
+              <td><span class="mono">$12,400</span></td>
+              <td><span class="mono vm">$15,000</span></td>
+              <td><span class="mono vr">$3.92</span></td>
+              <td><span class="mono vr">0.9%</span></td>
+              <td><span class="mono">312</span></td>
+              <td><span class="mono vr">$39.74</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:83%;background:var(--teal);"></div></div><div class="pace-label">83% · on track</div></div></td>
+              <td><span class="alert-pip a-crit">⚡ 2 Critical</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">📊 Client Dashboard</div>
+                    <div class="dot-menu-item">📈 View Reporting</div>
+                    <div class="dot-menu-item">⚡ AI Insights</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item">✎ Edit Client</div>
+                    <div class="dot-menu-item danger">✕ Remove Client</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC: Platform — Meta -->
+            <tr class="lvl-1" data-parent="hc" onclick="toggle('hc-meta',this)" id="hc-meta-row">
+              <td class="i1"><button class="xbtn" id="hc-meta-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="plt-name-cell">
+                  <div class="plt-badge" style="background:#e8effe;color:#1877f2;">f</div>
+                  <span class="plt-label">Meta</span>
+                </div>
+              </td>
+              <td><span class="score-badge s-red">44.1</span></td>
+              <td><span class="mono">$6,200</span></td>
+              <td><span class="mono vm">$7,500</span></td>
+              <td><span class="mono vr">$4.10</span></td>
+              <td><span class="mono vr">0.8%</span></td>
+              <td><span class="mono">151</span></td>
+              <td><span class="mono vr">$41.06</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:83%;background:var(--teal);"></div></div><div class="pace-label">83%</div></div></td>
+              <td><span class="alert-pip a-crit">⚡ 1 Critical</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item danger">✕ Remove Platform</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC Meta: Campaign 1 -->
+            <tr class="lvl-2" data-parent="hc-meta" onclick="toggle('hc-meta-c1',this)" id="hc-meta-c1-row">
+              <td class="i2"><button class="xbtn" id="hc-meta-c1-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="camp-name-cell">
+                  <div class="camp-name">Summer Sale — Awareness</div>
+                  <div class="camp-type">Awareness · Lookalike 2%</div>
+                </div>
+              </td>
+              <td><span class="score-badge s-red">38.9</span></td>
+              <td><span class="mono">$3,800</span></td>
+              <td><span class="mono vm">$4,500</span></td>
+              <td><span class="mono vr">$4.62</span></td>
+              <td><span class="mono vr">0.7%</span></td>
+              <td><span class="mono">82</span></td>
+              <td><span class="mono vr">$46.34</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:84%;background:var(--teal);"></div></div><div class="pace-label">84%</div></div></td>
+              <td><span class="alert-pip a-crit">⚡ Critical</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Campaign</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC Meta C1: Ad Set 1 -->
+            <tr class="lvl-3" data-parent="hc-meta-c1">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="adset-name">Lookalike 2% — Broad</div>
+                <div class="adset-meta">4 ads · $120/day</div>
+              </td>
+              <td><span class="score-badge s-red">36.2</span></td>
+              <td><span class="mono">$2,100</span></td>
+              <td><span class="mono vm">$2,500</span></td>
+              <td><span class="mono vr">$5.10</span></td>
+              <td><span class="mono vr">0.5%</span></td>
+              <td><span class="mono">41</span></td>
+              <td><span class="mono vr">$51.22</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:84%;background:var(--teal);"></div></div><div class="pace-label">84%</div></div></td>
+              <td><span class="alert-pip a-crit">⚡ Critical</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC Meta C1: Ad Set 2 -->
+            <tr class="lvl-3 grp-end" data-parent="hc-meta-c1">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="adset-name">Retargeting — 30 Day</div>
+                <div class="adset-meta">2 ads · $80/day</div>
+              </td>
+              <td><span class="score-badge s-amber">52.4</span></td>
+              <td><span class="mono">$1,700</span></td>
+              <td><span class="mono vm">$2,000</span></td>
+              <td><span class="mono va">$3.88</span></td>
+              <td><span class="mono va">1.1%</span></td>
+              <td><span class="mono">41</span></td>
+              <td><span class="mono va">$41.46</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:85%;background:var(--teal);"></div></div><div class="pace-label">85%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ Advisory</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC Meta: Campaign 2 -->
+            <tr class="lvl-2 grp-end" data-parent="hc-meta" onclick="toggle('hc-meta-c2',this)" id="hc-meta-c2-row">
+              <td class="i2"><button class="xbtn" id="hc-meta-c2-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="camp-name-cell">
+                  <div class="camp-name">Loyalty Rewards</div>
+                  <div class="camp-type">Retargeting · Existing customers</div>
+                </div>
+              </td>
+              <td><span class="score-badge s-amber">61.4</span></td>
+              <td><span class="mono">$2,400</span></td>
+              <td><span class="mono vm">$3,000</span></td>
+              <td><span class="mono va">$2.94</span></td>
+              <td><span class="mono va">1.4%</span></td>
+              <td><span class="mono">69</span></td>
+              <td><span class="mono va">$34.78</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:80%;background:var(--teal);"></div></div><div class="pace-label">80%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ Advisory</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Campaign</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC Meta C2: Ad Sets -->
+            <tr class="lvl-3" data-parent="hc-meta-c2">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="adset-name">Past Purchasers — 90 Day</div><div class="adset-meta">3 ads · $120/day</div></td>
+              <td><span class="score-badge s-amber">63.1</span></td>
+              <td><span class="mono">$2,400</span></td>
+              <td><span class="mono vm">$3,000</span></td>
+              <td><span class="mono va">$2.94</span></td>
+              <td><span class="mono va">1.4%</span></td>
+              <td><span class="mono">69</span></td>
+              <td><span class="mono va">$34.78</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:80%;background:var(--teal);"></div></div><div class="pace-label">80%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC: Platform — TikTok -->
+            <tr class="lvl-1" data-parent="hc" onclick="toggle('hc-tik',this)" id="hc-tik-row">
+              <td class="i1"><button class="xbtn" id="hc-tik-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="plt-name-cell">
+                  <div class="plt-badge" style="background:#e6f9fb;color:#00b8c4;">T</div>
+                  <span class="plt-label">TikTok</span>
+                </div>
+              </td>
+              <td><span class="score-badge s-amber">54.8</span></td>
+              <td><span class="mono">$3,800</span></td>
+              <td><span class="mono vm">$4,500</span></td>
+              <td><span class="mono va">$3.40</span></td>
+              <td><span class="mono va">1.1%</span></td>
+              <td><span class="mono">112</span></td>
+              <td><span class="mono va">$33.93</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:84%;background:var(--teal);"></div></div><div class="pace-label">84%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ 1 Advisory</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">↗ Open in TikTok</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item danger">✕ Remove Platform</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC TikTok: Campaign -->
+            <tr class="lvl-2" data-parent="hc-tik" onclick="toggle('hc-tik-c1',this)" id="hc-tik-c1-row">
+              <td class="i2"><button class="xbtn" id="hc-tik-c1-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="camp-name-cell">
+                  <div class="camp-name">Summer Vibes — Video</div>
+                  <div class="camp-type">Awareness · Broad + Interest</div>
+                </div>
+              </td>
+              <td><span class="score-badge s-amber">54.8</span></td>
+              <td><span class="mono">$3,800</span></td>
+              <td><span class="mono vm">$4,500</span></td>
+              <td><span class="mono va">$3.40</span></td>
+              <td><span class="mono va">1.1%</span></td>
+              <td><span class="mono">112</span></td>
+              <td><span class="mono va">$33.93</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:84%;background:var(--teal);"></div></div><div class="pace-label">84%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ Advisory</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Campaign</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item">↗ Open in TikTok</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="lvl-3 grp-end" data-parent="hc-tik-c1">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="adset-name">Broad 18-34</div><div class="adset-meta">3 ads · $190/day</div></td>
+              <td><span class="score-badge s-amber">54.8</span></td>
+              <td><span class="mono">$3,800</span></td>
+              <td><span class="mono vm">$4,500</span></td>
+              <td><span class="mono va">$3.40</span></td>
+              <td><span class="mono va">1.1%</span></td>
+              <td><span class="mono">112</span></td>
+              <td><span class="mono va">$33.93</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:84%;background:var(--teal);"></div></div><div class="pace-label">84%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ Fatigue</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-manual">⊙ Manual</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- HC: Platform — Google -->
+            <tr class="lvl-1 grp-end" data-parent="hc" onclick="toggle('hc-ggl',this)" id="hc-ggl-row">
+              <td class="i1"><button class="xbtn" id="hc-ggl-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="plt-name-cell">
+                  <div class="plt-badge" style="background:#fdecea;color:#ea4335;">G</div>
+                  <span class="plt-label">Google Ads</span>
+                </div>
+              </td>
+              <td><span class="score-badge s-amber">58.3</span></td>
+              <td><span class="mono">$2,400</span></td>
+              <td><span class="mono vm">$3,000</span></td>
+              <td><span class="mono va">$3.62</span></td>
+              <td><span class="mono va">1.0%</span></td>
+              <td><span class="mono">49</span></td>
+              <td><span class="mono va">$48.98</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:80%;background:var(--teal);"></div></div><div class="pace-label">80%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">↗ Open in Google Ads</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item danger">✕ Remove Platform</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- ══════════════════════════════════════════
+                 CLIENT 2: NOVA SKINCARE — TOP PERFORMER
+            ══════════════════════════════════════════ -->
+            <tr class="lvl-0" onclick="toggle('ns',this)" id="ns-row">
+              <td><button class="xbtn" id="ns-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="client-cell">
+                  <div class="client-dot" style="background:#2a9d8f;">NS</div>
+                  <div>
+                    <div class="client-name" onclick="event.stopPropagation();openPanel('ns')">Nova Skincare</div>
+                    <div class="client-meta">Shopify · Beauty · 4 platforms</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="score-badge s-green">91.4</span></td>
+              <td><span class="mono">$18,600</span></td>
+              <td><span class="mono vm">$20,000</span></td>
+              <td><span class="mono vg">$1.14</span></td>
+              <td><span class="mono vg">4.2%</span></td>
+              <td><span class="mono">1,632</span></td>
+              <td><span class="mono vg">$11.40</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:93%;background:var(--teal);"></div></div><div class="pace-label">93% · strong</div></div></td>
+              <td><span class="alert-pip a-ok">✓ All Clear</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-auto">⚡ Auto</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">📊 Client Dashboard</div>
+                    <div class="dot-menu-item">📈 View Reporting</div>
+                    <div class="dot-menu-item">⚡ AI Insights</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item">✎ Edit Client</div>
+                    <div class="dot-menu-item danger">✕ Remove Client</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- NS: Platform — Meta -->
+            <tr class="lvl-1" data-parent="ns" onclick="toggle('ns-meta',this)" id="ns-meta-row">
+              <td class="i1"><button class="xbtn" id="ns-meta-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="plt-name-cell"><div class="plt-badge" style="background:#e8effe;color:#1877f2;">f</div><span class="plt-label">Meta</span></div></td>
+              <td><span class="score-badge s-green">93.1</span></td>
+              <td><span class="mono">$8,400</span></td>
+              <td><span class="mono vm">$9,000</span></td>
+              <td><span class="mono vg">$1.02</span></td>
+              <td><span class="mono vg">4.8%</span></td>
+              <td><span class="mono">824</span></td>
+              <td><span class="mono vg">$10.19</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:93%;background:var(--teal);"></div></div><div class="pace-label">93%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-auto">⚡ Auto</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item danger">✕ Remove Platform</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="lvl-2" data-parent="ns-meta" onclick="toggle('ns-meta-c1',this)" id="ns-meta-c1-row">
+              <td class="i2"><button class="xbtn" id="ns-meta-c1-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="camp-name-cell"><div class="camp-name">Spring Glow — Conversion</div><div class="camp-type">Conversion · Lookalike 1% + 2%</div></div></td>
+              <td><span class="score-badge s-green">93.1</span></td>
+              <td><span class="mono">$8,400</span></td>
+              <td><span class="mono vm">$9,000</span></td>
+              <td><span class="mono vg">$1.02</span></td>
+              <td><span class="mono vg">4.8%</span></td>
+              <td><span class="mono">824</span></td>
+              <td><span class="mono vg">$10.19</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:93%;background:var(--teal);"></div></div><div class="pace-label">93%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-auto">⚡ Auto</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Campaign</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="lvl-3" data-parent="ns-meta-c1">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="adset-name">Lookalike 1% — Purchasers</div><div class="adset-meta">5 ads · $200/day</div></td>
+              <td><span class="score-badge s-green">91.2</span></td>
+              <td><span class="mono">$4,600</span></td>
+              <td><span class="mono vm">$5,000</span></td>
+              <td><span class="mono vg">$0.98</span></td>
+              <td><span class="mono vg">5.1%</span></td>
+              <td><span class="mono">469</span></td>
+              <td><span class="mono vg">$9.81</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:92%;background:var(--teal);"></div></div><div class="pace-label">92%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-auto">⚡ Auto</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="lvl-3 grp-end" data-parent="ns-meta-c1">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="adset-name">Lookalike 2% — Broad</div><div class="adset-meta">4 ads · $200/day</div></td>
+              <td><span class="score-badge s-green">89.4</span></td>
+              <td><span class="mono">$3,800</span></td>
+              <td><span class="mono vm">$4,000</span></td>
+              <td><span class="mono vg">$1.08</span></td>
+              <td><span class="mono vg">4.4%</span></td>
+              <td><span class="mono">352</span></td>
+              <td><span class="mono vg">$10.80</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:95%;background:var(--green);"></div></div><div class="pace-label">95%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-auto">⚡ Auto</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- NS: Platform — Google (collapsed, no children shown) -->
+            <tr class="lvl-1 grp-end" data-parent="ns" onclick="toggle('ns-ggl',this)" id="ns-ggl-row">
+              <td class="i1"><button class="xbtn" id="ns-ggl-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="plt-name-cell"><div class="plt-badge" style="background:#fdecea;color:#ea4335;">G</div><span class="plt-label">Google Ads</span></div></td>
+              <td><span class="score-badge s-green">88.4</span></td>
+              <td><span class="mono">$6,200</span></td>
+              <td><span class="mono vm">$7,000</span></td>
+              <td><span class="mono vg">$1.22</span></td>
+              <td><span class="mono vg">3.8%</span></td>
+              <td><span class="mono">508</span></td>
+              <td><span class="mono vg">$12.20</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:89%;background:var(--teal);"></div></div><div class="pace-label">89%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-auto">⚡ Auto</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">↗ Open in Google Ads</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item danger">✕ Remove Platform</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- ══════════════════════════════════════════
+                 CLIENT 3: PEAKS OUTDOOR — ADVISORY
+            ══════════════════════════════════════════ -->
+            <tr class="lvl-0" onclick="toggle('po',this)" id="po-row">
+              <td><button class="xbtn" id="po-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td>
+                <div class="client-cell">
+                  <div class="client-dot" style="background:#5c54c8;">PO</div>
+                  <div>
+                    <div class="client-name" onclick="event.stopPropagation();openPanel('po')">Peaks Outdoor</div>
+                    <div class="client-meta">Shopify · Outdoor gear · 2 platforms</div>
+                  </div>
+                </div>
+              </td>
+              <td><span class="score-badge s-amber">67.2</span></td>
+              <td><span class="mono">$9,800</span></td>
+              <td><span class="mono vm">$12,000</span></td>
+              <td><span class="mono va">$2.14</span></td>
+              <td><span class="mono va">2.2%</span></td>
+              <td><span class="mono">458</span></td>
+              <td><span class="mono va">$21.40</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:82%;background:var(--amber);"></div></div><div class="pace-label">82% · slow</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ 1 Advisory</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">📊 Client Dashboard</div>
+                    <div class="dot-menu-item">📈 View Reporting</div>
+                    <div class="dot-menu-item">⚡ AI Insights</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item">✎ Edit Client</div>
+                    <div class="dot-menu-item danger">✕ Remove Client</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- PO: Platform — Meta -->
+            <tr class="lvl-1" data-parent="po" onclick="toggle('po-meta',this)" id="po-meta-row">
+              <td class="i1"><button class="xbtn" id="po-meta-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="plt-name-cell"><div class="plt-badge" style="background:#e8effe;color:#1877f2;">f</div><span class="plt-label">Meta</span></div></td>
+              <td><span class="score-badge s-amber">64.8</span></td>
+              <td><span class="mono">$5,400</span></td>
+              <td><span class="mono vm">$6,500</span></td>
+              <td><span class="mono va">$2.44</span></td>
+              <td><span class="mono va">1.9%</span></td>
+              <td><span class="mono">221</span></td>
+              <td><span class="mono va">$24.43</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:83%;background:var(--amber);"></div></div><div class="pace-label">83%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ Advisory</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item danger">✕ Remove Platform</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="lvl-2" data-parent="po-meta" onclick="toggle('po-meta-c1',this)" id="po-meta-c1-row">
+              <td class="i2"><button class="xbtn" id="po-meta-c1-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="camp-name-cell"><div class="camp-name">Trail Season — Conversion</div><div class="camp-type">Conversion · Outdoor interest</div></div></td>
+              <td><span class="score-badge s-amber">64.8</span></td>
+              <td><span class="mono">$5,400</span></td>
+              <td><span class="mono vm">$6,500</span></td>
+              <td><span class="mono va">$2.44</span></td>
+              <td><span class="mono va">1.9%</span></td>
+              <td><span class="mono">221</span></td>
+              <td><span class="mono va">$24.43</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:83%;background:var(--amber);"></div></div><div class="pace-label">83%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ Advisory</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Campaign</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item">↗ Open in Meta</div>
+                    <div class="dot-menu-divider"></div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="lvl-3" data-parent="po-meta-c1">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="adset-name">Outdoor Enthusiasts 25-45</div><div class="adset-meta">3 ads · $180/day</div></td>
+              <td><span class="score-badge s-amber">64.8</span></td>
+              <td><span class="mono">$3,200</span></td>
+              <td><span class="mono vm">$3,800</span></td>
+              <td><span class="mono va">$2.20</span></td>
+              <td><span class="mono va">2.1%</span></td>
+              <td><span class="mono">145</span></td>
+              <td><span class="mono va">$22.07</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:84%;background:var(--amber);"></div></div><div class="pace-label">84%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <tr class="lvl-3 grp-end" data-parent="po-meta-c1">
+              <td class="i3"><button class="xbtn"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="adset-name">Retargeting — Site Visitors</div><div class="adset-meta">2 ads · $90/day</div></td>
+              <td><span class="score-badge s-amber">58.2</span></td>
+              <td><span class="mono">$2,200</span></td>
+              <td><span class="mono vm">$2,700</span></td>
+              <td><span class="mono va">$2.88</span></td>
+              <td><span class="mono va">1.6%</span></td>
+              <td><span class="mono">76</span></td>
+              <td><span class="mono va">$28.95</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:81%;background:var(--amber);"></div></div><div class="pace-label">81%</div></div></td>
+              <td><span class="alert-pip a-warn">⚠ Under-pacing</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">▶ Pause Ad Set</div>
+                    <div class="dot-menu-item">✎ Edit</div>
+                    <div class="dot-menu-item danger">✕ Delete</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+            <!-- PO: Platform — Google -->
+            <tr class="lvl-1 grp-end" data-parent="po" onclick="toggle('po-ggl',this)" id="po-ggl-row">
+              <td class="i1"><button class="xbtn" id="po-ggl-x"><svg width="8" height="8" viewBox="0 0 8 8" fill="none"><path d="M2 1.5L5.5 4 2 6.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></td>
+              <td><div class="plt-name-cell"><div class="plt-badge" style="background:#fdecea;color:#ea4335;">G</div><span class="plt-label">Google Ads</span></div></td>
+              <td><span class="score-badge s-green">72.4</span></td>
+              <td><span class="mono">$4,400</span></td>
+              <td><span class="mono vm">$5,500</span></td>
+              <td><span class="mono vg">$1.62</span></td>
+              <td><span class="mono vg">2.8%</span></td>
+              <td><span class="mono">237</span></td>
+              <td><span class="mono vg">$18.57</span></td>
+              <td><div class="pace-wrap"><div class="pace-bar"><div class="pace-fill" style="width:80%;background:var(--teal);"></div></div><div class="pace-label">80%</div></div></td>
+              <td><span class="alert-pip a-ok">✓ Healthy</span></td>
+              <td><span class="status-dot st-live">● Live</span></td>
+              <td><span class="ai-mode ai-hybrid">⊕ Hybrid</span></td>
+              <td class="action-col" onclick="event.stopPropagation()">
+                <div class="dot-menu-wrap">
+                  <button class="dot-btn" onclick="toggleMenu(this)">···</button>
+                  <div class="dot-menu">
+                    <div class="dot-menu-item">↗ Open in Google Ads</div>
+                    <div class="dot-menu-item">✎ Edit Budget</div>
+                    <div class="dot-menu-item danger">✕ Remove Platform</div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-footer">
+        <span class="footer-info">Showing 3 of 12 clients · 9 platforms · 14 campaigns · 22 ad sets</span>
+        <span style="font-size:12px;color:var(--teal);font-weight:700;cursor:pointer;">View all 12 clients →</span>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- PANEL OVERLAY -->
+<div class="panel-overlay" id="overlay" onclick="closePanel()"></div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detailPanel">
+  <div class="panel-header">
+    <div class="panel-header-text">
+      <div class="panel-level-tag" id="panelLevelTag"></div>
+      <div class="panel-name" id="panelName"></div>
+      <div class="panel-meta" id="panelMeta"></div>
+    </div>
+    <button class="panel-close" onclick="closePanel()">✕</button>
+  </div>
+  <div class="panel-body">
+    <div class="panel-signal">
+      <div class="panel-block-label">What Kaivo sees</div>
+      <div id="panelSignalStats"></div>
+      <div class="panel-signal-text" id="panelSignalText"></div>
+    </div>
+    <div class="panel-rec">
+      <div class="panel-block-label">Recommendation</div>
+      <div class="panel-rec-text" id="panelRecText"></div>
+      <div class="panel-impact-row" id="panelImpactChips"></div>
+      <div class="panel-trajectory" id="panelTrajectory"></div>
+      <div class="panel-confidence" id="panelConfidence"></div>
+    </div>
+  </div>
+  <div class="panel-actions">
+    <button class="panel-btn-apply" id="panelApplyBtn">Apply</button>
+    <button class="panel-btn-dismiss" onclick="closePanel()">Dismiss</button>
+  </div>
+</div>
+
+<script>
+// ── EXPAND / COLLAPSE ──
+function toggle(id, row) {
+  var btn = document.getElementById(id + "-x");
+  var children = document.querySelectorAll("[data-parent=" + JSON.stringify(id) + "]");
+  if (!btn) return;
+  var isOpen = btn.classList.contains("open");
+  if (isOpen) {
+    btn.classList.remove("open");
+    row.classList.remove("expanded");
+    children.forEach(function(child) {
+      child.classList.remove("visible", "expanded");
+      var childId = child.id ? child.id.replace("-row","") : null;
+      if (childId) {
+        var grandchildren = document.querySelectorAll("[data-parent=" + JSON.stringify(childId) + "]");
+        grandchildren.forEach(function(gc) { gc.classList.remove("visible","expanded"); });
+        var childBtn = document.getElementById(childId + "-x");
+        if (childBtn) childBtn.classList.remove("open");
+      }
+    });
+  } else {
+    btn.classList.add("open");
+    row.classList.add("expanded");
+    children.forEach(function(child) { child.classList.add("visible"); });
+  }
+}
+
+function expandAll() {
+  document.querySelectorAll(".lvl-0").forEach(function(row) {
+    var id = row.id ? row.id.replace("-row","") : null;
+    if (id) { var btn = document.getElementById(id + "-x"); if (btn && !btn.classList.contains("open")) toggle(id, row); }
+  });
+}
+
+function collapseAll() {
+  document.querySelectorAll(".lvl-2").forEach(function(row) {
+    var id = row.id ? row.id.replace("-row","") : null;
+    if (id) { var btn = document.getElementById(id + "-x"); if (btn && btn.classList.contains("open")) { btn.classList.remove("open"); row.classList.remove("expanded"); } }
+  });
+  document.querySelectorAll(".lvl-1").forEach(function(row) {
+    row.classList.remove("visible","expanded");
+    var id = row.id ? row.id.replace("-row","") : null;
+    if (id) { var btn = document.getElementById(id + "-x"); if (btn) btn.classList.remove("open"); }
+  });
+  document.querySelectorAll(".lvl-0").forEach(function(row) {
+    var id = row.id ? row.id.replace("-row","") : null;
+    if (id) { var btn = document.getElementById(id + "-x"); if (btn) btn.classList.remove("open"); row.classList.remove("expanded"); }
+  });
+  document.querySelectorAll(".lvl-2,.lvl-3").forEach(function(r) { r.classList.remove("visible"); });
+}
+
+// ── DOT MENU ──
+function toggleMenu(btn) {
+  var menu = btn.nextElementSibling;
+  var isOpen = menu.classList.contains("open");
+  document.querySelectorAll(".dot-menu.open").forEach(function(m) { m.classList.remove("open"); });
+  document.querySelectorAll(".dot-btn.menu-open").forEach(function(b) { b.classList.remove("menu-open"); });
+  if (!isOpen) { menu.classList.add("open"); btn.classList.add("menu-open"); }
+  event.stopPropagation();
+}
+document.addEventListener("click", function() {
+  document.querySelectorAll(".dot-menu.open").forEach(function(m) { m.classList.remove("open"); });
+  document.querySelectorAll(".dot-btn.menu-open").forEach(function(b) { b.classList.remove("menu-open"); });
+});
+
+// ── PERIOD TOGGLE ──
+function setPeriod(period, btn) {
+  document.querySelectorAll(".period-btn").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+}
+
+// ── SORT ──
+var sortState = { field: "score", dir: "desc" };
+
+function applySort(btn) {
+  var field = btn.getAttribute("data-field");
+  if (field === sortState.field) {
+    sortState.dir = sortState.dir === "desc" ? "asc" : "desc";
+  } else {
+    sortState.field = field;
+    sortState.dir = "desc";
+  }
+  var labels = { score: "Score", spend: "Spend", alerts: "Alerts", ctr: "CTR" };
+  document.querySelectorAll(".sort-btn").forEach(function(b) {
+    var f = b.getAttribute("data-field");
+    b.classList.remove("active");
+    if (f === sortState.field) {
+      b.classList.add("active");
+      b.textContent = labels[f] + " " + (sortState.dir === "desc" ? "↓" : "↑");
+    } else {
+      b.textContent = labels[f];
+    }
+  });
+  var tbody = document.querySelector(".camp-table tbody");
+  if (!tbody) return;
+  var allRows = Array.from(tbody.querySelectorAll("tr"));
+  var blocks = [];
+  var current = null;
+  allRows.forEach(function(row) {
+    if (row.classList.contains("lvl-0")) {
+      current = { root: row, children: [] };
+      blocks.push(current);
+    } else if (current) {
+      current.children.push(row);
+    }
+  });
+  var d = sortState.dir === "desc" ? -1 : 1;
+  blocks.sort(function(a, b) {
+    var aCells = a.root.cells;
+    var bCells = b.root.cells;
+    var aVal, bVal;
+    if (sortState.field === "score") {
+      aVal = parseFloat(aCells[2].textContent) || 0;
+      bVal = parseFloat(bCells[2].textContent) || 0;
+      return d * (bVal - aVal);
+    } else if (sortState.field === "spend") {
+      aVal = parseFloat(aCells[3].textContent.replace(/[^0-9.]/g, "")) || 0;
+      bVal = parseFloat(bCells[3].textContent.replace(/[^0-9.]/g, "")) || 0;
+      return d * (bVal - aVal);
+    } else if (sortState.field === "ctr") {
+      aVal = parseFloat(aCells[6].textContent) || 0;
+      bVal = parseFloat(bCells[6].textContent) || 0;
+      return d * (bVal - aVal);
+    } else if (sortState.field === "alerts") {
+      var order = function(el) {
+        var t = el.cells[10].textContent;
+        if (t.indexOf("Critical") > -1) return 0;
+        if (t.indexOf("Advisory") > -1) return 1;
+        return 2;
+      };
+      return d * (order(a.root) - order(b.root));
+    }
+    return 0;
+  });
+  blocks.forEach(function(block) {
+    tbody.appendChild(block.root);
+    block.children.forEach(function(child) { tbody.appendChild(child); });
+  });
+}
+
+// ── PANEL DATA ──
+var panels = {
+  hc: {
+    level: "Client", levelBg: "#fdf0ec", levelColor: "#e76f51",
+    name: "Harbor Coffee Co.", meta: "3 platforms · 5 campaigns · $15,000 budget",
+    signals: [
+      { key: "Avg Kaivo Score", val: "48.2", color: "var(--red)" },
+      { key: "Avg CTR", val: "0.9%", color: "var(--red)" },
+      { key: "Avg CPC", val: "$3.92", color: "var(--red)" },
+      { key: "Cost / Conv.", val: "$39.74", color: "var(--red)" }
+    ],
+    signalText: "Performance is significantly below benchmarks across all 3 platforms. Meta is the weakest at $41 cost per conversion. The creative mix has not changed in 6 weeks and frequency on Meta has reached 4.8x.",
+    recText: "Immediate creative refresh needed on Meta. Pause the 2 lowest-performing ad sets and reallocate that budget to the retargeting campaign which is converting at 2x the rate. Switch AI mode to Hybrid to allow Kaivo to auto-optimise bids.",
+    chips: [
+      { label: "Potential saving", val: "$1,800/mo", color: "var(--green)" },
+      { label: "Est. score uplift", val: "+18 pts", color: "var(--teal)" },
+      { label: "Actions needed", val: "3", color: "var(--amber)" }
+    ],
+    trajectory: { type: "warn", text: "If unacted: At current CPC trend, monthly cost per conversion will exceed $50 within 12 days." },
+    confidence: { level: 4, text: "High confidence · 6 weeks of consistent underperformance signal" },
+    applyLabel: "Switch to Hybrid AI Mode"
+  },
+  ns: {
+    level: "Client", levelBg: "var(--teal-light)", levelColor: "var(--teal-dark)",
+    name: "Nova Skincare", meta: "4 platforms · 6 campaigns · $20,000 budget",
+    signals: [
+      { key: "Avg Kaivo Score", val: "91.4", color: "var(--green)" },
+      { key: "Avg CTR", val: "4.2%", color: "var(--green)" },
+      { key: "Avg CPC", val: "$1.14", color: "var(--green)" },
+      { key: "Cost / Conv.", val: "$11.40", color: "var(--green)" }
+    ],
+    signalText: "Top performer across the entire portfolio. Meta Lookalike 1% is converting at $9.81 cost per conversion with frequency still at 1.6x. Significant headroom to scale before saturation.",
+    recText: "Scale Meta Lookalike 1% budget from $200/day to $340/day. The audience pool is large enough to absorb the increase. Monitor for 5 days before further scaling.",
+    chips: [
+      { label: "Est. extra conv./mo", val: "+180", color: "var(--green)" },
+      { label: "Budget increase", val: "+$140/day", color: "var(--teal)" },
+      { label: "Saturation risk", val: "Low", color: "var(--green)" }
+    ],
+    trajectory: { type: "ok", text: "Scaling now captures the performance window before the summer creative cycle ends." },
+    confidence: { level: 5, text: "Very high confidence · 3 weeks of stable top performance" },
+    applyLabel: "Scale Meta Budget"
+  },
+  po: {
+    level: "Client", levelBg: "#eeeeff", levelColor: "#5c54c8",
+    name: "Peaks Outdoor", meta: "2 platforms · 3 campaigns · $12,000 budget",
+    signals: [
+      { key: "Avg Kaivo Score", val: "67.2", color: "var(--amber)" },
+      { key: "Budget pacing", val: "82%", color: "var(--amber)" },
+      { key: "Avg CPC", val: "$2.14", color: "var(--amber)" },
+      { key: "Retargeting CTR", val: "1.6%", color: "var(--amber)" }
+    ],
+    signalText: "Under-pacing on the retargeting campaign is the primary issue. The audience is too narrow — only 28,000 users in the retargeting pool which is too small for the $90/day budget to deploy effectively.",
+    recText: "Expand the retargeting window from 30 days to 60 days to increase the pool size. This should resolve the under-pacing without changing the budget. Also consider adding an email list custom audience.",
+    chips: [
+      { label: "Pool increase", val: "+40k users", color: "var(--teal)" },
+      { label: "Est. pacing fix", val: "95%+", color: "var(--green)" },
+      { label: "Risk", val: "Low", color: "var(--green)" }
+    ],
+    trajectory: { type: "ok", text: "Simple audience expansion. No budget or creative changes needed." },
+    confidence: { level: 3, text: "Medium confidence · 10 days of under-pacing data" },
+    applyLabel: "Expand Retargeting Window"
+  }
+};
+
+function openPanel(id) {
+  var p = panels[id];
+  if (!p) return;
+  var tag = document.getElementById("panelLevelTag");
+  tag.textContent = p.level;
+  tag.style.background = p.levelBg;
+  tag.style.color = p.levelColor;
+  document.getElementById("panelName").textContent = p.name;
+  document.getElementById("panelMeta").textContent = p.meta;
+  document.getElementById("panelSignalStats").innerHTML = p.signals.map(function(s) {
+    return '<div class="panel-signal-stat"><span class="panel-signal-key">' + s.key + '</span><span class="panel-signal-val" style="color:' + s.color + ';">' + s.val + '</span></div>';
+  }).join("");
+  document.getElementById("panelSignalText").textContent = p.signalText;
+  document.getElementById("panelRecText").textContent = p.recText;
+  document.getElementById("panelImpactChips").innerHTML = p.chips.map(function(c) {
+    return '<div class="panel-impact-chip"><div class="panel-impact-chip-label">' + c.label + '</div><div class="panel-impact-chip-val" style="color:' + c.color + ';">' + c.val + '</div></div>';
+  }).join("");
+  var traj = document.getElementById("panelTrajectory");
+  traj.className = "panel-trajectory " + (p.trajectory.type === "warn" ? "traj-warn" : "traj-ok");
+  traj.textContent = (p.trajectory.type === "warn" ? "⚠ " : "✓ ") + p.trajectory.text;
+  var dots = "";
+  for (var i = 0; i < 5; i++) {
+    dots += '<div class="conf-dot" style="background:' + (i < p.confidence.level ? 'var(--teal)' : 'var(--cream-border)') + '"></div>';
+  }
+  document.getElementById('panelConfidence').innerHTML = '<div class="conf-dots">' + dots + '</div><span>' + p.confidence.text + '</span>';
+  document.getElementById("panelApplyBtn").textContent = p.applyLabel;
+  document.getElementById("overlay").classList.add("open");
+  document.getElementById("detailPanel").classList.add("open");
+}
+
+function closePanel() {
+  document.getElementById("overlay").classList.remove("open");
+  document.getElementById("detailPanel").classList.remove("open");
+}
+</script>
+</body>
+</html>

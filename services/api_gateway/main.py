@@ -186,6 +186,10 @@ origins = [
     "http://localhost:3001",
     "http://localhost:3002",
     "http://localhost:3003",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "http://127.0.0.1:3002",
+    "http://127.0.0.1:3003",
 ]
 
 # Add FRONTEND_URL / NEXT_PUBLIC_APP_URL (e.g. ngrok) for local dev over tunnel
@@ -215,7 +219,8 @@ app.add_middleware(
     allow_origin_regex=origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
-    allow_headers=["*"],
+    allow_headers=["Authorization", "X-Agency-ID", "Content-Type", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["*"],
 )
 
 # --- Proxy Route Handler ---
