@@ -93,7 +93,9 @@ export default function IntegrationsPage() {
   const { data: session } = useSession();
   const { accessToken, agencyId } = useApiAuth();
   const { clients } = useClients();
-  const isAdmin = session?.user?.agencyRole === 'agency_admin';
+  const isAdmin =
+    session?.user?.isSuperuser === true ||
+    (session?.user?.agencyRole ?? '').toLowerCase().includes('admin');
 
   // Meta BM State
   const [metaStatus, setMetaStatus] = useState<MetaBMStatus | null>(null);

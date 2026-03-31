@@ -16,6 +16,13 @@ _DEFAULT_MARKUP = Decimal("1.0000")
 class AgencyBase(BaseModel):
     name: str
     stripe_customer_id: Optional[str] = None
+    email: Optional[str] = None
+    logo_url: Optional[str] = None
+    website: Optional[str] = None
+    phone: Optional[str] = None
+    timezone: Optional[str] = None
+    currency: Optional[str] = None
+
 
 class AgencyCreate(AgencyBase):
     """
@@ -27,6 +34,14 @@ class AgencyCreate(AgencyBase):
 class AgencyUpdate(BaseModel):
     """Schema for updating agency settings"""
     name: Optional[str] = None
+    stripe_customer_id: Optional[str] = None
+    email: Optional[str] = None
+    logo_url: Optional[str] = None
+    website: Optional[str] = None
+    phone: Optional[str] = None
+    timezone: Optional[str] = None
+    currency: Optional[str] = None
+
 
 class AgencyOut(AgencyBase):
     """

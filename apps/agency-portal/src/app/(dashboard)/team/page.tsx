@@ -33,18 +33,40 @@ export default function TeamPage() {
   if (status === 'loading') return <TeamSkeleton />;
   if (status !== 'authenticated') return null;
 
-  const isAdmin = session?.user?.agencyRole === 'agency_admin';
+  const isAdmin =
+    session?.user?.isSuperuser === true ||
+    session?.user?.agencyRole === 'agency_admin';
 
   async function handleInvite() {
     if (!inviteEmail.trim() || !accessToken || !agencyId) return;
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail.trim())) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
     setSending(true);
     try {
-      await apiClient.post(
+      const res = await apiClient.post<{
+        success: boolean;
+        invite_link?: string;
+        email_sent?: boolean;
+        message?: string;
+      }>(
         API_ENDPOINTS.AGENCY.INVITE(agencyId),
         { email: inviteEmail, role: inviteRole },
         { accessToken, agencyId },
       );
-      toast.success(`Invitation sent to ${inviteEmail}`);
+
+      if (res.email_sent) {
+        toast.success(`Invitation emailed to ${inviteEmail}`);
+      } else if (res.invite_link) {
+        toast.success('Invitation created — copy the link from the API response/logs if needed.');
+      } else {
+        toast.success(`Invitation created for ${inviteEmail}`);
+      }
+
       setInviteEmail('');
       setShowInvite(false);
       refreshInvites();
@@ -179,14 +201,19 @@ export default function TeamPage() {
             Pending Invites
           </h2>
           <div className="space-y-2">
-            {invites.map(invite => (
+                {invites.map(invite => (
               <div key={invite.id} className="rounded-xl border border-dashed border-border bg-white/[0.02] px-5 py-3 flex items-center gap-4">
                 <div className="h-8 w-8 rounded-full bg-amber-400/10 flex items-center justify-center shrink-0">
                   <Mail className="h-3.5 w-3.5 text-amber-400" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-text-primary truncate">{invite.email}</p>
-                  <p className="text-[10px] text-text-muted">Invited as {AGENCY_ROLES[invite.role as AgencyRole]?.label || invite.role}</p>
+                  <p className="text-[10px] text-text-muted">
+                    Invited as {AGENCY_ROLES[invite.role as AgencyRole]?.label || invite.role}
+                    {invite.expires_at && (
+                      <> · Expires on {new Date(invite.expires_at).toLocaleDateString()}</>
+                    )}
+                  </p>
                 </div>
                 <button
                   onClick={() => handleCancelInvite(invite.id)}

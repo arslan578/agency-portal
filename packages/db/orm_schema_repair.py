@@ -17,16 +17,33 @@ _ORM_COLUMNS: list[tuple[str, str, str]] = [
     ("agencies", "updated_at", "TIMESTAMP WITH TIME ZONE"),
     ("agencies", "credits", "DECIMAL(10,2) NOT NULL DEFAULT 0.00"),
     ("agencies", "billing_status", "VARCHAR DEFAULT 'active'"),
+    # Contact/profile fields
+    ("agencies", "email", "VARCHAR DEFAULT NULL"),
+    ("agencies", "logo_url", "VARCHAR DEFAULT NULL"),
+    ("agencies", "website", "VARCHAR DEFAULT NULL"),
+    ("agencies", "phone", "VARCHAR DEFAULT NULL"),
+    ("agencies", "timezone", "VARCHAR DEFAULT NULL"),
+    ("agencies", "currency", "VARCHAR(8) DEFAULT NULL"),
     ("agencies", "meta_business_manager_id", "VARCHAR(100) DEFAULT NULL"),
     ("agencies", "meta_business_manager_name", "VARCHAR(255) DEFAULT NULL"),
     ("agencies", "meta_agency_access_token", "TEXT DEFAULT NULL"),
     ("agencies", "meta_token_expires_at", "TIMESTAMP WITH TIME ZONE DEFAULT NULL"),
     ("agencies", "meta_connected_at", "TIMESTAMP WITH TIME ZONE DEFAULT NULL"),
+    # Reddit agency OAuth columns added in ORM but may be missing in older DBs
+    ("agencies", "reddit_agency_access_token", "TEXT DEFAULT NULL"),
+    ("agencies", "reddit_refresh_token", "TEXT DEFAULT NULL"),
+    ("agencies", "reddit_token_expires_at", "TIMESTAMP WITH TIME ZONE DEFAULT NULL"),
+    ("agencies", "reddit_connected_at", "TIMESTAMP WITH TIME ZONE DEFAULT NULL"),
     ("clients", "account_mode", "VARCHAR(20) DEFAULT 'kaivo_managed'"),
     ("clients", "agency_meta_account_id", "VARCHAR(100) DEFAULT NULL"),
     ("clients", "meta_account_status", "VARCHAR(30) DEFAULT 'agency_not_connected'"),
     ("clients", "meta_account_name", "VARCHAR(255) DEFAULT NULL"),
     ("clients", "meta_linked_at", "TIMESTAMP WITH TIME ZONE DEFAULT NULL"),
+    # Reddit client linking columns added later
+    ("clients", "agency_reddit_account_id", "VARCHAR(100) DEFAULT NULL"),
+    ("clients", "reddit_account_status", "VARCHAR(30) DEFAULT 'agency_not_connected'"),
+    ("clients", "reddit_account_name", "VARCHAR(255) DEFAULT NULL"),
+    ("clients", "reddit_linked_at", "TIMESTAMP WITH TIME ZONE DEFAULT NULL"),
     ("users", "last_login_at", "TIMESTAMP WITH TIME ZONE DEFAULT NULL"),
 ]
 

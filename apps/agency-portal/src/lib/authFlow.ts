@@ -15,7 +15,10 @@ export async function inferInviteJourney({
   agencyId,
   agencyRole,
 }: InviteJourneyContext): Promise<InviteJourney> {
-  if (!accessToken || !agencyId || agencyRole !== 'agency_admin') {
+  const isAdminRole =
+    (agencyRole ?? '').toLowerCase().includes('admin');
+
+  if (!accessToken || !agencyId || !isAdminRole) {
     return 'team';
   }
 

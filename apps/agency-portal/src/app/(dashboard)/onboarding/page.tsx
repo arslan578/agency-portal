@@ -32,9 +32,15 @@ const TIMEZONES = ['UTC', 'America/New_York', 'America/Chicago', 'America/Denver
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
 
 export default function OnboardingPage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const { accessToken, agencyId } = useApiAuth();
+
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.agencyRole !== 'agency_admin') {
+      router.replace('/');
+    }
+  }, [session, status, router]);
 
   const [step, setStep] = useState<Step>(1);
 
