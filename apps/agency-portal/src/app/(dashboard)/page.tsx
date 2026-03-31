@@ -71,7 +71,6 @@ export default function DashboardPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
-  // Move useEffect to the top level - this is the fix for the hook order violation
   useEffect(() => {
     if (!profileMenuOpen) return;
     const onPointerDown = (ev: MouseEvent) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
@@ -11,6 +11,7 @@ import type { MetaBMStatus, BMAccount, RedditAgencyStatus } from '@/lib/api/cont
 import { MOCK_PLATFORMS } from '@/lib/mock/dashboard';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID || '1340998947829390';
+const META_PENDING_CODE_KEY = 'kaivo_meta_oauth_code';
 const REDDIT_CLIENT_ID = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || '';
 const REDDIT_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_REDDIT_REDIRECT_URI || '';
 
@@ -118,22 +119,31 @@ export default function IntegrationsPage() {
   const [connectModalPlatform, setConnectModalPlatform] = useState<string | null>(null);
   const [panelDataWindow, setPanelDataWindow] = useState<string>('90 days');
   const [connectDataWindow, setConnectDataWindow] = useState<string>('90 days');
+  const [pendingMetaCode, setPendingMetaCode] = useState<string | null>(null);
+  const metaStatusRequestIdRef = useRef(0);
 
   // ── Fetching Data ──────────────────────────────────────────────────────────
 
   const fetchMetaStatus = useCallback(async () => {
     if (!accessToken || !agencyId) return;
+    const requestId = ++metaStatusRequestIdRef.current;
     setMetaLoading(true);
     try {
       const data = await apiClient.get<MetaBMStatus>(
         API_ENDPOINTS.META.STATUS(agencyId),
         { accessToken, agencyId },
       );
-      setMetaStatus(data);
+      if (requestId === metaStatusRequestIdRef.current) {
+        setMetaStatus(data);
+      }
     } catch {
-      setMetaStatus(null);
+      if (requestId === metaStatusRequestIdRef.current) {
+        setMetaStatus(null);
+      }
     } finally {
-      setMetaLoading(false);
+      if (requestId === metaStatusRequestIdRef.current) {
+        setMetaLoading(false);
+      }
     }
   }, [accessToken, agencyId]);
 
@@ -154,8 +164,8 @@ export default function IntegrationsPage() {
   }, [accessToken, agencyId]);
 
   useEffect(() => {
-    fetchMetaStatus();
-    fetchRedditStatus();
+    void fetchMetaStatus();
+    void fetchRedditStatus();
   }, [fetchMetaStatus, fetchRedditStatus]);
 
   const fetchBmAccounts = useCallback(async () => {
@@ -197,32 +207,53 @@ export default function IntegrationsPage() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('meta_callback') !== '1') return;
     const code = params.get('code');
-    if (!code || !accessToken || !agencyId || metaConnecting) return;
-
     const url = new URL(window.location.href);
     url.searchParams.delete('meta_callback');
     url.searchParams.delete('code');
     url.searchParams.delete('state');
+    url.searchParams.delete('error');
+    url.searchParams.delete('error_reason');
+    url.searchParams.delete('error_description');
     window.history.replaceState({}, '', url.toString());
 
+    if (!code) {
+      toast.error('Meta authorisation did not return a valid code. Please try again.');
+      return;
+    }
+    window.sessionStorage.setItem(META_PENDING_CODE_KEY, code);
+    setPendingMetaCode(code);
+  }, []);
+
+  useEffect(() => {
+    if (pendingMetaCode || typeof window === 'undefined') return;
+    const storedCode = window.sessionStorage.getItem(META_PENDING_CODE_KEY);
+    if (storedCode) setPendingMetaCode(storedCode);
+  }, [pendingMetaCode]);
+
+  useEffect(() => {
+    if (!pendingMetaCode || !accessToken || !agencyId || metaConnecting) return;
     (async () => {
       setMetaConnecting(true);
       try {
         const exactRedirectUri = `${window.location.origin}/integrations?meta_callback=1`;
         await apiClient.post(
           API_ENDPOINTS.META.CONNECT(agencyId),
-          { code, redirectUri: exactRedirectUri },
+          { code: pendingMetaCode, redirectUri: exactRedirectUri },
           { accessToken, agencyId },
         );
         toast.success('Meta Business Manager connected!');
-        fetchMetaStatus();
+        await fetchMetaStatus();
       } catch (err: unknown) {
         toast.error(getErrorMessage(err, 'Failed to connect Meta'));
       } finally {
         setMetaConnecting(false);
+        setPendingMetaCode(null);
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem(META_PENDING_CODE_KEY);
+        }
       }
     })();
-  }, [accessToken, agencyId, metaConnecting, fetchMetaStatus]);
+  }, [pendingMetaCode, accessToken, agencyId, metaConnecting, fetchMetaStatus]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
