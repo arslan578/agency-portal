@@ -90,6 +90,10 @@ interface DisplayCampaign {
   roas: number;
   cpa: number;
   isReal: boolean;
+  ctr?: number;
+  impressions?: number;
+  clicks?: number;
+  conversions?: number;
 }
 
 interface DisplayPlatformNode {
@@ -112,6 +116,33 @@ interface DisplayPlatformNode {
 function avatarColorFromId(id: number): string {
   const h = (id * 47) % 360;
   return `hsl(${h} 55% 42%)`;
+}
+
+function mapMetaCampaignsToDisplay(meta: MetaInsights): DisplayCampaign[] {
+  if (!meta.campaigns || meta.campaigns.length === 0) return [];
+  return meta.campaigns.map((camp, idx) => {
+    const clicks = Number(camp.clicks || 0);
+    const impressions = Number(camp.impressions || 0);
+    const spend = Number(camp.spend || 0);
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const cpc = clicks > 0 ? spend / clicks : 0;
+    const budget = Number(camp.budget || 0);
+    const pacing = budget > 0 ? Math.min(200, (spend / budget) * 100) : 0;
+    const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+
+    return {
+      id: idx + 1,
+      name: camp.name || `Campaign #${idx + 1}`,
+      platform: 'Meta',
+      status: (camp.status || 'draft').toLowerCase(),
+      budget,
+      spend,
+      pacing: Math.round(pacing),
+      roas: 0,
+      cpa: camp.cost_per_conversion ?? 0,
+      isReal: true,
+    };
+  });
 }
 
 function mapCampaignToDisplay(c: Campaign): DisplayCampaign {
@@ -175,6 +206,8 @@ export default function ClientDetailPage() {
   const { campaigns: apiCampaigns, error: campaignError, isLoading: campaignsLoading, refresh: refreshCampaigns } = useCampaigns(Number.isNaN(clientId) ? undefined : clientId);
   const { hierarchy, error: hierarchyError, isLoading: hierarchyLoading, refresh: refreshHierarchy } = useClientHierarchy('7d', Number.isNaN(clientId) ? undefined : clientId);
   const { accessToken, agencyId } = useApiAuth();
+  const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
+  const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
 
   const hc = hierarchy?.clients?.[0];
 
@@ -200,13 +233,25 @@ export default function ClientDetailPage() {
     };
   }, [fromList, hc]);
 
+  const hasHierarchyCampaigns = useMemo(
+    () => !!hc && hc.platforms.some((p) => p.campaigns.length > 0),
+    [hc],
+  );
+
   const campaigns: DisplayCampaign[] = useMemo(() => {
-    // Prefer the dedicated campaigns endpoint as the primary source of truth.
+    // 1. Prefer hierarchy (rich performance usage from usage_records)
+    if (hasHierarchyCampaigns && hc) {
+      return flattenHierarchyCampaigns(hc);
+    }
+    // 2. Fall back to Meta insights if we have them (direct platform fetch)
+    if (metaInsights && metaInsights.campaigns && metaInsights.campaigns.length > 0) {
+      return mapMetaCampaignsToDisplay(metaInsights);
+    }
+    // 3. Finally, fall back to the dedicated campaigns list (static data if no metrics yet)
     if (apiCampaigns.length > 0) return apiCampaigns.map(mapCampaignToDisplay);
-    // Fall back to hierarchy usage data when the campaigns list is empty.
-    if (hc) return flattenHierarchyCampaigns(hc);
+
     return [];
-  }, [apiCampaigns, hc]);
+  }, [apiCampaigns, hc, hasHierarchyCampaigns, metaInsights]);
 
   const insights = useMemo(
     () => [] as { id: number; client: string; platform: string; severity: string; text: string; impact: string }[],
@@ -217,9 +262,6 @@ export default function ClientDetailPage() {
   const [dismissedInsightIds, setDismissedInsightIds] = useState<Set<number>>(() => new Set());
   const [pausingId, setPausingId] = useState<number | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
-  const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
-  const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
-
   const visibleInsights = useMemo(
     () => insights.filter((i) => !dismissedInsightIds.has(i.id)),
     [insights, dismissedInsightIds],
@@ -252,11 +294,11 @@ export default function ClientDetailPage() {
   }, [accessToken, agencyId, clientId, metaInsightsLoading]);
 
   useEffect(() => {
-    if ((hc?.platforms?.length ?? 0) > 0) return;
-    if (campaigns.length > 0) return;
+    if (hasHierarchyCampaigns) return;
+    if (apiCampaigns.length > 0) return;
     if (metaInsightsLoading || metaInsights) return;
     void loadMetaInsightsFallback();
-  }, [hc, campaigns.length, metaInsightsLoading, metaInsights, loadMetaInsightsFallback]);
+  }, [apiCampaigns.length, hasHierarchyCampaigns, metaInsightsLoading, metaInsights, loadMetaInsightsFallback]);
 
   const avgRoas = useMemo(() => {
     if (campaigns.length === 0) return 0;
@@ -274,13 +316,15 @@ export default function ClientDetailPage() {
   }, [campaigns, client]);
 
   const platformNodes = useMemo<DisplayPlatformNode[]>(() => {
-    if (hc?.platforms?.length) {
-      return hc.platforms.map((p) => {
+    // 1. If we have hierarchy with actual campaigns, use it as primary structure.
+    const hasHcCampaigns = (hc?.platforms?.some((p) => p.campaigns.length > 0));
+    if (hasHcCampaigns) {
+      return hc!.platforms.map((p) => {
         const pCampaigns: DisplayCampaign[] = p.campaigns.map((camp) => ({
           id: camp.id,
           name: camp.name,
           platform: p.display_name,
-          status: (camp.status || 'draft').toLowerCase(),
+          status: (camp.status || 'active').toLowerCase(),
           budget: camp.metrics.budget,
           spend: camp.metrics.spend,
           pacing: Math.round(camp.metrics.pacing),
@@ -307,63 +351,27 @@ export default function ClientDetailPage() {
       });
     }
 
+    // 2. Otherwise, build from the unified campaigns list (includes Meta fallbacks, api list, etc)
     const byPlatform = new Map<string, DisplayCampaign[]>();
     for (const camp of campaigns) {
-      const arr = byPlatform.get(camp.platform) ?? [];
+      const pName = camp.platform || 'Other';
+      const arr = byPlatform.get(pName) ?? [];
       arr.push(camp);
-      byPlatform.set(camp.platform, arr);
+      byPlatform.set(pName, arr);
     }
-    const fromCampaignApi = Array.from(byPlatform.entries()).map(([name, rows], idx) => {
+    const nodes = Array.from(byPlatform.entries()).map(([name, rows], idx) => {
       const spend = rows.reduce((s, c) => s + c.spend, 0);
       const budget = rows.reduce((s, c) => s + c.budget, 0);
       const pacing = budget > 0 ? Math.round((spend / budget) * 100) : 0;
       const cpc = rows.reduce((s, c) => s + c.cpa, 0) / Math.max(1, rows.length);
-      const ctr = 0;
+      const ctr = rows.reduce((s, c) => s + (c.ctr || 0), 0) / Math.max(1, rows.length);
+      const impressions = rows.reduce((s, c) => s + (c.impressions || 0), 0);
+      const clicks = rows.reduce((s, c) => s + (c.clicks || 0), 0);
+      const conversions = rows.reduce((s, c) => s + (c.conversions || 0), 0);
       const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
       return {
         key: `${name.toLowerCase()}-${idx}`,
         name,
-        score,
-        impressions: 0,
-        clicks: 0,
-        spend,
-        budget,
-        pacing,
-        cpc,
-        ctr,
-        conversions: 0,
-        status: 'live',
-        aiMode: 'manual',
-        campaigns: rows,
-      };
-    });
-    if (fromCampaignApi.length > 0) return fromCampaignApi;
-
-    if (metaInsights?.campaigns?.length) {
-      const mCampaigns: DisplayCampaign[] = metaInsights.campaigns.map((camp, idx) => ({
-        id: Number(String(camp.campaign_id).replace(/[^\d]/g, '')) || idx + 1,
-        name: camp.name || `Campaign #${idx + 1}`,
-        platform: 'Meta',
-        status: (camp.status || 'draft').toLowerCase(),
-        budget: Number(camp.budget || 0),
-        spend: Number(camp.spend || 0),
-        pacing: camp.budget ? Math.round((Number(camp.spend || 0) / Number(camp.budget)) * 100) : 0,
-        roas: 0,
-        cpa: Number(camp.cost_per_conversion || 0),
-        isReal: true,
-      }));
-      const spend = mCampaigns.reduce((s, c) => s + c.spend, 0);
-      const budget = mCampaigns.reduce((s, c) => s + c.budget, 0);
-      const impressions = metaInsights.campaigns.reduce((s, c) => s + Number(c.impressions || 0), 0);
-      const clicks = metaInsights.campaigns.reduce((s, c) => s + Number(c.clicks || 0), 0);
-      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-      const cpc = clicks > 0 ? spend / clicks : 0;
-      const pacing = budget > 0 ? Math.round((spend / budget) * 100) : 0;
-      const conversions = metaInsights.campaigns.reduce((s, c) => s + Number(c.conversions || 0), 0);
-      const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
-      return [{
-        key: 'meta',
-        name: 'Meta',
         score,
         impressions,
         clicks,
@@ -375,12 +383,13 @@ export default function ClientDetailPage() {
         conversions,
         status: 'live',
         aiMode: 'manual',
-        campaigns: mCampaigns,
-      }];
-    }
+        campaigns: rows,
+      };
+    });
 
+    if (nodes.length > 0) return nodes;
     return [];
-  }, [hc, campaigns, metaInsights]);
+  }, [hc, campaigns]);
 
   const activityEntries = useMemo(() => {
     if (!client) return [];

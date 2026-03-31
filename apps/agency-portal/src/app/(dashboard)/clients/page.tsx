@@ -415,6 +415,17 @@ export default function ClientsPage() {
         }
       }
 
+      const hasDetail =
+        sourceCampaigns.length > 0 || (c.platforms.length > 0 && (base.spend > 0 || base.budget > 0));
+
+      if (!hasDetail) {
+        map.set(c.id, base);
+        continue;
+      }
+
+      // If we have detail campaigns from fallbacks, aggregate them.
+      // If we have detailed platforms from backend, they might already have empty campaign arrays (lazy).
+      // If so, we should ONLY re-aggregate if campaigns.length > 0.
       if (sourceCampaigns.length === 0) {
         map.set(c.id, base);
         continue;
@@ -949,31 +960,20 @@ export default function ClientsPage() {
                               <AiModeBadge mode={ai} />
                             </td>
                           </tr>
-                          {cOpen &&
-                            (derivedPlatforms.length > 0 ? (
-                              derivedPlatforms.map((p) => (
-                                <PlatformRows
-                                  key={`${cKey}-p-${p.key}`}
-                                  cKey={cKey}
-                                  clientId={c.id}
-                                  platform={p}
-                                fallbackCampaigns={
-                                  fallbackCampaignsByClientPlatform.get(c.id)?.get(p.key.toLowerCase()) ?? []
-                                }
-                                  expanded={expanded}
-                                  onToggle={toggleKey}
-                                />
-                              ))
-                            ) : (
-                              <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
-                                <td className="pl-4 pr-0 py-2" />
-                                <td className="pl-8 pr-3 py-2 text-text-muted" colSpan={12}>
-                                  {metaLoadingClients.has(c.id)
-                                    ? 'Loading platform data...'
-                                    : 'No platform hierarchy data available for this client in the selected period.'}
-                                </td>
-                              </tr>
-                            ))}
+                          {cOpen && (
+                            <ClientDetailedPlatforms
+                              clientId={c.id}
+                              period={period}
+                              cKey={cKey}
+                              fallbackPlatformsMap={fallbackPlatformsMap}
+                              metaFallbackPlatforms={metaFallbackPlatforms}
+                              metaLoading={metaLoadingClients.has(c.id)}
+                              expanded={expanded}
+                              onToggle={toggleKey}
+                              fallbackCampaignsByClientPlatform={fallbackCampaignsByClientPlatform}
+                              summaryPlatforms={c.platforms}
+                            />
+                          )}
                         </Fragment>
                       );
                     })}
@@ -1074,6 +1074,86 @@ export default function ClientsPage() {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+function ClientDetailedPlatforms({
+  clientId,
+  period,
+  cKey,
+  fallbackPlatformsMap,
+  metaFallbackPlatforms,
+  metaLoading,
+  expanded,
+  onToggle,
+  fallbackCampaignsByClientPlatform,
+  summaryPlatforms,
+}: {
+  clientId: number;
+  period: string;
+  cKey: string;
+  fallbackPlatformsMap?: Map<string, HierarchyCampaignRow[]>;
+  metaFallbackPlatforms: PlatformWithCampaignAccountId[];
+  metaLoading: boolean;
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+  fallbackCampaignsByClientPlatform: Map<number, Map<string, HierarchyCampaignRow[]>>;
+  summaryPlatforms: HierarchyPlatformRow[];
+}) {
+  const { hierarchy, isLoading } = useClientHierarchy(period, clientId, true);
+
+  if (isLoading && !hierarchy) {
+    return (
+      <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
+        <td className="pl-4 pr-0 py-2" />
+        <td className="pl-8 pr-3 py-2 text-text-muted italic" colSpan={12}>
+          Loading detailed hierarchy...
+        </td>
+      </tr>
+    );
+  }
+
+  const dbPlatforms = hierarchy?.clients?.[0]?.platforms ?? [];
+  const effectivePlatforms =
+    dbPlatforms.length > 0
+      ? dbPlatforms
+      : (summaryPlatforms.length > 0
+          ? summaryPlatforms
+          : (fallbackPlatformsMap && fallbackPlatformsMap.size > 0)
+            ? Array.from(fallbackPlatformsMap.entries()).map(([pk, campaigns]) =>
+                createSyntheticPlatform(pk, campaigns),
+              )
+            : metaFallbackPlatforms);
+
+  if (effectivePlatforms.length === 0) {
+    return (
+      <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
+        <td className="pl-4 pr-0 py-2" />
+        <td className="pl-8 pr-3 py-2 text-text-muted" colSpan={12}>
+          {metaLoading
+            ? 'Loading platform data...'
+            : 'No platform hierarchy data available for this client.'}
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <>
+      {effectivePlatforms.map((p) => (
+        <PlatformRows
+          key={`${cKey}-p-${p.key}`}
+          cKey={cKey}
+          clientId={clientId}
+          platform={p}
+          fallbackCampaigns={
+            fallbackCampaignsByClientPlatform.get(clientId)?.get(p.key.toLowerCase()) ?? []
+          }
+          expanded={expanded}
+          onToggle={onToggle}
+        />
+      ))}
     </>
   );
 }

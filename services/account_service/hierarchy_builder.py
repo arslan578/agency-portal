@@ -146,6 +146,7 @@ def build_client_hierarchy(
     agency_id: int,
     period: str = "7d",
     client_id: Optional[int] = None,
+    include_campaigns: bool = True,
 ) -> Dict[str, Any]:
     start, end = _period_start_end(period)
 
@@ -238,25 +239,27 @@ def build_client_hierarchy(
                 ):
                     slice_raw = full
 
-                m = _finalize_metrics(
-                    slice_raw["spend"],
-                    int(slice_raw["impressions"]),
-                    int(slice_raw["clicks"]),
-                    b,
-                )
-                camp_nodes.append(
-                    {
-                        "id": camp.id,
-                        "name": camp.name or f"Campaign #{camp.id}",
-                        "status": camp.status.value if camp.status else "draft",
-                        "metrics": m,
-                        "ad_sets": [],
-                    }
-                )
-                p_spend += m["spend"]
-                p_imp += m["impressions"]
-                p_clk += m["clicks"]
-                p_budget += m["budget"]
+                p_spend += slice_raw["spend"]
+                p_imp += slice_raw["impressions"]
+                p_clk += slice_raw["clicks"]
+                p_budget += b
+
+                if include_campaigns:
+                    m = _finalize_metrics(
+                        slice_raw["spend"],
+                        int(slice_raw["impressions"]),
+                        int(slice_raw["clicks"]),
+                        b,
+                    )
+                    camp_nodes.append(
+                        {
+                            "id": camp.id,
+                            "name": camp.name or f"Campaign #{camp.id}",
+                            "status": camp.status.value if camp.status else "draft",
+                            "metrics": m,
+                            "ad_sets": [],
+                        }
+                    )
 
             p_metrics = _finalize_metrics(p_spend, int(p_imp), int(p_clk), p_budget)
             platform_nodes.append(

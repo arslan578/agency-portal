@@ -28,8 +28,13 @@ export function ClientMetaSection({ clientId }: { clientId: number }) {
       );
       setInsights(data);
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to load Meta insights');
+      // Ignore benign aborts (e.g. route change while request in flight)
+      const maybeApiErr = err as { status?: number; message?: string };
+      const isAbort = maybeApiErr?.status === 0 && maybeApiErr?.message === 'Request aborted';
+      if (!isAbort) {
+        console.error(err);
+        toast.error('Failed to load Meta insights');
+      }
     } finally {
       if (isRefresh) setRefreshing(false);
       else setLoading(false);

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { signOut } from "next-auth/react";
+import { useUnassignedCount } from "@/hooks/useAgencyApi";
 
 const NAV_ITEMS = [
   {
@@ -42,8 +43,8 @@ const NAV_ITEMS = [
     ),
   },
   {
-    name: "Reporting",
-    href: "/reports",
+    name: "Client Manager",
+    href: "/client-manager",
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <rect x="1" y="1" width="14" height="14" rx="2" />
@@ -93,6 +94,7 @@ type SidebarUserSnapshot = {
 export function AgencySidebar({ initialUser }: { initialUser?: SidebarUserSnapshot }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { count: unassignedCount } = useUnassignedCount();
   const user = {
     name: session?.user?.name ?? initialUser?.name ?? null,
     email: session?.user?.email ?? initialUser?.email ?? null,
@@ -133,6 +135,17 @@ export function AgencySidebar({ initialUser }: { initialUser?: SidebarUserSnapsh
                 ? pathname.startsWith("/clients") ||
                   Boolean(pathname?.match(/^\/agency\/\d+\/clients(\/|$)/))
                 : pathname.startsWith(item.href);
+
+          let displayPip = <>{item.pip}</>;
+          let pipColor = item.pipColor;
+
+          if (item.name === "Client Manager" && unassignedCount > 0) {
+            displayPip = <>{unassignedCount}</>;
+            pipColor = "bg-coral";
+          }
+
+          const hasPip = (item.name === "Client Manager" && unassignedCount > 0) || item.pip;
+
           return (
             <Link
               key={item.name}
@@ -145,9 +158,9 @@ export function AgencySidebar({ initialUser }: { initialUser?: SidebarUserSnapsh
             >
               {item.icon}
               <span className="flex-1">{item.name}</span>
-              {item.pip && (
-                <span className={`ml-auto min-w-[20px] h-[20px] px-1.5 ${item.pipColor} rounded-md text-[10px] font-bold text-white flex items-center justify-center`}>
-                  {item.pip}
+              {hasPip && (
+                <span className={`ml-auto min-w-[20px] h-[20px] px-1.5 ${pipColor || "bg-aqua"} rounded-md text-[10px] font-bold text-white flex items-center justify-center`}>
+                  {displayPip}
                 </span>
               )}
               {item.dotColor && (

@@ -18,6 +18,7 @@ export const ClientSchema = z.object({
   is_active: z.boolean().default(true),
   account_mode: z.string().optional(),
   markup_percent: z.union([z.string(), z.number()]).optional(),
+  avatar_color: z.string().nullable().optional(),
 });
 
 export const TeamMemberSchema = z.object({

@@ -26,9 +26,10 @@ export const API_ENDPOINTS = {
     CLIENT_CREATE: (id: string) => `${BASE}/agency/${id}/clients`,
     CLIENT_UPDATE: (clientId: number) => `${BASE}/clients/${clientId}`,
     CLIENT_DELETE: (clientId: number) => `${BASE}/clients/${clientId}`,
-    CLIENT_HIERARCHY: (id: string, period: string, clientId?: number) => {
+    CLIENT_HIERARCHY: (id: string, period: string, clientId?: number, includeCampaigns: boolean = true) => {
       const q = new URLSearchParams({ period });
       if (clientId != null) q.set('client_id', String(clientId));
+      if (!includeCampaigns) q.set('include_campaigns', 'false');
       return `${BASE}/agency/${id}/clients/hierarchy?${q.toString()}`;
     },
   },
@@ -40,6 +41,28 @@ export const API_ENDPOINTS = {
   },
   REPORT: {
     CAMPAIGN: (campaignId: number) => `${BASE}/reports/campaign/${campaignId}`,
+  },
+  CLIENT_MANAGER: {
+    SUMMARY: (agencyId: string) => `${BASE}/agency/${agencyId}/client-manager`,
+    UNASSIGNED: (agencyId: string) => `${BASE}/api/agency/accounts/unassigned?agency_id=${agencyId}`,
+    UNASSIGNED_COUNT: (agencyId: string) => `${BASE}/api/agency/accounts/unassigned/count?agency_id=${agencyId}`,
+    SUGGESTIONS: (agencyId: string) => `${BASE}/api/agency/accounts/suggestions?agency_id=${agencyId}`,
+    SUGGESTION_CONFIRM: (agencyId: string, id: string) => `${BASE}/api/agency/accounts/suggestions/${id}/confirm?agency_id=${agencyId}`,
+    SUGGESTION_DISMISS: (agencyId: string, id: string) => `${BASE}/api/agency/accounts/suggestions/${id}/dismiss?agency_id=${agencyId}`,
+    CLIENTS: (agencyId: string) => `${BASE}/agency/${agencyId}/clients`,
+    CLIENT_CREATE: (agencyId: string) => `${BASE}/api/agency/clients?agency_id=${agencyId}`,
+    CLIENT_UPDATE: (agencyId: string, clientId: number) => `${BASE}/agency/${agencyId}/clients/${clientId}`,
+    CLIENT_DELETE: (agencyId: string, clientId: number) => `${BASE}/agency/${agencyId}/clients/${clientId}`,
+    ASSIGN: (agencyId: string, clientId: number) => `${BASE}/agency/${agencyId}/clients/${clientId}/accounts`,
+    DETACH: (agencyId: string, clientId: number, accountId: number) => `${BASE}/agency/${agencyId}/clients/${clientId}/accounts/${accountId}`,
+    ACCESS: (agencyId: string, clientId: number) => `${BASE}/api/agency/clients/${clientId}/access?agency_id=${agencyId}`,
+    ACCESS_UPDATE: (agencyId: string, clientId: number) => `${BASE}/api/agency/clients/${clientId}/access?agency_id=${agencyId}`,
+    ACCESS_LINK: (agencyId: string, clientId: number) => `${BASE}/api/agency/clients/${clientId}/access/link?agency_id=${agencyId}`,
+    MARKUP: (agencyId: string, clientId: number) => `${BASE}/api/agency/clients/${clientId}/markup?agency_id=${agencyId}`,
+    MARKUP_UPDATE: (agencyId: string, clientId: number) => `${BASE}/api/agency/clients/${clientId}/markup?agency_id=${agencyId}`,
+    DISPLAY: (agencyId: string, clientId: number) => `${BASE}/api/agency/clients/${clientId}/display?agency_id=${agencyId}`,
+    DISPLAY_UPDATE: (agencyId: string, clientId: number) => `${BASE}/api/agency/clients/${clientId}/display?agency_id=${agencyId}`,
+    PORTAL_SETTINGS: (clientId: number) => `${BASE}/clients/${clientId}/portal-settings`,
   },
   INTELLIGENCE: {
     RECOMMENDATIONS: `${BASE}/intelligence/recommendations`,
