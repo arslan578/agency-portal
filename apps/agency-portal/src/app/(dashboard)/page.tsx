@@ -71,6 +71,17 @@ export default function DashboardPage() {
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
 
+  // Move useEffect to the top level - this is the fix for the hook order violation
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+    const onPointerDown = (ev: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(ev.target as Node)) setProfileMenuOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    return () => document.removeEventListener('mousedown', onPointerDown);
+  }, [profileMenuOpen]);
+
   if (status === 'loading') return <DashboardSkeleton />;
   if (status !== 'authenticated') return null;
 
@@ -103,16 +114,6 @@ export default function DashboardPage() {
     { key: 'top', label: 'Top Performers' },
     { key: 'manual_ai', label: 'Manual AI' },
   ];
-
-  useEffect(() => {
-    if (!profileMenuOpen) return;
-    const onPointerDown = (ev: MouseEvent) => {
-      if (!profileMenuRef.current) return;
-      if (!profileMenuRef.current.contains(ev.target as Node)) setProfileMenuOpen(false);
-    };
-    document.addEventListener('mousedown', onPointerDown);
-    return () => document.removeEventListener('mousedown', onPointerDown);
-  }, [profileMenuOpen]);
 
   return (
     <>

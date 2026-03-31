@@ -17,12 +17,22 @@ interface LogEvent {
 
 function consoleTransport(event: LogEvent) {
   const prefix = `[Agency:${event.level.toUpperCase()}] ${event.timestamp}`;
-  if (event.level === "error") {
-    console.error(prefix, event.message, event.context ?? "");
-  } else if (event.level === "warn") {
-    console.warn(prefix, event.message, event.context ?? "");
-  } else {
-    console.info(prefix, event.message, event.context ?? "");
+  try {
+    if (event.level === "error") {
+      console.error(prefix, event.message, event.context ?? "");
+    } else if (event.level === "warn") {
+      console.warn(prefix, event.message, event.context ?? "");
+    } else {
+      console.info(prefix, event.message, event.context ?? "");
+    }
+  } catch (consoleError) {
+    // Fallback: if console methods fail, try basic logging
+    try {
+      console.log(`[Agency:FALLBACK] Console logging failed:`, String(consoleError));
+      console.log(prefix, String(event.message), JSON.stringify(event.context ?? {}));
+    } catch {
+      // Last resort: ignore the error to prevent infinite loops
+    }
   }
 }
 
@@ -60,9 +70,11 @@ export function setupGlobalErrorCapture() {
 
   window.addEventListener("error", (event) => {
     logger.error("Uncaught JS Error", {
-      message: event.message,
-      filename: event.filename,
-      lineno: event.lineno,
+      message: event.message || "Unknown error",
+      filename: event.filename || "Unknown file",
+      lineno: event.lineno || 0,
+      colno: event.colno || 0,
+      error: event.error ? String(event.error) : "No error object",
     });
   });
 }

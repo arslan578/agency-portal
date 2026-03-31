@@ -66,7 +66,12 @@ export default function OnboardingPage() {
       try {
         await apiClient.patch(
           API_ENDPOINTS.AGENCY.UPDATE(agencyId),
-          { name: agencyName },
+          {
+            name: agencyName.trim(),
+            email: agencyEmail.trim() || undefined,
+            timezone,
+            currency,
+          },
           { accessToken, agencyId },
         );
       } catch {
@@ -152,7 +157,7 @@ export default function OnboardingPage() {
 
   const availableAccounts = MOCK_AD_ACCOUNTS.filter(a => connectedPlatforms.has(a.platform));
 
-  const stepLabels = ['Agency Profile', 'Connect Platforms', 'Select Clients', 'Sync & Go'];
+  const stepLabels = ['Agency Profile', 'Connect Platform', 'Select Clients', 'All Set'];
 
   return (
     <div className="min-h-screen bg-surface-secondary flex flex-col">
@@ -162,10 +167,10 @@ export default function OnboardingPage() {
           <svg width="26" height="26" viewBox="0 0 239 239" fill="none">
             <path d="M0 0 C3.94 1.39 6.92 3.24 10.25 5.75 C15.07 9.33 19.97 12.72 25 16 C24.44 19.36 23.77 21.43 22.125 24.5 C16.04 36.27 15.75 49.01 18.88 61.61 C21.45 69.39 25.52 76.88 31 83 C33 83 33 83 33 83 C33.2 82.03 33.39 81.06 33.59 80.06 C38.31 58.32 49.75 39.70 68.17 26.78 C83.56 16.94 97.70 13 116 13 C116 22.9 116 32.8 116 43 C111.71 43.66 107.42 44.32 103 45 C89.47 49.06 77.89 55.95 70.95 68.62 C67.5 74.55 66 81 66 81 C91.37 69.11 114.39 67.88 137.75 76.31 C149.87 80.84 160.14 87.77 168 97 C167.9 101.29 164.56 104.13 152.3 115.08 C146 119 146 119 146 119 C132.83 106.29 103.57 101.74 82 107 C82 109 85.69 110 85.69 110 C119.12 132.15 139.69 184.46 135 201 C121.24 199.38 105 196 105 196 C105.47 176.12 75 139 75 139 C83.15 163.15 42 237 38 238 C24 214 29.63 207.44 48.38 174.13 C48 153 38 166 38 166 C4.4 192.5 -50 192 -50 192 C-43 164 7 153 7 153 C21 136 -39.3 122.34 -71 76 C-48.75 69.64 -42 69 -42 69 C-32.88 88.04 -7 104 10 106 C-7.84 85.69 -14.15 40.12 0 0 Z" fill="#FF7043" transform="translate(71,0)" />
           </svg>
-          <span className="text-[16px] font-bold text-text-primary">Kaivo Setup</span>
+          <span className="text-[16px] font-bold text-text-primary tracking-[0.18em]">KAIVO</span>
         </div>
         <button onClick={() => router.push('/')} className="text-[12px] font-semibold text-text-muted hover:text-text-primary">
-          Skip for now →
+          Need help? Contact support →
         </button>
       </div>
 
@@ -198,7 +203,7 @@ export default function OnboardingPage() {
             <div className="space-y-6">
               <div>
                 <h2 className="text-[24px] font-bold text-text-primary">Set up your agency</h2>
-                <p className="text-[14px] text-text-muted mt-1">Tell us about your agency to personalize your experience.</p>
+                <p className="text-[14px] text-text-muted mt-1">Tell us about your agency. This takes less than a minute and you can change everything later in Settings.</p>
               </div>
 
               <div className="bg-white rounded-xl border border-border p-6 space-y-5">
@@ -208,7 +213,7 @@ export default function OnboardingPage() {
                   </div>
                   <div className="flex-1">
                     <div className="text-[12.5px] font-semibold text-text-primary mb-[6px]">Agency Logo</div>
-                    <div className="text-[11.5px] text-text-muted">Click to upload (PNG, JPG, max 2MB)</div>
+                    <div className="text-[11.5px] text-text-muted">Optional — you can add this later. Used in the client portal.</div>
                   </div>
                 </div>
 
@@ -263,7 +268,7 @@ export default function OnboardingPage() {
                   onClick={handleSaveProfile}
                   className="bg-teal-deep hover:bg-teal-deep/90 text-white font-bold text-[13.5px] h-[44px] px-8 rounded-[10px] transition-colors"
                 >
-                  Continue →
+                  Continue
                 </button>
               </div>
             </div>
@@ -272,8 +277,8 @@ export default function OnboardingPage() {
           {step === 2 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-[24px] font-bold text-text-primary">Connect your platforms</h2>
-                <p className="text-[14px] text-text-muted mt-1">Link your ad accounts to start importing data.</p>
+                <h2 className="text-[24px] font-bold text-text-primary">Connect your first platform</h2>
+                <p className="text-[14px] text-text-muted mt-1">Connect at least one ad platform to get started. Your clients come from the ad accounts you have access to on each platform.</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -325,13 +330,21 @@ export default function OnboardingPage() {
                 <button onClick={() => setStep(1)} className="text-[13px] font-semibold text-text-muted hover:text-text-primary">
                   ← Back
                 </button>
-                <button
-                  onClick={() => setStep(3)}
-                  disabled={connectedPlatforms.size === 0}
-                  className="bg-teal-deep hover:bg-teal-deep/90 text-white font-bold text-[13.5px] h-[44px] px-8 rounded-[10px] transition-colors disabled:opacity-50"
-                >
-                  Continue →
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setStep(3)}
+                    className="text-[12px] font-semibold text-text-muted hover:text-text-primary"
+                  >
+                    Skip for now
+                  </button>
+                  <button
+                    onClick={() => setStep(3)}
+                    disabled={connectedPlatforms.size === 0}
+                    className="bg-teal-deep hover:bg-teal-deep/90 text-white font-bold text-[13.5px] h-[44px] px-8 rounded-[10px] transition-colors disabled:opacity-50"
+                  >
+                    Continue
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -339,8 +352,8 @@ export default function OnboardingPage() {
           {step === 3 && (
             <div className="space-y-6">
               <div>
-                <h2 className="text-[24px] font-bold text-text-primary">Select ad accounts</h2>
-                <p className="text-[14px] text-text-muted mt-1">Choose which accounts to import. You can always add more later.</p>
+                <h2 className="text-[24px] font-bold text-text-primary">Select your clients</h2>
+                <p className="text-[14px] text-text-muted mt-1">These are the ad accounts you have access to. Tick the ones you want to manage in Kaivo. You can add or remove accounts anytime from Integrations.</p>
               </div>
 
               <div className="bg-white rounded-xl border border-border overflow-hidden">
@@ -391,7 +404,7 @@ export default function OnboardingPage() {
               </div>
 
               <div>
-                <label className="block text-[12.5px] font-semibold text-text-primary mb-[6px]">Historical Data Window</label>
+                <label className="block text-[12.5px] font-semibold text-text-primary mb-[6px]">Historical Data</label>
                 <div className="flex gap-2">
                   {(['30d', '90d', '6mo', '1yr'] as const).map(w => (
                     <button
@@ -416,7 +429,7 @@ export default function OnboardingPage() {
                   disabled={selectedAccounts.size === 0}
                   className="bg-teal-deep hover:bg-teal-deep/90 text-white font-bold text-[13.5px] h-[44px] px-8 rounded-[10px] transition-colors disabled:opacity-50"
                 >
-                  Start Sync →
+                  Start Syncing
                 </button>
               </div>
             </div>
@@ -427,8 +440,8 @@ export default function OnboardingPage() {
               {!syncComplete ? (
                 <>
                   <div>
-                    <h2 className="text-[24px] font-bold text-text-primary">Syncing your data...</h2>
-                    <p className="text-[14px] text-text-muted mt-1">Importing historical performance data. This usually takes about a minute.</p>
+                    <h2 className="text-[24px] font-bold text-text-primary">Pulling your data...</h2>
+                    <p className="text-[14px] text-text-muted mt-1">Kaivo is connecting to your ad platforms and loading campaign history. You can leave this page and we&apos;ll keep syncing in the background.</p>
                   </div>
 
                   <div className="bg-white rounded-xl border border-border p-5 space-y-4">
@@ -471,8 +484,7 @@ export default function OnboardingPage() {
                   <div>
                     <h2 className="text-[28px] font-bold text-text-primary">You&apos;re all set!</h2>
                     <p className="text-[14px] text-text-muted mt-2 max-w-[400px] mx-auto">
-                      We&apos;ve synced {selectedAccounts.size} ad account{selectedAccounts.size !== 1 ? 's' : ''} across {connectedPlatforms.size} platform{connectedPlatforms.size !== 1 ? 's' : ''}.
-                      Your dashboard is ready.
+                      Kaivo has pulled your connected ad accounts and started preparing your workspace. Your dashboard is ready.
                     </p>
                   </div>
                   <div className="flex gap-6 justify-center text-center">
@@ -493,7 +505,7 @@ export default function OnboardingPage() {
                     onClick={handleFinish}
                     className="bg-teal-deep hover:bg-teal-deep/90 text-white font-bold text-[14px] h-[48px] px-10 rounded-[10px] transition-colors"
                   >
-                    Go to Dashboard →
+                    Go to Dashboard
                   </button>
                 </div>
               )}

@@ -3,7 +3,6 @@
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
 
 function LoginPageContent() {
   const router = useRouter();
@@ -157,11 +156,8 @@ function LoginPageContent() {
                 <div className="flex-1 h-px bg-border" />
               </div>
 
-              <p className="text-center text-[13px] text-text-muted font-medium">
-                Don&apos;t have an account?{" "}
-                <a href="mailto:sales@getkaivo.com" className="text-teal-deep font-semibold hover:text-teal-deep/80 no-underline">
-                  Contact us to get started →
-                </a>
+              <p className="text-center text-[13px] text-text-muted font-medium leading-[1.6]">
+                New agency owners receive a magic-link signup after checkout on getkaivo.com. Team members receive their invite from inside the portal.
               </p>
             </>
           ) : (
