@@ -334,3 +334,11 @@ export interface RedditAgencyStatus {
   token_warning: boolean;
 }
 
+export interface SpotifyAgencyStatus {
+  connected: boolean;
+  connected_at: string | null;
+  token_valid: boolean;
+  token_expires_at: string | null;
+  token_warning: boolean;
+}
+

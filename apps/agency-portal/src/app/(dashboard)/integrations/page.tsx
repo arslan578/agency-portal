@@ -7,13 +7,14 @@ import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { useClients, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
-import type { MetaBMStatus, BMAccount, RedditAgencyStatus } from '@/lib/api/contracts';
+import type { MetaBMStatus, BMAccount, RedditAgencyStatus, SpotifyAgencyStatus } from '@/lib/api/contracts';
 import { MOCK_PLATFORMS } from '@/lib/mock/dashboard';
 
 const META_APP_ID = process.env.NEXT_PUBLIC_META_APP_ID || '1340998947829390';
 const META_PENDING_CODE_KEY = 'kaivo_meta_oauth_code';
 const REDDIT_CLIENT_ID = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || '';
 const REDDIT_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_REDDIT_REDIRECT_URI || '';
+const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || '';
 
 /** Template-matched sync log rows (UI only; no backend). */
 const SYNC_LOG_STATIC_ROWS: {
@@ -87,6 +88,13 @@ function getRedditRedirectUri() {
   return '/integrations/reddit/oauth/callback';
 }
 
+function getSpotifyRedirectUri() {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/integrations/spotify/oauth/callback`;
+  }
+  return '/integrations/spotify/oauth/callback';
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
@@ -104,15 +112,20 @@ export default function IntegrationsPage() {
   const [redditLoading, setRedditLoading] = useState(true);
   const [redditConnecting, setRedditConnecting] = useState(false);
   const [redditAutoLinking, setRedditAutoLinking] = useState(false);
+  const [spotifyStatus, setSpotifyStatus] = useState<SpotifyAgencyStatus | null>(null);
+  const [spotifyConnecting, setSpotifyConnecting] = useState(false);
 
   // Panels & Modals
   const [showAccountsPanel, setShowAccountsPanel] = useState(false);
   const [showRedditAccountsPanel, setShowRedditAccountsPanel] = useState(false);
+  const [showSpotifyAccountsPanel, setShowSpotifyAccountsPanel] = useState(false);
   const [panelEntered, setPanelEntered] = useState(false);
   const [bmAccounts, setBmAccounts] = useState<BMAccount[]>([]);
   const [bmAccountsLoading, setBmAccountsLoading] = useState(false);
   const [redditAccounts, setRedditAccounts] = useState<BMAccount[]>([]);
   const [redditAccountsLoading, setRedditAccountsLoading] = useState(false);
+  const [spotifyAccounts, setSpotifyAccounts] = useState<BMAccount[]>([]);
+  const [spotifyAccountsLoading, setSpotifyAccountsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   const [panelPlatform, setPanelPlatform] = useState<string | null>(null);
@@ -163,10 +176,24 @@ export default function IntegrationsPage() {
     }
   }, [accessToken, agencyId]);
 
+  const fetchSpotifyStatus = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    try {
+      const data = await apiClient.get<SpotifyAgencyStatus>(
+        API_ENDPOINTS.SPOTIFY.STATUS(agencyId),
+        { accessToken, agencyId },
+      );
+      setSpotifyStatus(data);
+    } catch {
+      setSpotifyStatus(null);
+    }
+  }, [accessToken, agencyId]);
+
   useEffect(() => {
     void fetchMetaStatus();
     void fetchRedditStatus();
-  }, [fetchMetaStatus, fetchRedditStatus]);
+    void fetchSpotifyStatus();
+  }, [fetchMetaStatus, fetchRedditStatus, fetchSpotifyStatus]);
 
   const fetchBmAccounts = useCallback(async () => {
     if (!accessToken || !agencyId) return;
@@ -197,6 +224,22 @@ export default function IntegrationsPage() {
       setRedditAccounts([]);
     } finally {
       setRedditAccountsLoading(false);
+    }
+  }, [accessToken, agencyId]);
+
+  const fetchSpotifyAccounts = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    setSpotifyAccountsLoading(true);
+    try {
+      const data = await apiClient.get<{ connected: boolean; accounts: BMAccount[] }>(
+        API_ENDPOINTS.SPOTIFY.ACCOUNTS(agencyId),
+        { accessToken, agencyId },
+      );
+      setSpotifyAccounts(data.accounts || []);
+    } catch {
+      setSpotifyAccounts([]);
+    } finally {
+      setSpotifyAccountsLoading(false);
     }
   }, [accessToken, agencyId]);
 
@@ -301,6 +344,53 @@ export default function IntegrationsPage() {
     })();
   }, [accessToken, agencyId, redditConnecting, fetchRedditStatus]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('spotify_callback') !== '1') return;
+    const code = params.get('code');
+    const oauthError = params.get('error');
+    const oauthErrorDescription = params.get('error_description');
+
+    if (oauthError) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('spotify_callback');
+      url.searchParams.delete('error');
+      url.searchParams.delete('error_description');
+      url.searchParams.delete('state');
+      window.history.replaceState({}, '', url.toString());
+      toast.error(oauthErrorDescription || oauthError || 'Spotify authorization failed');
+      return;
+    }
+
+    if (!code || !accessToken || !agencyId || spotifyConnecting) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('spotify_callback');
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    window.history.replaceState({}, '', url.toString());
+
+    (async () => {
+      setSpotifyConnecting(true);
+      try {
+        const exactRedirectUri = getSpotifyRedirectUri();
+        await apiClient.post(
+          API_ENDPOINTS.SPOTIFY.CONNECT(agencyId),
+          { code, redirectUri: exactRedirectUri },
+          { accessToken, agencyId },
+        );
+        toast.success('Spotify connected!');
+        await fetchSpotifyStatus();
+        await fetchSpotifyAccounts();
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, 'Failed to connect Spotify'));
+      } finally {
+        setSpotifyConnecting(false);
+      }
+    })();
+  }, [accessToken, agencyId, spotifyConnecting, fetchSpotifyStatus, fetchSpotifyAccounts]);
+
   const handleConnectTrigger = (platform: string) => {
     if (platform === 'Meta') {
       const redirectUri = `${window.location.origin}/integrations?meta_callback=1`;
@@ -316,6 +406,23 @@ export default function IntegrationsPage() {
       const state = Math.random().toString(36).slice(2);
       const scopes = 'adsread';
       window.location.href = `https://www.reddit.com/api/v1/authorize?client_id=${encodeURIComponent(REDDIT_CLIENT_ID)}&response_type=code&state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(redirectUri)}&duration=permanent&scope=${encodeURIComponent(scopes)}`;
+    } else if (platform === 'Spotify') {
+      if (!SPOTIFY_CLIENT_ID) {
+        toast.error('Missing NEXT_PUBLIC_SPOTIFY_CLIENT_ID');
+        return;
+      }
+      const redirectUri = getSpotifyRedirectUri();
+      const state = Math.random().toString(36).slice(2);
+      const scopes = ''; // Spotify Ads API uses Ads Manager / app configuration; no user-facing scope string required here.
+      const base = 'https://accounts.spotify.com/authorize';
+      const params = new URLSearchParams({
+        client_id: SPOTIFY_CLIENT_ID,
+        response_type: 'code',
+        redirect_uri: redirectUri,
+        state,
+      });
+      if (scopes) params.set('scope', scopes);
+      window.location.href = `${base}?${params.toString()}`;
     } else {
       toast.info(`${platform} integration coming soon!`);
     }
@@ -415,6 +522,7 @@ export default function IntegrationsPage() {
 
   const metaConnected = metaStatus?.connected ?? false;
   const redditConnected = redditStatus?.connected ?? false;
+  const spotifyConnected = spotifyStatus?.connected ?? false;
   const filteredBmAccounts = useMemo(() => {
     if (!searchQuery) return bmAccounts;
     return bmAccounts.filter(acc => 
@@ -438,6 +546,7 @@ export default function IntegrationsPage() {
 
   const activeBmCount = bmAccounts.filter(a => a.linked_client_id !== null).length;
   const activeRedditCount = redditAccounts.filter(a => a.linked_client_id !== null).length;
+  const activeSpotifyCount = spotifyAccounts.filter(a => a.linked_client_id !== null).length;
 
   const metaManagedSpendDisplay = useMemo(() => {
     if (!bmAccounts.length) return '—';
@@ -448,18 +557,19 @@ export default function IntegrationsPage() {
   // ── Animation Controllers ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (showAccountsPanel || showRedditAccountsPanel || panelPlatform) {
+    if (showAccountsPanel || showRedditAccountsPanel || showSpotifyAccountsPanel || panelPlatform) {
       const frame = requestAnimationFrame(() => setPanelEntered(true));
       return () => cancelAnimationFrame(frame);
     }
     setPanelEntered(false);
-  }, [showAccountsPanel, showRedditAccountsPanel, panelPlatform]);
+  }, [showAccountsPanel, showRedditAccountsPanel, showSpotifyAccountsPanel, panelPlatform]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const handleRefreshAll = () => {
     void fetchMetaStatus();
     void fetchRedditStatus();
+    void fetchSpotifyStatus();
     toast.message('Refreshing connected platforms…');
   };
 
@@ -632,6 +742,90 @@ export default function IntegrationsPage() {
                       className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
                     >
                       Connect Reddit
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Spotify */}
+              <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40">
+                <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 bg-[#e8f7ef] text-[#1db954] leading-none">
+                    ♪
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-text-primary">Spotify</h3>
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] font-semibold mt-1 ${spotifyConnected ? 'text-green' : 'text-text-muted'}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${spotifyConnected ? 'bg-green' : 'bg-text-muted'}`} />
+                      {spotifyConnected ? 'Connected · Agency Token' : 'Not connected'}
+                    </div>
+                    {spotifyConnected && (
+                      <p className="text-[11px] text-text-muted font-semibold mt-2">
+                        {spotifyAccounts.length
+                          ? `${activeSpotifyCount} of ${spotifyAccounts.length} accounts active`
+                          : 'Loading account list…'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="px-3.5 py-3 flex flex-wrap items-center gap-2">
+                  {spotifyConnected ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowSpotifyAccountsPanel(true);
+                          fetchSpotifyAccounts();
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors.shadow-sm hover:shadow-md"
+                      >
+                        Manage Accounts
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!accessToken || !agencyId) return;
+                          try {
+                            const result = await apiClient.post<{ matched: number }>(
+                              API_ENDPOINTS.SPOTIFY.AUTO_LINK(agencyId), {}, { accessToken, agencyId },
+                            );
+                            toast.success(`Successfully auto-linked ${result.matched} Spotify account(s).`);
+                            await fetchSpotifyAccounts();
+                          } catch (err: unknown) {
+                            toast.error(getErrorMessage(err, 'Auto-link failed'));
+                          }
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
+                      >
+                        Auto-link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!accessToken || !agencyId) return;
+                          if (!window.confirm('Disconnect Spotify? This will reset all client mappings.')) return;
+                          try {
+                            await apiClient.post(API_ENDPOINTS.SPOTIFY.DISCONNECT(agencyId), {}, { accessToken, agencyId });
+                            toast.success('Spotify disconnected');
+                            setSpotifyAccounts([]);
+                          } catch (err: unknown) {
+                            toast.error(getErrorMessage(err, 'Failed to disconnect Spotify'));
+                          }
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnectTrigger('Spotify')}
+                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
+                    >
+                      Connect Spotify
                     </button>
                   )}
                 </div>
@@ -1076,6 +1270,107 @@ export default function IntegrationsPage() {
                               {unlinkedRedditClients.map(c => (
                                 <option key={c.id} value={c.id}>{c.name}</option>
                               ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {showSpotifyAccountsPanel && (
+        <>
+          <div
+            className="fixed inset-0 z-[100] transition-opacity bg-black/40 backdrop-blur-sm"
+            role="presentation"
+            onClick={() => setShowSpotifyAccountsPanel(false)}
+          />
+          <aside
+            className={`fixed top-0 right-0 h-full w-[480px] max-w-[100vw] bg-white border-l border-border z-[101] shadow-2xl flex flex-col transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${panelEntered ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <header className="px-5 py-[18px] border-b border-border-subtle flex items-center gap-3 bg-white text-text-primary shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[#e8f7ef] text-[#1db954] flex items-center justify-center text-base font-semibold shrink-0 leading-none">
+                ♪
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] font-bold text-text-primary truncate">Manage Spotify Accounts</h3>
+                <p className="text-[11px] text-text-muted font-medium mt-0.5">
+                  {spotifyAccounts.length ? `${spotifyAccounts.length} accounts available` : 'Spotify Ads'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSpotifyAccountsPanel(false)}
+                className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </header>
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="px-5 py-2 text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted bg-surface-secondary border-y border-border">
+                Spotify ad accounts
+              </div>
+              <div className="divide-y divide-border">
+                {spotifyAccountsLoading ? (
+                  <div className="p-10 text-center text-text-muted animate-pulse font-semibold italic">Fetching accounts…</div>
+                ) : spotifyAccounts.length === 0 ? (
+                  <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
+                ) : spotifyAccounts.map(acc => {
+                  const linkedClient = acc.linked_client_id ? clients.find(c => c.id === Number(acc.linked_client_id)) : null;
+                  return (
+                    <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#f5fbf7] transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-4 min-w-0">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#1db954]">
+                            {acc.account_name.slice(0, 2).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-text-primary leading-tight truncate">{acc.account_name}</div>
+                            <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
+                        {linkedClient ? (
+                          <>
+                            <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">Connected</div>
+                            <div className="text-xs font-semibold text-text-secondary truncate">→ {linkedClient.name}</div>
+                          </>
+                        ) : (
+                          <div className="flex-1 flex items-center gap-2">
+                            <select
+                              className="flex-1 h-9 rounded-lg border border-border bg-white text-[11px] font-semibold px-3 outline-none focus:border-teal-deep transition-colors"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) {
+                                  if (!accessToken || !agencyId) return;
+                                  void apiClient.post(
+                                    API_ENDPOINTS.SPOTIFY.MANUAL_LINK(String(val)),
+                                    { ad_account_id: acc.account_id },
+                                    { accessToken, agencyId },
+                                  ).then(() => {
+                                    toast.success('Spotify account mapped successfully');
+                                    fetchSpotifyAccounts();
+                                  }).catch((err: unknown) => {
+                                    toast.error(getErrorMessage(err, 'Mapping failed'));
+                                  });
+                                }
+                              }}
+                              value=""
+                            >
+                              <option value="">Map to client...</option>
+                              {clients
+                                .filter(c => !spotifyAccounts.some(sa => Number(sa.linked_client_id ?? 0) === c.id))
+                                .map(c => (
+                                  <option key={c.id} value={c.id}>{c.name}</option>
+                                ))}
                             </select>
                           </div>
                         )}
