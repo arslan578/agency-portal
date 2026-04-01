@@ -1128,3 +1128,144 @@ def get_client_spotify_insights(
         raise HTTPException(status_code=403, detail="Agency does not own this client")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch Spotify insights: {str(e)}")
+
+
+# ── TikTok Agency Endpoints ───────────────────────────────────────────────────
+
+@router.post("/agency/{agency_id}/tiktok/connect")
+def connect_tiktok_agency(
+    agency_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import connect_tiktok_agency as _connect
+
+    code = body.get("code")
+    redirect_uri = body.get("redirectUri")
+    if not code:
+        raise HTTPException(status_code=400, detail="OAuth code is required")
+
+    try:
+        return _connect(db, agency_id, code, user_id=ctx.get("user_id"), redirect_uri=redirect_uri)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect TikTok: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/tiktok/disconnect")
+def disconnect_tiktok_agency(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import disconnect_tiktok_agency as _disconnect
+
+    try:
+        return _disconnect(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/tiktok/status")
+def get_tiktok_agency_status(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import get_tiktok_status
+
+    try:
+        return get_tiktok_status(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/tiktok/accounts")
+def get_tiktok_agency_accounts(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import get_tiktok_agency_accounts
+
+    try:
+        return get_tiktok_agency_accounts(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch TikTok accounts: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/tiktok/auto-link")
+def auto_link_tiktok_clients(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import auto_link_tiktok_clients
+
+    try:
+        return auto_link_tiktok_clients(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-link failed: {str(e)}")
+
+
+@router.post("/clients/{client_id}/tiktok/manual-link")
+def manual_link_tiktok_client(
+    client_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    from services.account_service.tiktok_agency_service import manual_link_tiktok_client
+
+    ad_account_id = body.get("ad_account_id")
+    if not ad_account_id:
+        raise HTTPException(status_code=400, detail="ad_account_id is required")
+
+    try:
+        return manual_link_tiktok_client(
+            db=db,
+            client_id=client_id,
+            ad_account_id=ad_account_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Manual link failed: {str(e)}")
+
+
+@router.get("/clients/{client_id}/tiktok-insights")
+def get_client_tiktok_insights(
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    from services.account_service.tiktok_agency_service import fetch_client_tiktok_insights
+
+    try:
+        return fetch_client_tiktok_insights(
+            db,
+            client_id=client_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch TikTok insights: {str(e)}")

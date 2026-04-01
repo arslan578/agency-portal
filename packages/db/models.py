@@ -120,6 +120,11 @@ class Agency(Base):
     spotify_refresh_token = Column(Text, nullable=True)
     spotify_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     spotify_connected_at = Column(DateTime(timezone=True), nullable=True)
+    # --- TikTok Agency OAuth ---
+    tiktok_agency_access_token = Column(Text, nullable=True)
+    tiktok_refresh_token = Column(Text, nullable=True)
+    tiktok_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    tiktok_connected_at = Column(DateTime(timezone=True), nullable=True)
     
     memberships = relationship("packages.db.models.AgencyMembership", back_populates="agency")
     clients = relationship("packages.db.models.Client", back_populates="agency")
@@ -210,6 +215,11 @@ class Client(Base):
     spotify_account_status = Column(String(30), default="agency_not_connected")
     spotify_account_name = Column(String(255), nullable=True)
     spotify_linked_at = Column(DateTime(timezone=True), nullable=True)
+    # --- TikTok account linking ---
+    agency_tiktok_account_id = Column(String(100), nullable=True)
+    tiktok_account_status = Column(String(30), default="agency_not_connected")
+    tiktok_account_name = Column(String(255), nullable=True)
+    tiktok_linked_at = Column(DateTime(timezone=True), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
