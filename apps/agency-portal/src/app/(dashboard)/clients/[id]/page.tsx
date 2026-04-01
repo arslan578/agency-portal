@@ -203,7 +203,8 @@ export default function ClientDetailPage() {
 
   const { clients, isLoading: clientsLoading } = useClients();
   const { campaigns: apiCampaigns, error: campaignError, isLoading: campaignsLoading, refresh: refreshCampaigns } = useCampaigns(Number.isNaN(clientId) ? undefined : clientId);
-  const { hierarchy, error: hierarchyError, isLoading: hierarchyLoading, refresh: refreshHierarchy } = useClientHierarchy('7d', Number.isNaN(clientId) ? undefined : clientId);
+  const [period, setPeriod] = useState<'today' | '7d' | 'mtd' | '30d'>('7d');
+  const { hierarchy, error: hierarchyError, isLoading: hierarchyLoading, refresh: refreshHierarchy } = useClientHierarchy(period, Number.isNaN(clientId) ? undefined : clientId);
   const { accessToken, agencyId } = useApiAuth();
   const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
   const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
@@ -691,6 +692,24 @@ export default function ClientDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <div className="flex bg-cream p-0.5 rounded-lg border-2 border-cream-border mr-2">
+                {[
+                  { key: 'today', label: 'Today' },
+                  { key: '7d', label: '7D' },
+                  { key: 'mtd', label: 'MTD' },
+                  { key: '30d', label: '30D' },
+                ].map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPeriod(p.key as any)}
+                    className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
+                      period === p.key ? 'bg-v-teal text-white shadow-sm' : 'text-v-text-muted hover:text-v-text-primary'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={() => {
