@@ -9,7 +9,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from . import schemas, schemas_agency
-from .routers import agency, platform_credentials
+from .routers import agency, platform_credentials, insights
 from packages.db.database import get_db
 from services.auth_service import auth
 from packages.db.models import ClientMembership, PlatformAccount, Client
@@ -27,6 +27,7 @@ app.add_api_route(
     name="get_agency_clients_hierarchy",
 )
 app.include_router(platform_credentials.router)
+app.include_router(insights.router)
 
 
 @app.get("/platform-accounts", response_model=List[schemas.PlatformAccountOut])

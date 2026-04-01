@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { useDashboard, useClients, useUnassignedCount } from '@/hooks/useAgencyApi';
+import { useDashboard, useClients, useUnassignedCount, useInsights, useInsightsSummary, useApiAuth } from '@/hooks/useAgencyApi';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { MOCK_CLIENTS, MOCK_INSIGHTS } from '@/lib/mock/dashboard';
+import { MOCK_CLIENTS } from '@/lib/mock/dashboard';
+import { apiClient } from '@/lib/api/client';
+import { API_ENDPOINTS } from '@/lib/api/endpoints';
 
 type TabFilter = 'all' | 'needs_action' | 'top' | 'manual_ai';
 
@@ -67,6 +69,10 @@ export default function DashboardPage() {
   const { status } = useRequireAuth();
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboard();
   const { clients: apiClients, isLoading: clientsLoading, error: clientsError } = useClients();
+  const { insights, refresh: refreshInsights } = useInsights('pending');
+  const { summary, refresh: refreshSummary } = useInsightsSummary();
+  const { accessToken, agencyId } = useApiAuth();
+  
   const [tab, setTab] = useState<TabFilter>('all');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
@@ -80,6 +86,9 @@ export default function DashboardPage() {
     document.addEventListener('mousedown', onPointerDown);
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [profileMenuOpen]);
+
+  const { count: unassignedCount } = useUnassignedCount();
+  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
 
   if (status === 'loading') return <DashboardSkeleton />;
   if (status !== 'authenticated') return null;
@@ -113,9 +122,6 @@ export default function DashboardPage() {
     { key: 'top', label: 'Top Performers' },
     { key: 'manual_ai', label: 'Manual AI' },
   ];
-
-  const { count: unassignedCount } = useUnassignedCount();
-  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
 
   return (
     <>
@@ -222,8 +228,8 @@ export default function DashboardPage() {
               <div className="absolute -right-2 -bottom-6 w-20 h-20 rounded-full bg-white/[0.04]" />
             </div>
             <KpiCard label="Total Managed Spend" value={`$${(totalSpend / 1000).toFixed(1)}k`} delta="+12.4%" positive />
-            <KpiCard label="AI Actions Pending" value={String(MOCK_INSIGHTS.length)} delta="3 critical" positive={false} />
-            <KpiCard label="Clients Needing Action" value={String(needsAction)} delta={clients.length > 0 ? `of ${clients.length} total` : 'No clients'} positive={false} />
+            <KpiCard label="AI Actions Pending" value={String(summary?.total_pending ?? 0)} delta={`${summary?.critical_count ?? 0} critical`} positive={false} />
+            <KpiCard label="Clients Affected" value={String(summary?.clients_affected_count ?? 0)} delta={clients.length > 0 ? `of ${clients.length} total` : 'No clients'} positive={false} />
           </div>
 
           {/* Two-column: Table + Insights */}
@@ -295,40 +301,81 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* AI Insights Panel */}
-            <div className="glass-panel rounded-xl border border-border flex flex-col overflow-hidden shadow-sm">
+            <div className="glass-panel bg-white rounded-xl border border-border flex flex-col overflow-hidden shadow-sm">
               <div className="px-5 pt-4 pb-3 border-b border-border-subtle flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
                     aria-hidden
-                    className="inline-flex w-2.5 h-2.5 rounded-full bg-teal-deep shadow-[0_0_24px_rgba(0,123,95,0.35)]"
+                    className="inline-flex w-2.5 h-2.5 rounded-full bg-v-teal shadow-[0_0_24px_rgba(0,123,95,0.35)]"
                   />
-                  <h3 className="text-[13px] font-bold text-text-primary">AI Insights</h3>
+                  <h3 className="text-[13px] font-bold text-v-text-primary">AI Insights</h3>
                 </div>
-                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md shadow-sm">{MOCK_INSIGHTS.length}</span>
+                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md shadow-sm">{insights.length}</span>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {MOCK_INSIGHTS.map((insight) => (
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+                {insights.length === 0 && (
+                  <div className="py-10 text-center text-[12px] text-v-text-muted font-medium">
+                    All caught up! No pending insights.
+                  </div>
+                )}
+                {insights.slice(0, 8).map((insight) => (
                   <div
-                    key={insight.id}
-                    className="glass-card border border-border rounded-xl p-4 space-y-2 transition-all hover:border-aqua/60 hover:-translate-y-0.5 hover:shadow-md"
+                    key={insight.insight_id}
+                    className="glass-card bg-white border border-border rounded-xl p-4 space-y-2 transition-all hover:border-v-teal/40 hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-semibold text-text-primary">{insight.client}</span>
-                      <PlatformTag name={insight.platform} className={insight.platformClass} />
+                      <span className="text-[11px] font-bold text-v-text-primary">{insight.client_short_name}</span>
+                      <PlatformTag name={insight.platform_label} className={insight.platform} />
                       <SeverityBadge severity={insight.severity} />
                     </div>
-                    <p className="text-[12px] text-text-secondary leading-relaxed">{insight.text}</p>
-                    <div className="bg-teal-light rounded-lg px-3 py-[6px] text-[11px] font-semibold text-teal-deep">
-                      Estimated impact: {insight.impact}
+                    <p className="text-[12px] text-v-text-secondary leading-relaxed font-medium">{insight.title}</p>
+                    <div className="bg-v-teal/5 rounded-lg px-3 py-[6px] text-[11px] font-bold text-v-teal">
+                      Impact: {insight.impact_metrics[0]?.value || 'Optimization'}
                     </div>
                     <div className="flex items-center gap-2 pt-1">
-                      <button className="bg-teal-deep text-white text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md">Apply</button>
-                      <button className="bg-surface-secondary text-text-secondary text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-surface-hover border border-border hover:border-aqua/40 transition-colors">Review</button>
-                      <button className="text-text-muted text-[10.5px] font-medium px-2 py-[4px] hover:text-text-primary transition-colors">Dismiss</button>
+                      <button 
+                        onClick={async () => {
+                          await apiClient.post(API_ENDPOINTS.INSIGHTS.APPLY(insight.insight_id), { accessToken, agencyId });
+                          refreshInsights();
+                          refreshSummary();
+                        }}
+                        className="bg-v-teal text-white text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-v-teal-dark transition-colors shadow-sm"
+                      >
+                        Apply
+                      </button>
+                      {insight.review_url ? (
+                        <Link 
+                          href={insight.review_url}
+                          className="bg-cream border border-cream-border text-v-text-primary text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-white transition-colors"
+                        >
+                          Review
+                        </Link>
+                      ) : (
+                         <Link 
+                          href={`/clients/${insight.client_id}`}
+                          className="bg-cream border border-cream-border text-v-text-primary text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-white transition-colors"
+                        >
+                          Review
+                        </Link>
+                      )}
+                      <button 
+                        onClick={async () => {
+                          await apiClient.post(API_ENDPOINTS.INSIGHTS.DISMISS(insight.insight_id), { accessToken, agencyId });
+                          refreshInsights();
+                          refreshSummary();
+                        }}
+                        className="text-text-muted text-[10.5px] font-bold px-2 py-[4px] hover:text-red transition-colors ml-auto"
+                      >
+                        Dismiss
+                      </button>
                     </div>
                   </div>
                 ))}
+                {insights.length > 8 && (
+                  <Link href="/insights" className="block text-center text-[11px] font-bold text-v-teal py-2 hover:underline">
+                    View {insights.length - 8} more insights →
+                  </Link>
+                )}
               </div>
             </div>
           </div>
