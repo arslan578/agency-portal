@@ -401,20 +401,25 @@ export default function ClientsPage() {
       const base = c.metrics;
       let sourceCampaigns: HierarchyCampaignRow[] = [];
 
-      if (c.platforms.length > 0) {
-        sourceCampaigns = c.platforms.flatMap((p) => p.campaigns);
-      } else {
-        const metaPlatforms = metaFallbackPlatformsByClient[c.id] ?? [];
-        if (metaPlatforms.length > 0) {
-          sourceCampaigns = metaPlatforms.flatMap((p) => p.campaigns);
-        } else {
-          const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
-          if (fallbackMap) {
-            sourceCampaigns = Array.from(fallbackMap.values()).flat();
-          }
-        }
+      const nativeCamps = c.platforms.flatMap((p) => p.campaigns);
+      const metaPlatforms = metaFallbackPlatformsByClient[c.id] ?? [];
+      const metaCamps = metaPlatforms.flatMap((p) => p.campaigns);
+      const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
+      const otherCamps = fallbackMap ? Array.from(fallbackMap.values()).flat() : [];
+
+      sourceCampaigns = [...nativeCamps, ...metaCamps, ...otherCamps];
+
+      const hasDetail =
+        sourceCampaigns.length > 0 || (c.platforms.length > 0 && (base.spend > 0 || base.budget > 0));
+
+      if (!hasDetail) {
+        map.set(c.id, base);
+        continue;
       }
 
+      // If we have detail campaigns from fallbacks, aggregate them.
+      // If we have detailed platforms from backend, they might already have empty campaign arrays (lazy).
+      // If so, we should ONLY re-aggregate if campaigns.length > 0.
       if (sourceCampaigns.length === 0) {
         map.set(c.id, base);
         continue;
@@ -426,31 +431,35 @@ export default function ClientsPage() {
       const aggClicks = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.clicks ?? 0), 0);
       const aggConv = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.conversions ?? 0), 0);
       const aggAlerts = sourceCampaigns.reduce((s, camp) => s + (camp.metrics?.alerts?.count ?? 0), 0);
-      const alertSeverity = sourceCampaigns.some((camp) => camp.metrics?.alerts?.severity === 'critical')
-        ? 'critical'
-        : aggAlerts > 0
-          ? 'warning'
-          : 'ok';
-
-      const ctr = aggImpr > 0 ? (aggClicks / aggImpr) * 100 : 0;
-      const cpc = aggClicks > 0 ? aggSpend / aggClicks : 0;
-      const costPerConv = aggConv > 0 ? aggSpend / aggConv : 0;
-      const pacing = aggBudget > 0 ? Math.min(200, (aggSpend / aggBudget) * 100) : 0;
+      const totalSpend = base.spend + aggSpend;
+      const totalBudget = base.budget + aggBudget;
+      const totalImpr = base.impressions + aggImpr;
+      const totalClicks = base.clicks + aggClicks;
+      const totalConv = base.conversions + aggConv;
+      const totalAlerts = (base.alerts?.count ?? 0) + aggAlerts;
+      
+      const ctr = totalImpr > 0 ? (totalClicks / totalImpr) * 100 : 0;
+      const cpc = totalClicks > 0 ? totalSpend / totalClicks : 0;
+      const costPerConv = totalConv > 0 ? totalSpend / totalConv : 0;
+      const pacing = totalBudget > 0 ? Math.min(200, (totalSpend / totalBudget) * 100) : 0;
       const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+      const alertSeverity = (base.alerts?.severity === 'critical' || sourceCampaigns.some(camp => camp.metrics?.alerts?.severity === 'critical')) 
+        ? 'critical' 
+        : (totalAlerts > 0 ? 'warning' : 'ok');
 
       map.set(c.id, {
         ...base,
-        spend: base.spend > 0 ? base.spend : aggSpend,
-        budget: base.budget > 0 ? base.budget : aggBudget,
-        impressions: base.impressions > 0 ? base.impressions : aggImpr,
-        clicks: base.clicks > 0 ? base.clicks : aggClicks,
-        conversions: base.conversions > 0 ? base.conversions : aggConv,
-        ctr: base.ctr > 0 ? base.ctr : ctr,
-        cpc: base.cpc > 0 ? base.cpc : cpc,
-        cost_per_conversion: base.cost_per_conversion > 0 ? base.cost_per_conversion : costPerConv,
-        pacing: base.pacing > 0 ? base.pacing : pacing,
-        score: base.score > 0 ? base.score : score,
-        alerts: base.alerts?.count > 0 ? base.alerts : { count: aggAlerts, severity: alertSeverity },
+        spend: totalSpend,
+        budget: totalBudget,
+        impressions: totalImpr,
+        clicks: totalClicks,
+        conversions: totalConv,
+        ctr,
+        cpc,
+        cost_per_conversion: costPerConv,
+        pacing,
+        score,
+        alerts: { count: totalAlerts, severity: alertSeverity },
       });
     }
 
@@ -506,47 +515,52 @@ export default function ClientsPage() {
     let ad_sets = 0;
 
     for (const client of filtered) {
-      if (client.platforms.length > 0) {
-        platforms += client.platforms.length;
-        for (const p of client.platforms) {
-          campaigns += p.campaigns.length;
-          for (const camp of p.campaigns) {
-            ad_sets += camp.ad_sets?.length ?? 0;
-          }
-        }
-        continue;
-      }
-
+      const dbPlatforms = client.platforms;
       const metaPlatforms = metaFallbackPlatformsByClient[client.id] ?? [];
-      if (metaPlatforms.length > 0) {
-        platforms += metaPlatforms.length;
-        for (const p of metaPlatforms) {
-          campaigns += p.campaigns.length;
-          for (const camp of p.campaigns) {
-            ad_sets += camp.ad_sets?.length ?? 0;
-          }
+      const fallbackMap = fallbackCampaignsByClientPlatform.get(client.id);
+
+      platforms += dbPlatforms.length + metaPlatforms.length + (fallbackMap ? fallbackMap.size : 0);
+
+      for (const p of dbPlatforms) {
+        campaigns += p.campaigns.length;
+        for (const camp of p.campaigns) {
+          ad_sets += camp.ad_sets?.length ?? 0;
         }
-        continue;
       }
 
-      const fallbackMap = fallbackCampaignsByClientPlatform.get(client.id);
-      if (!fallbackMap) continue;
+      for (const p of metaPlatforms) {
+        campaigns += p.campaigns.length;
+        for (const camp of p.campaigns) {
+          ad_sets += camp.ad_sets?.length ?? 0;
+        }
+      }
 
-      platforms += fallbackMap.size;
-      for (const arr of fallbackMap.values()) {
-        campaigns += arr.length;
+      if (fallbackMap) {
+        for (const arr of fallbackMap.values()) {
+          campaigns += arr.length;
+        }
       }
     }
 
     return { platforms, campaigns, ad_sets };
   }, [filtered, metaFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
 
+  const metaFailedClients = useRef<Set<number>>(new Set());
+
   const loadMetaFallbackForClient = useCallback(async (clientId: number) => {
     if (!accessToken || !agencyId) return;
-    if (metaFallbackPlatformsByClient[clientId]?.length) return;
-    if (metaLoadingClients.has(clientId)) return;
+    if (metaFailedClients.current.has(clientId)) return;
 
-    setMetaLoadingClients((prev) => new Set(prev).add(clientId));
+    setMetaFallbackPlatformsByClient((prev) => {
+      if (prev[clientId]?.length) return prev; // already loaded
+      return prev;
+    });
+
+    setMetaLoadingClients((prev) => {
+      if (prev.has(clientId)) return prev;
+      return new Set(prev).add(clientId);
+    });
+
     try {
       const data = await apiClient.get<MetaInsights>(
         API_ENDPOINTS.META.CLIENT_INSIGHTS(String(clientId)),
@@ -555,9 +569,12 @@ export default function ClientsPage() {
       const platforms = createMetaFallbackPlatforms(data);
       if (platforms.length > 0) {
         setMetaFallbackPlatformsByClient((prev) => ({ ...prev, [clientId]: platforms }));
+      } else {
+        metaFailedClients.current.add(clientId);
       }
     } catch {
-      // Keep quiet here; row fallback text remains for truly empty clients.
+      // Mark as failed to prevent retries
+      metaFailedClients.current.add(clientId);
     } finally {
       setMetaLoadingClients((prev) => {
         const next = new Set(prev);
@@ -565,7 +582,7 @@ export default function ClientsPage() {
         return next;
       });
     }
-  }, [accessToken, agencyId, metaFallbackPlatformsByClient, metaLoadingClients]);
+  }, [accessToken, agencyId]);
 
   useEffect(() => {
     if (!profileMenuOpen) return;
@@ -874,14 +891,15 @@ export default function ClientsPage() {
                       const fallbackPlatformsMap = fallbackCampaignsByClientPlatform.get(c.id);
                       const metaFallbackPlatforms = metaFallbackPlatformsByClient[c.id] ?? [];
                       const displayMetrics = clientDisplayMetricsById.get(c.id) ?? m;
-                      const derivedPlatforms =
-                        c.platforms.length > 0
-                          ? c.platforms
-                          : (fallbackPlatformsMap
-                              ? Array.from(fallbackPlatformsMap.entries()).map(([pk, campaigns]) =>
-                                  createSyntheticPlatform(pk, campaigns),
-                                )
-                              : metaFallbackPlatforms);
+                      const derivedPlatforms = [
+                        ...c.platforms,
+                        ...(fallbackPlatformsMap
+                          ? Array.from(fallbackPlatformsMap.entries()).map(([pk, campaigns]) =>
+                              createSyntheticPlatform(pk, campaigns),
+                            )
+                          : []),
+                        ...metaFallbackPlatforms,
+                      ];
                       return (
                         <Fragment key={cKey}>
                           <tr
@@ -889,12 +907,7 @@ export default function ClientsPage() {
                             onClick={() => {
                               const opening = !cOpen;
                               toggleKey(cKey);
-                              if (
-                                opening &&
-                                c.platforms.length === 0 &&
-                                (!fallbackPlatformsMap || fallbackPlatformsMap.size === 0) &&
-                                metaFallbackPlatforms.length === 0
-                              ) {
+                              if (opening && metaFallbackPlatforms.length === 0) {
                                 void loadMetaFallbackForClient(c.id);
                               }
                             }}
@@ -906,12 +919,7 @@ export default function ClientsPage() {
                                   e.stopPropagation();
                                   const opening = !cOpen;
                                   toggleKey(cKey);
-                                  if (
-                                    opening &&
-                                    c.platforms.length === 0 &&
-                                    (!fallbackPlatformsMap || fallbackPlatformsMap.size === 0) &&
-                                    metaFallbackPlatforms.length === 0
-                                  ) {
+                                  if (opening && metaFallbackPlatforms.length === 0) {
                                     void loadMetaFallbackForClient(c.id);
                                   }
                                 }}
@@ -949,31 +957,20 @@ export default function ClientsPage() {
                               <AiModeBadge mode={ai} />
                             </td>
                           </tr>
-                          {cOpen &&
-                            (derivedPlatforms.length > 0 ? (
-                              derivedPlatforms.map((p) => (
-                                <PlatformRows
-                                  key={`${cKey}-p-${p.key}`}
-                                  cKey={cKey}
-                                  clientId={c.id}
-                                  platform={p}
-                                fallbackCampaigns={
-                                  fallbackCampaignsByClientPlatform.get(c.id)?.get(p.key.toLowerCase()) ?? []
-                                }
-                                  expanded={expanded}
-                                  onToggle={toggleKey}
-                                />
-                              ))
-                            ) : (
-                              <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
-                                <td className="pl-4 pr-0 py-2" />
-                                <td className="pl-8 pr-3 py-2 text-text-muted" colSpan={12}>
-                                  {metaLoadingClients.has(c.id)
-                                    ? 'Loading platform data...'
-                                    : 'No platform hierarchy data available for this client in the selected period.'}
-                                </td>
-                              </tr>
-                            ))}
+                          {cOpen && (
+                            <ClientDetailedPlatforms
+                              clientId={c.id}
+                              period={period}
+                              cKey={cKey}
+                              fallbackPlatformsMap={fallbackPlatformsMap}
+                              metaFallbackPlatforms={metaFallbackPlatforms}
+                              metaLoading={metaLoadingClients.has(c.id)}
+                              expanded={expanded}
+                              onToggle={toggleKey}
+                              fallbackCampaignsByClientPlatform={fallbackCampaignsByClientPlatform}
+                              summaryPlatforms={c.platforms}
+                            />
+                          )}
                         </Fragment>
                       );
                     })}
@@ -1074,6 +1071,106 @@ export default function ClientsPage() {
           </div>
         </div>
       )}
+    </>
+  );
+}
+
+function ClientDetailedPlatforms({
+  clientId,
+  period,
+  cKey,
+  fallbackPlatformsMap,
+  metaFallbackPlatforms,
+  metaLoading,
+  expanded,
+  onToggle,
+  fallbackCampaignsByClientPlatform,
+  summaryPlatforms,
+}: {
+  clientId: number;
+  period: string;
+  cKey: string;
+  fallbackPlatformsMap?: Map<string, HierarchyCampaignRow[]>;
+  metaFallbackPlatforms: PlatformWithCampaignAccountId[];
+  metaLoading: boolean;
+  expanded: Set<string>;
+  onToggle: (key: string) => void;
+  fallbackCampaignsByClientPlatform: Map<number, Map<string, HierarchyCampaignRow[]>>;
+  summaryPlatforms: HierarchyPlatformRow[];
+}) {
+  const { hierarchy, isLoading } = useClientHierarchy(period, clientId, true);
+
+  if (isLoading && !hierarchy) {
+    return (
+      <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
+        <td className="pl-4 pr-0 py-2" />
+        <td className="pl-8 pr-3 py-2 text-text-muted italic" colSpan={12}>
+          Loading detailed hierarchy...
+        </td>
+      </tr>
+    );
+  }
+
+  const dbPlatforms = hierarchy?.clients?.[0]?.platforms ?? [];
+  const effectivePlatformsMap = new Map<string, PlatformWithCampaignAccountId>();
+
+  // Use a map to deduplicate by platform key, prioritizing the richest data
+  [
+    ...dbPlatforms,
+    ...summaryPlatforms,
+    ...((fallbackPlatformsMap && fallbackPlatformsMap.size > 0)
+      ? Array.from(fallbackPlatformsMap.entries()).map(([pk, campaigns]) =>
+          createSyntheticPlatform(pk, campaigns),
+        )
+      : []),
+    ...metaFallbackPlatforms,
+  ].forEach((p) => {
+    if (!effectivePlatformsMap.has(p.key)) {
+      effectivePlatformsMap.set(p.key, p);
+    } else {
+      // If we have dual data, try to merge or prefer the one with campaigns
+      const existing = effectivePlatformsMap.get(p.key)!;
+      if (p.campaigns.length > existing.campaigns.length) {
+        effectivePlatformsMap.set(p.key, p);
+      }
+    }
+  });
+
+  const effectivePlatforms = Array.from(effectivePlatformsMap.values()).sort((a, b) => {
+    const order: Record<string, number> = { meta: 0, tiktok: 1, google: 2, reddit: 3 };
+    const oa = order[a.key] ?? 99;
+    const ob = order[b.key] ?? 99;
+    return oa - ob || a.display_name.localeCompare(b.display_name);
+  });
+
+  if (effectivePlatforms.length === 0) {
+    return (
+      <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
+        <td className="pl-4 pr-0 py-2" />
+        <td className="pl-8 pr-3 py-2 text-text-muted" colSpan={12}>
+          {metaLoading
+            ? 'Loading platform data...'
+            : 'No platform hierarchy data available for this client.'}
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <>
+      {effectivePlatforms.map((p) => (
+        <PlatformRows
+          key={`${cKey}-p-${p.key}`}
+          cKey={cKey}
+          clientId={clientId}
+          platform={p}
+          fallbackCampaigns={
+            fallbackCampaignsByClientPlatform.get(clientId)?.get(p.key.toLowerCase()) ?? []
+          }
+          expanded={expanded}
+          onToggle={onToggle}
+        />
+      ))}
     </>
   );
 }

@@ -189,6 +189,7 @@ class Client(Base):
     name = Column(String, index=True, nullable=False)
     industry = Column(String, nullable=True)
     website = Column(String, nullable=True)
+    avatar_color = Column(String(20), nullable=True) # e.g. '#2a9d8f'
     
     # Settings
     markup_percent = Column(DECIMAL(10, 4), default=1.0000) # e.g. 1.20 for 20% markup
@@ -239,10 +240,50 @@ class ClientUserPermission(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     client_id = Column(Integer, ForeignKey("clients.id"))
-    user_id = Column(Integer, index=True) # Reference to Auth Service User ID
+    user_id = Column(Integer, index=True)  # Reference to Auth Service User ID
     role = Column(String, default="client_viewer")
 
     client = relationship("packages.db.models.Client", back_populates="permissions")
+
+
+class ClientAccountGroup(Base):
+    __tablename__ = "client_account_groups"
+
+    id = Column(Integer, primary_key=True, index=True)
+    agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
+    platform_account_id = Column(Integer, ForeignKey("platform_accounts.id"), nullable=False, unique=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    agency = relationship("packages.db.models.Agency")
+    client = relationship("packages.db.models.Client")
+    platform_account = relationship("packages.db.models.PlatformAccount")
+
+
+class ClientPortalSettings(Base):
+    __tablename__ = "client_portal_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, unique=True)
+    portal_enabled = Column(Boolean, default=True)
+    contact_email = Column(String, nullable=True)
+    owner_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    portal_link_token = Column(String, nullable=True)
+    portal_link_expires_at = Column(DateTime(timezone=True), nullable=True)
+
+    use_per_platform_markup = Column(Boolean, default=False)
+    global_markup_percent = Column(DECIMAL(5, 2), nullable=True)
+    meta_markup_percent = Column(DECIMAL(5, 2), nullable=True)
+    tiktok_markup_percent = Column(DECIMAL(5, 2), nullable=True)
+    google_markup_percent = Column(DECIMAL(5, 2), nullable=True)
+
+    show_kaivo_branding = Column(Boolean, nullable=True)
+    show_performance_score = Column(Boolean, nullable=True)
+    show_leaderboard = Column(Boolean, nullable=True)
+    show_trend_comparisons = Column(Boolean, nullable=True)
+
+    client = relationship("packages.db.models.Client")
+    owner = relationship("packages.db.models.User")
 
 # --- Campaign & Assets ---
 

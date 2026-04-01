@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { useDashboard, useClients } from '@/hooks/useAgencyApi';
+import { useDashboard, useClients, useUnassignedCount } from '@/hooks/useAgencyApi';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { MOCK_CLIENTS, MOCK_INSIGHTS } from '@/lib/mock/dashboard';
 
@@ -114,6 +114,9 @@ export default function DashboardPage() {
     { key: 'manual_ai', label: 'Manual AI' },
   ];
 
+  const { count: unassignedCount } = useUnassignedCount();
+  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
+
   return (
     <>
       <DashboardHeader
@@ -164,6 +167,37 @@ export default function DashboardPage() {
       />
       <main className="flex-1 overflow-y-auto p-6">
         <div className="relative max-w-[1400px] mx-auto space-y-6">
+          {showUnassignedBar && unassignedCount > 0 && (
+            <div className="bg-v-teal text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <circle cx="8" cy="8" r="7" />
+                    <path d="M8 4v4l2.5 1.5" />
+                  </svg>
+                </span>
+                <span className="text-[13px] font-semibold">
+                  You have {unassignedCount} unassigned ad account(s)
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/client-manager"
+                  className="bg-white text-v-teal px-4 py-1.5 rounded-lg text-[12px] font-bold hover:bg-white/90 transition-colors"
+                >
+                  Manage
+                </Link>
+                <button
+                  onClick={() => setShowUnassignedBar(false)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path d="M12 4l-8 8M4 4l8 8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           <div
             aria-hidden
             className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-25 blur-3xl rounded-[48px] -z-10"

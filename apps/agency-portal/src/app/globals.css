@@ -63,11 +63,6 @@
   --color-primary: #007B5F;
   --color-primary-foreground: #FFFFFF;
 
-  /* Cream aliases — backwards compat for any residual refs */
-  --color-cream: #F8FAFC;
-  --color-cream-dark: #F1F5F9;
-  --color-cream-border: #E2E8F0;
-
   /* === Status Colors === */
   --color-green: #059669;
   --color-green-light: #ECFDF5;
@@ -78,13 +73,8 @@
   --color-purple: #7C3AED;
   --color-purple-light: #F5F3FF;
 
-  /* === Dark Surfaces (Sidebar) === */
-  --color-dark-bg: #0B0F19;
-  --color-dark-card: #141B2D;
-  --color-dark-border: #1E293B;
-
-  /* === Layout === */
-  --spacing-nav-width: 260px;
+  /* === Custom Layout === */
+  --spacing-nav-width: 232px;
   --radius-default: 12px;
 
   /* === Typography === */
