@@ -2,7 +2,7 @@
 
 export const runtime = 'edge';
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
@@ -12,7 +12,6 @@ import { useClients, useCampaigns, useClientHierarchy, useApiAuth } from '@/hook
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import type { Campaign, HierarchyClientRow, MetaInsights } from '@/lib/api/contracts';
-import { ClientMetaSection } from '@/components/agency/ClientMetaSection';
 import { ClientRedditSection } from '@/components/agency/ClientRedditSection';
 
 function platformKey(platform: string): string {
@@ -208,6 +207,7 @@ export default function ClientDetailPage() {
   const { accessToken, agencyId } = useApiAuth();
   const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
   const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
+  const metaInsightsFetched = useRef(false);
 
   const hc = hierarchy?.clients?.[0];
 
@@ -278,27 +278,39 @@ export default function ClientDetailPage() {
 
   const loadMetaInsightsFallback = useCallback(async () => {
     if (!accessToken || !agencyId || Number.isNaN(clientId)) return;
-    if (metaInsightsLoading) return;
+    if (metaInsightsFetched.current) return;
+    metaInsightsFetched.current = true;
     setMetaInsightsLoading(true);
     try {
       const data = await apiClient.get<MetaInsights>(
         API_ENDPOINTS.META.CLIENT_INSIGHTS(String(clientId)),
         { accessToken, agencyId },
       );
-      setMetaInsights(data);
+      if (data?.campaigns?.length) {
+        setMetaInsights(data);
+      }
     } catch {
-      setMetaInsights(null);
+      // Don't retry on failure
     } finally {
       setMetaInsightsLoading(false);
     }
-  }, [accessToken, agencyId, clientId, metaInsightsLoading]);
+  }, [accessToken, agencyId, clientId]);
 
   useEffect(() => {
     if (hasHierarchyCampaigns) return;
     if (apiCampaigns.length > 0) return;
-    if (metaInsightsLoading || metaInsights) return;
+    if (metaInsights) return;
     void loadMetaInsightsFallback();
-  }, [apiCampaigns.length, hasHierarchyCampaigns, metaInsightsLoading, metaInsights, loadMetaInsightsFallback]);
+  }, [apiCampaigns.length, hasHierarchyCampaigns, metaInsights, loadMetaInsightsFallback]);
+
+  // Also try to load meta insights even when we have hierarchy/api campaigns,
+  // so we can enrich the platform hierarchy with live Meta data
+  useEffect(() => {
+    if (metaInsights) return;
+    if (!accessToken || !agencyId || Number.isNaN(clientId)) return;
+    if (metaInsightsFetched.current) return;
+    void loadMetaInsightsFallback();
+  }, [accessToken, agencyId, clientId, metaInsights, loadMetaInsightsFallback]);
 
   const avgRoas = useMemo(() => {
     if (campaigns.length === 0) return 0;
@@ -315,43 +327,148 @@ export default function ClientDetailPage() {
     return client?.spend ?? 0;
   }, [campaigns, client]);
 
+  // Build meta campaigns from insights for hierarchy integration
+  const metaDisplayCampaigns = useMemo<DisplayCampaign[]>(() => {
+    if (!metaInsights?.campaigns?.length) return [];
+    return metaInsights.campaigns.map((camp, idx) => {
+      const clicks = Number(camp.clicks || 0);
+      const impressions = Number(camp.impressions || 0);
+      const spend = Number(camp.spend || 0);
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const cpc = clicks > 0 ? spend / clicks : 0;
+      const budget = Number(camp.budget || 0);
+      const pacing = budget > 0 ? Math.min(200, Math.round((spend / budget) * 100)) : 0;
+      return {
+        id: idx + 1,
+        name: camp.name || `Campaign #${idx + 1}`,
+        platform: 'Meta',
+        status: (camp.status || 'draft').toLowerCase(),
+        budget,
+        spend,
+        pacing,
+        roas: 0,
+        cpa: camp.cost_per_conversion ?? 0,
+        isReal: true,
+        ctr,
+        impressions,
+        clicks,
+        conversions: Number(camp.conversions || 0),
+      };
+    });
+  }, [metaInsights]);
+
   const platformNodes = useMemo<DisplayPlatformNode[]>(() => {
     // 1. If we have hierarchy with actual campaigns, use it as primary structure.
     const hasHcCampaigns = (hc?.platforms?.some((p) => p.campaigns.length > 0));
     if (hasHcCampaigns) {
-      return hc!.platforms.map((p) => {
-        const pCampaigns: DisplayCampaign[] = p.campaigns.map((camp) => ({
-          id: camp.id,
-          name: camp.name,
-          platform: p.display_name,
-          status: (camp.status || 'active').toLowerCase(),
-          budget: camp.metrics.budget,
-          spend: camp.metrics.spend,
-          pacing: Math.round(camp.metrics.pacing),
-          roas: 0,
-          cpa: camp.metrics.cost_per_conversion,
-          isReal: true,
-        }));
+      const nodes = hc!.platforms.map((p) => {
+        // For meta platform, prefer live meta insights if available and hierarchy campaigns are empty or less detailed
+        let pCampaigns: DisplayCampaign[];
+        if (p.key === 'meta' && metaDisplayCampaigns.length > 0) {
+          pCampaigns = metaDisplayCampaigns;
+        } else {
+          pCampaigns = p.campaigns.map((camp) => ({
+            id: camp.id,
+            name: camp.name,
+            platform: p.display_name,
+            status: (camp.status || 'active').toLowerCase(),
+            budget: camp.metrics.budget,
+            spend: camp.metrics.spend,
+            pacing: Math.round(camp.metrics.pacing),
+            roas: 0,
+            cpa: camp.metrics.cost_per_conversion,
+            isReal: true,
+            ctr: camp.metrics.ctr,
+            impressions: camp.metrics.impressions,
+            clicks: camp.metrics.clicks,
+            conversions: camp.metrics.conversions,
+          }));
+        }
+
+        // Recompute platform metrics from campaigns
+        const pSpend = pCampaigns.reduce((s, c) => s + c.spend, 0);
+        const pBudget = pCampaigns.reduce((s, c) => s + c.budget, 0);
+        const pImpr = pCampaigns.reduce((s, c) => s + (c.impressions || 0), 0);
+        const pClicks = pCampaigns.reduce((s, c) => s + (c.clicks || 0), 0);
+        const pConv = pCampaigns.reduce((s, c) => s + (c.conversions || 0), 0);
+        const useCampaignMetrics = pCampaigns.length > 0 && (pSpend > 0 || pBudget > 0);
+
         return {
           key: p.key,
           name: p.display_name,
-          score: p.metrics.score,
-          impressions: p.metrics.impressions,
-          clicks: p.metrics.clicks,
-          spend: p.metrics.spend,
-          budget: p.metrics.budget,
-          pacing: Math.round(p.metrics.pacing),
-          cpc: p.metrics.cpc,
-          ctr: p.metrics.ctr,
-          conversions: p.metrics.conversions,
+          score: useCampaignMetrics ? Math.min(100, Math.max(0, 75 + (pImpr > 0 ? (pClicks / pImpr) * 100 : 0) * 10 - (pClicks > 0 ? pSpend / pClicks : 0) / 2)) : p.metrics.score,
+          impressions: useCampaignMetrics ? pImpr : p.metrics.impressions,
+          clicks: useCampaignMetrics ? pClicks : p.metrics.clicks,
+          spend: useCampaignMetrics ? pSpend : p.metrics.spend,
+          budget: useCampaignMetrics ? pBudget : p.metrics.budget,
+          pacing: useCampaignMetrics ? (pBudget > 0 ? Math.round(Math.min(200, (pSpend / pBudget) * 100)) : 0) : Math.round(p.metrics.pacing),
+          cpc: useCampaignMetrics ? (pClicks > 0 ? pSpend / pClicks : 0) : p.metrics.cpc,
+          ctr: useCampaignMetrics ? (pImpr > 0 ? (pClicks / pImpr) * 100 : 0) : p.metrics.ctr,
+          conversions: useCampaignMetrics ? pConv : p.metrics.conversions,
           status: 'live',
           aiMode: 'manual',
           campaigns: pCampaigns,
         };
       });
+
+      // If we have meta insights but no meta platform in hierarchy, add it
+      if (metaDisplayCampaigns.length > 0 && !nodes.some((n) => n.key === 'meta')) {
+        const spend = metaDisplayCampaigns.reduce((s, c) => s + c.spend, 0);
+        const budget = metaDisplayCampaigns.reduce((s, c) => s + c.budget, 0);
+        const impressions = metaDisplayCampaigns.reduce((s, c) => s + (c.impressions || 0), 0);
+        const clicks = metaDisplayCampaigns.reduce((s, c) => s + (c.clicks || 0), 0);
+        const conversions = metaDisplayCampaigns.reduce((s, c) => s + (c.conversions || 0), 0);
+        const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+        const cpc = clicks > 0 ? spend / clicks : 0;
+        nodes.unshift({
+          key: 'meta',
+          name: 'Meta',
+          score: Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2)),
+          impressions,
+          clicks,
+          spend,
+          budget,
+          pacing: budget > 0 ? Math.round(Math.min(200, (spend / budget) * 100)) : 0,
+          cpc,
+          ctr,
+          conversions,
+          status: 'live',
+          aiMode: 'manual',
+          campaigns: metaDisplayCampaigns,
+        });
+      }
+
+      return nodes;
     }
 
-    // 2. Otherwise, build from the unified campaigns list (includes Meta fallbacks, api list, etc)
+    // 2. If we have meta insights, build from those
+    if (metaDisplayCampaigns.length > 0) {
+      const spend = metaDisplayCampaigns.reduce((s, c) => s + c.spend, 0);
+      const budget = metaDisplayCampaigns.reduce((s, c) => s + c.budget, 0);
+      const impressions = metaDisplayCampaigns.reduce((s, c) => s + (c.impressions || 0), 0);
+      const clicks = metaDisplayCampaigns.reduce((s, c) => s + (c.clicks || 0), 0);
+      const conversions = metaDisplayCampaigns.reduce((s, c) => s + (c.conversions || 0), 0);
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const cpc = clicks > 0 ? spend / clicks : 0;
+      return [{
+        key: 'meta',
+        name: 'Meta',
+        score: Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2)),
+        impressions,
+        clicks,
+        spend,
+        budget,
+        pacing: budget > 0 ? Math.round(Math.min(200, (spend / budget) * 100)) : 0,
+        cpc,
+        ctr,
+        conversions,
+        status: 'live',
+        aiMode: 'manual',
+        campaigns: metaDisplayCampaigns,
+      }];
+    }
+
+    // 3. Otherwise, build from the unified campaigns list (includes api list etc)
     const byPlatform = new Map<string, DisplayCampaign[]>();
     for (const camp of campaigns) {
       const pName = camp.platform || 'Other';
@@ -389,7 +506,7 @@ export default function ClientDetailPage() {
 
     if (nodes.length > 0) return nodes;
     return [];
-  }, [hc, campaigns]);
+  }, [hc, campaigns, metaDisplayCampaigns]);
 
   const activityEntries = useMemo(() => {
     if (!client) return [];
@@ -534,8 +651,7 @@ export default function ClientDetailPage() {
           </div>
         </section>
 
-        {/* ── META ADS SECTION ── */}
-        <ClientMetaSection key={`meta-${clientId}`} clientId={clientId} />
+        {/* ── REDDIT ADS SECTION ── */}
         <ClientRedditSection key={`reddit-${clientId}`} clientId={clientId} />
 
         {/* KPI row */}
@@ -648,24 +764,28 @@ export default function ClientDetailPage() {
                           {pOpen &&
                             p.campaigns.map((row) => {
                               const isActive = row.status === 'active' || row.status === 'running';
+                              const rowCtr = row.ctr ?? ((row.impressions ?? 0) > 0 ? ((row.clicks ?? 0) / (row.impressions ?? 1)) * 100 : 0);
+                              const rowCpc = row.cpa > 0 ? row.cpa : ((row.clicks ?? 0) > 0 ? row.spend / (row.clicks ?? 1) : 0);
+                              const rowScore = Math.min(100, Math.max(0, 75 + rowCtr * 10 - rowCpc / 2));
+                              const scoreColor = rowScore >= 80 ? 'bg-green-light text-green' : rowScore >= 60 ? 'bg-amber-light text-amber' : 'bg-red-light text-red';
                               return (
                                 <tr key={`${pKey}-${row.id}`} className="border-b border-cream-border/70 bg-cream/30 hover:bg-cream/50 transition-colors">
                                   <td className="px-2 py-2" />
                                   <td className="px-4 py-2 pl-8">
                                     <div className="font-bold text-v-text-primary">{row.name}</div>
                                   </td>
-                                  <td className="px-4 py-2"><span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-black bg-red-light text-red">—</span></td>
-                                  <td className="px-4 py-2 font-mono font-bold">—</td>
-                                  <td className="px-4 py-2 font-mono font-bold">—</td>
+                                  <td className="px-4 py-2"><span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-black ${scoreColor}`}>{rowScore.toFixed(1)}</span></td>
+                                  <td className="px-4 py-2 font-mono font-bold">{(row.impressions ?? 0).toLocaleString()}</td>
+                                  <td className="px-4 py-2 font-mono font-bold">{(row.clicks ?? 0).toLocaleString()}</td>
                                   <td className="px-4 py-2 font-mono font-black text-coral">{formatUsd(row.spend)}</td>
                                   <td className="px-4 py-2 font-mono font-bold text-v-text-muted">{formatUsd(row.budget)}</td>
                                   <td className="px-4 py-2"><span className="font-black text-v-teal">{row.pacing}%</span></td>
-                                  <td className="px-4 py-2 font-mono font-black text-coral">{row.cpa > 0 ? `$${row.cpa.toFixed(2)}` : '—'}</td>
-                                  <td className="px-4 py-2 font-mono font-black text-coral">—</td>
-                                  <td className="px-4 py-2 font-mono font-black">—</td>
+                                  <td className="px-4 py-2 font-mono font-black text-coral">${rowCpc.toFixed(2)}</td>
+                                  <td className="px-4 py-2 font-mono font-black text-coral">{rowCtr.toFixed(1)}%</td>
+                                  <td className="px-4 py-2 font-mono font-black">{(row.conversions ?? 0).toLocaleString()}</td>
                                   <td className="px-4 py-2">
                                     <span className={`text-[10px] font-black ${isActive ? 'text-green' : 'text-amber'}`}>
-                                      • {isActive ? 'Live' : 'Pending'}
+                                      • {isActive ? 'Live' : row.status === 'paused' ? 'Paused' : 'Pending'}
                                     </span>
                                   </td>
                                   <td className="px-4 py-2">

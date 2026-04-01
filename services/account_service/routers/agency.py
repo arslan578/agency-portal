@@ -814,6 +814,7 @@ def get_client_meta_insights(
     Uses agency BM token, NOT client's Kaivo token.
     Returns campaigns (live), ad_accounts (cached), ad_sets (cached).
     """
+    import traceback
     from services.account_service.meta_bm_service import fetch_client_meta_insights
 
     try:
@@ -829,7 +830,22 @@ def get_client_meta_insights(
     except PermissionError:
         raise HTTPException(status_code=403, detail="Agency does not own this client")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch insights: {str(e)}")
+        import logging
+        logging.getLogger(__name__).error(
+            f"meta-insights error for client {client_id}: {e}\n{traceback.format_exc()}"
+        )
+        # Return a graceful fallback instead of a 500 so the frontend stops retrying
+        return {
+            "connected": False,
+            "reason": "server_error",
+            "meta_account_status": "error",
+            "ad_accounts": [],
+            "campaigns": [],
+            "ad_sets": [],
+            "token_valid": False,
+            "token_expires_at": None,
+            "error": str(e),
+        }
 
 
 # ── Client Manager (Reporting replacement) ─────────────────────────────────────
