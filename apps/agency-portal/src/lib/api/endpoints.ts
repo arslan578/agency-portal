@@ -94,4 +94,13 @@ export const API_ENDPOINTS = {
     MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/spotify/manual-link`,
     CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/spotify-insights`,
   },
+  TIKTOK: {
+    CONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/tiktok/connect`,
+    DISCONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/tiktok/disconnect`,
+    STATUS: (agencyId: string) => `${BASE}/agency/${agencyId}/tiktok/status`,
+    ACCOUNTS: (agencyId: string) => `${BASE}/agency/${agencyId}/tiktok/accounts`,
+    AUTO_LINK: (agencyId: string) => `${BASE}/agency/${agencyId}/tiktok/auto-link`,
+    MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/tiktok/manual-link`,
+    CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/tiktok-insights`,
+  },
 } as const;
