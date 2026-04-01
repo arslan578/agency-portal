@@ -94,4 +94,16 @@ export const API_ENDPOINTS = {
     MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/spotify/manual-link`,
     CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/spotify-insights`,
   },
+  INSIGHTS: {
+    LIST: (status: string = 'pending', clientId?: number) => {
+      const q = new URLSearchParams({ status });
+      if (clientId != null) q.set('client_id', String(clientId));
+      return `${BASE}/insights?${q.toString()}`;
+    },
+    SUMMARY: `${BASE}/insights/summary`,
+    APPLY: (id: string) => `${BASE}/insights/${id}/apply`,
+    DISMISS: (id: string) => `${BASE}/insights/${id}/dismiss`,
+    APPLY_RECOMMENDED: `${BASE}/insights/apply_recommended`,
+    SEED: `${BASE}/insights/seed_mock_data`,
+  },
 } as const;

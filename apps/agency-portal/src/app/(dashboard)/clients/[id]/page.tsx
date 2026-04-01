@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { ApiErrorBanner } from '@/components/ui/ApiErrorBanner';
-import { useClients, useCampaigns, useClientHierarchy, useApiAuth } from '@/hooks/useAgencyApi';
+import { useClients, useCampaigns, useClientHierarchy, useApiAuth, useInsights, useInsightsSummary } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import type { Campaign, HierarchyClientRow, MetaInsights } from '@/lib/api/contracts';
@@ -206,6 +206,8 @@ export default function ClientDetailPage() {
   const [period, setPeriod] = useState<'today' | '7d' | 'mtd' | '30d'>('7d');
   const { hierarchy, error: hierarchyError, isLoading: hierarchyLoading, refresh: refreshHierarchy } = useClientHierarchy(period, Number.isNaN(clientId) ? undefined : clientId);
   const { accessToken, agencyId } = useApiAuth();
+  const { insights, refresh: refreshInsights } = useInsights('pending', Number.isNaN(clientId) ? undefined : clientId);
+  const { summary, refresh: refreshSummary } = useInsightsSummary();
   const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
   const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
   const metaInsightsFetched = useRef(false);
@@ -254,19 +256,11 @@ export default function ClientDetailPage() {
     return [];
   }, [apiCampaigns, hc, hasHierarchyCampaigns, metaInsights]);
 
-  const insights = useMemo(
-    () => [] as { id: number; client: string; platform: string; severity: string; text: string; impact: string }[],
-    [],
-  );
+
 
   const [viewMode, setViewMode] = useState<'agency' | 'client'>('agency');
-  const [dismissedInsightIds, setDismissedInsightIds] = useState<Set<number>>(() => new Set());
   const [pausingId, setPausingId] = useState<number | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
-  const visibleInsights = useMemo(
-    () => insights.filter((i) => !dismissedInsightIds.has(i.id)),
-    [insights, dismissedInsightIds],
-  );
 
   const platforms = useMemo(() => {
     if (hc?.platforms?.length) {
@@ -840,31 +834,75 @@ export default function ClientDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* AI recommendations */}
-          <section className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
-            <div className="px-5 py-4 border-b border-border-subtle bg-surface-secondary/50">
-              <h2 className="text-[14px] font-bold text-text-primary">AI recommendations</h2>
-              <p className="text-[12px] text-text-muted font-medium mt-0.5">Prioritized actions for this client.</p>
+          <section className="bg-white rounded-2xl border-2 border-cream-border overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b-2 border-cream-border bg-cream/60 flex items-center justify-between">
+              <div>
+                <h2 className="text-[14px] font-black text-v-text-primary">AI Recommendations</h2>
+                <p className="text-[11px] text-v-text-muted font-bold mt-0.5">Optimizing performance for this account.</p>
+              </div>
+              <span className="bg-v-teal text-white text-[10px] font-black px-2 py-[2px] rounded-md shadow-sm">{insights.length}</span>
             </div>
-            <div className="p-5 space-y-4 max-h-[480px] overflow-y-auto">
-              {visibleInsights.length === 0 ? (
-                <p className="text-[13px] text-text-muted font-medium">No recommendations for this client.</p>
+            <div className="p-5 space-y-4 max-h-[520px] overflow-y-auto scrollbar-hide">
+              {insights.length === 0 ? (
+                <div className="py-10 text-center">
+                   <p className="text-[13px] text-v-text-muted font-bold">No active recommendations for this account.</p>
+                   <p className="text-[11px] text-v-text-muted/60 font-medium mt-1">Our AI is monitoring performance daily.</p>
+                </div>
               ) : (
-                visibleInsights.map((ins) => (
-                  <article key={ins.id} className="rounded-xl border border-border p-4 bg-surface-secondary/40 space-y-3 hover:border-aqua/40 transition-colors">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <SeverityBadge severity={ins.severity} />
-                      <PlatformTag name={ins.platform} />
+                insights.map((ins) => (
+                  <article key={ins.insight_id} className="rounded-xl border-2 border-cream-border p-4 bg-white space-y-3 hover:border-v-teal/40 transition-all hover:shadow-md">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                       <div className="flex items-center gap-2">
+                          <SeverityBadge severity={ins.severity} />
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[14px] bg-v-${ins.icon_bg}`}>
+                            {ins.icon}
+                          </span>
+                       </div>
+                       <span className="text-[10px] font-black text-v-text-muted uppercase tracking-wider">{ins.platform_label}</span>
                     </div>
-                    <p className="text-[13px] text-text-secondary leading-snug">{ins.text}</p>
-                    <p className="text-[12px] font-semibold text-teal-deep">Est. impact: {ins.impact}</p>
+                    <div className="space-y-1">
+                       <h4 className="text-[14px] font-black text-v-text-primary leading-tight">{ins.title}</h4>
+                       <p className="text-[12px] text-v-text-secondary leading-snug font-medium">{ins.description}</p>
+                    </div>
+                    
+                    <div className="bg-v-teal/5 rounded-lg px-3 py-2 flex flex-wrap gap-4 border border-v-teal/10">
+                       {ins.impact_metrics.slice(0, 2).map(m => (
+                         <div key={m.label}>
+                            <div className="text-[9px] font-black text-v-text-muted uppercase tracking-tight">{m.label}</div>
+                            <div className={`text-[12px] font-black ${m.color === 'red' ? 'text-v-coral' : m.color === 'green' ? 'text-v-green' : 'text-v-teal'}`}>{m.value}</div>
+                         </div>
+                       ))}
+                    </div>
+
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <button type="button" className="px-3 py-1.5 rounded-lg bg-teal-deep text-white text-[12px] font-semibold hover:bg-teal-deep/90 transition-colors shadow-sm">
-                        Apply
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await apiClient.post(API_ENDPOINTS.INSIGHTS.APPLY(ins.insight_id), { accessToken, agencyId });
+                            refreshInsights();
+                            refreshSummary();
+                            toast.success('Recommendation applied');
+                          } catch (err) {
+                            toast.error('Failed to apply recommendation');
+                          }
+                        }}
+                        type="button" 
+                        className="px-4 py-2 rounded-lg bg-v-teal text-white text-[12px] font-black hover:bg-v-teal-dark shadow-sm transition-all"
+                      >
+                        {ins.apply_label || 'Apply Optimization'}
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDismissedInsightIds((prev) => new Set(prev).add(ins.id))}
-                        className="px-3 py-1.5 rounded-lg border border-border bg-white text-text-secondary text-[12px] font-medium hover:bg-surface-hover transition-colors"
+                        onClick={async () => {
+                          try {
+                            await apiClient.post(API_ENDPOINTS.INSIGHTS.DISMISS(ins.insight_id), { accessToken, agencyId });
+                            refreshInsights();
+                            refreshSummary();
+                          } catch (err) {
+                            toast.error('Failed to dismiss');
+                          }
+                        }}
+                        className="px-3 py-2 rounded-lg border-2 border-cream-border bg-white text-v-text-muted text-[12px] font-bold hover:text-v-coral hover:border-v-coral/20 transition-all"
                       >
                         Dismiss
                       </button>

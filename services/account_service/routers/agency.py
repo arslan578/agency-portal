@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from packages.db.database import get_db
-from packages.db.models import Agency, Client, AgencyMembership, AgencyRole, User, AgencyInvite, InviteStatus, Campaign, CampaignStatus
+from packages.db.models import Agency, Client, AgencyMembership, AgencyRole, User, AgencyInvite, InviteStatus, Campaign, CampaignStatus, PlatformAccount, ClientAccountGroup, ClientPortalSettings
 from services.account_service.email import send_agency_invite_email
 from services.account_service import schemas_agency
 from services.account_service.agency_access import ensure_agency_scope
