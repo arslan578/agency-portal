@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaivo — Harbor Coffee Co.</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --cream: #f4efe6; --cream-dark: #ece6db; --cream-border: #ddd6c8;
+    --teal: #2a9d8f; --teal-dark: #1f7a6e; --teal-light: #e8f5f3;
+    --coral: #e76f51; --coral-light: #fdf0ec; --coral-dark: #c85a3d;
+    --text-primary: #1a1a2e; --text-secondary: #5a5a72; --text-muted: #9a9aaa;
+    --green: #2d9e5a; --green-light: #e8f7ef;
+    --amber: #d4860a; --amber-light: #fef3dc;
+    --red: #d94040; --red-light: #fdeaea;
+    --purple: #5c54c8; --purple-light: #eeeeff;
+    --white: #ffffff; --nav-width: 232px; --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Space Grotesk', sans-serif; background: var(--cream); color: var(--text-primary); display: flex; height: 100vh; overflow: hidden; font-size: 14px; }
+
+  /* ── SIDEBAR ── */
+  .sidebar { width: var(--nav-width); background: var(--white); border-right: 2px solid var(--cream-border); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; z-index: 10; }
+  .logo-row { padding: 14px 18px; border-bottom: 2px solid var(--cream-border); display: flex; align-items: center; gap: 10px; }
+  .logo-text { font-size: 17px; font-weight: 800; color: var(--teal); letter-spacing: 2.5px; }
+  .nav-section { padding: 12px 10px 4px; flex: 1; }
+  .nav-item { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; cursor: pointer; color: var(--text-secondary); font-size: 13px; font-weight: 600; transition: all 0.15s; margin-bottom: 2px; }
+  .nav-item:hover { background: var(--cream); color: var(--text-primary); }
+  .nav-item.active { background: var(--teal); color: #fff; }
+  .nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .nav-pip { margin-left: auto; min-width: 18px; height: 18px; padding: 0 4px; background: var(--coral); border-radius: 5px; font-size: 10px; font-weight: 700; color: #fff; display: flex; align-items: center; justify-content: center; }
+  .sidebar-footer { margin-top: auto; padding: 14px 10px; border-top: 2px solid var(--cream-border); }
+  .user-card { background: var(--cream); border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; border: 1px solid var(--cream-border); }
+  .avatar { width: 34px; height: 34px; border-radius: 8px; background: var(--coral); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .user-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+  .user-role { font-size: 11px; color: var(--text-muted); }
+
+  /* ── MAIN ── */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── AGENCY TOPBAR ── */
+  .topbar { height: 56px; background: var(--white); border-bottom: 2px solid var(--cream-border); display: flex; align-items: center; padding: 0 24px; gap: 12px; flex-shrink: 0; }
+  .breadcrumb { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+  .breadcrumb a { color: var(--teal); font-weight: 600; cursor: pointer; text-decoration: none; }
+  .breadcrumb a:hover { color: var(--teal-dark); }
+  .breadcrumb-sep { color: var(--cream-border); font-size: 16px; }
+  .breadcrumb-current { font-weight: 800; color: var(--text-primary); }
+  .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .period-toggle { display: flex; background: var(--cream); border: 2px solid var(--cream-border); border-radius: 8px; overflow: hidden; }
+  .period-btn { padding: 5px 12px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; border: none; background: none; color: var(--text-muted); transition: all 0.12s; border-right: 1px solid var(--cream-border); }
+  .period-btn:last-child { border-right: none; }
+  .period-btn.active { background: var(--teal); color: #fff; }
+  .topbar-btn { display: flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; border: 2px solid var(--cream-border); background: var(--white); color: var(--text-primary); transition: all 0.12s; white-space: nowrap; }
+  .topbar-btn:hover { border-color: var(--teal); color: var(--teal); }
+  .topbar-btn.primary { background: var(--coral); border-color: var(--coral); color: #fff; }
+  .topbar-btn.primary:hover { background: var(--coral-dark); border-color: var(--coral-dark); }
+
+  /* ── CLIENT HEADER BANNER ── */
+  .client-banner { background: var(--white); border-bottom: 2px solid var(--cream-border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .client-banner-dot { width: 42px; height: 42px; border-radius: 10px; background: #e76f51; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: #fff; flex-shrink: 0; }
+  .client-banner-name { font-size: 16px; font-weight: 800; color: var(--text-primary); }
+  .client-banner-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
+  .client-banner-score { display: flex; align-items: center; gap: 8px; margin-left: 20px; padding-left: 20px; border-left: 2px solid var(--cream-border); }
+  .score-big { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; color: var(--red); line-height: 1; }
+  .score-label { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-muted); }
+  .score-delta { font-size: 11px; font-weight: 700; color: var(--red); margin-top: 2px; }
+  .banner-stats { display: flex; gap: 0; margin-left: 16px; padding-left: 16px; border-left: 2px solid var(--cream-border); }
+  .banner-stat { padding: 0 18px; border-right: 1px solid var(--cream-border); }
+  .banner-stat:last-child { border-right: none; }
+  .banner-stat-label { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 3px; }
+  .banner-stat-val { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: var(--text-primary); }
+  .banner-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .ai-mode-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .ai-manual { background: var(--cream-dark); color: var(--text-muted); border: 2px solid var(--cream-border); }
+
+  /* ── CONTENT ── */
+  .content { flex: 1; overflow-y: auto; padding: 18px 24px; display: flex; flex-direction: column; gap: 14px; }
+
+  /* ── ALERT BANNER ── */
+  .alert-banner { background: var(--red-light); border: 1.5px solid #f5c0c0; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; font-size: 12.5px; font-weight: 600; color: var(--red); flex-shrink: 0; }
+
+  /* ── KPI STRIP ── */
+  .kpi-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .kpi-card { background: var(--white); border: 2px solid var(--cream-border); border-radius: var(--radius); padding: 14px 16px; position: relative; overflow: hidden; }
+  .kpi-card.featured { background: var(--teal); border-color: var(--teal); }
+  .kpi-accent { position: absolute; top: 0; left: 0; width: 100%; height: 3px; }
+  .kpi-label { font-size: 9px; font-weight: 700; letter-spacing: 0.8px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+  .kpi-card.featured .kpi-label { color: rgba(255,255,255,0.75); }
+  .kpi-value { font-family: 'Space Mono', monospace; font-size: 20px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.5px; line-height: 1; }
+  .kpi-card.featured .kpi-value { color: #fff; }
+  .kpi-delta { font-size: 10.5px; color: var(--text-muted); margin-top: 5px; font-weight: 500; }
+  .kpi-card.featured .kpi-delta { color: rgba(255,255,255,0.7); }
+  .up   { color: var(--green); font-weight: 700; }
+  .down { color: var(--red); font-weight: 700; }
+  .warn { color: var(--amber); font-weight: 700; }
+
+  /* ── TWO COL ── */
+  .two-col { display: grid; grid-template-columns: 1fr 340px; gap: 14px; }
+  .full-row { width: 100%; }
+
+  /* ── CARDS ── */
+  .card { background: var(--white); border: 2px solid var(--cream-border); border-radius: var(--radius); display: flex; flex-direction: column; overflow: hidden; }
+  .card-header { padding: 13px 16px; border-bottom: 2px solid var(--cream-border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .card-title { font-size: 13px; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 8px; }
+  .card-count { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; background: var(--cream); color: var(--text-muted); border: 1px solid var(--cream-border); }
+  .card-link { font-size: 12px; font-weight: 700; color: var(--teal); cursor: pointer; text-decoration: none; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; border-bottom: 2px solid var(--cream-border); flex-shrink: 0; }
+  .tab { padding: 8px 14px; font-size: 11.5px; font-weight: 700; cursor: pointer; color: var(--text-muted); border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.12s; }
+  .tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+  .tab:hover:not(.active) { color: var(--text-primary); }
+
+  /* ── CAMPAIGN TABLE ── */
+  .camp-table { width: 100%; border-collapse: collapse; }
+  .camp-table thead tr { background: var(--cream); border-bottom: 2px solid var(--cream-border); }
+  .camp-table th { padding: 8px 12px; text-align: left; font-size: 9px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-muted); white-space: nowrap; }
+  .camp-table td { padding: 10px 12px; border-bottom: 1px solid var(--cream-border); vertical-align: middle; }
+  .camp-table tbody tr:last-child td { border-bottom: none; }
+  .camp-table tbody tr { cursor: pointer; transition: background 0.1s; }
+  .camp-table tbody tr:hover td { background: #faf7f2; }
+  .camp-name { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+  .camp-meta { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .score-badge { display: inline-flex; font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; padding: 3px 7px; border-radius: 5px; }
+  .s-green { background: var(--green-light); color: var(--green); }
+  .s-amber { background: var(--amber-light); color: var(--amber); }
+  .s-red   { background: var(--red-light);   color: var(--red); }
+  .mono { font-family: 'Space Mono', monospace; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+  .vg { color: var(--green); } .va { color: var(--amber); } .vr { color: var(--red); }
+  .status-dot { font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .st-live    { color: var(--green); }
+  .st-paused  { color: var(--text-muted); }
+  .st-pending { color: var(--amber); }
+  .ai-mode { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px; }
+  .ai-auto   { background: var(--teal-light);  color: var(--teal-dark); }
+  .ai-hybrid { background: var(--purple-light); color: var(--purple); }
+  .ai-manual { background: var(--cream-dark);   color: var(--text-muted); border: 1px solid var(--cream-border); }
+  .table-footer { padding: 10px 14px; background: var(--cream); border-top: 2px solid var(--cream-border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .table-footer span { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+
+  /* ── AI INSIGHTS ── */
+  .insight-list { overflow-y: auto; max-height: 460px; }
+  .insight-item { padding: 12px 14px; border-bottom: 1px solid var(--cream-border); }
+  .insight-item:last-child { border-bottom: none; }
+  .insight-top { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; flex-wrap: wrap; }
+  .ins-plt { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; }
+  .ins-plt-meta { background: #e8effe; color: #1877f2; }
+  .ins-plt-tik  { background: #e6f9fb; color: #00b8c4; }
+  .ins-plt-yt   { background: #fff0f0; color: #cc0000; }
+  .ins-plt-ggl  { background: #fdecea; color: #ea4335; }
+  .ins-sev { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 4px; margin-left: auto; }
+  .sev-crit { background: var(--red-light);   color: var(--red); }
+  .sev-warn { background: var(--amber-light); color: var(--amber); }
+  .sev-opp  { background: var(--teal-light);  color: var(--teal-dark); }
+  .insight-text { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 6px; font-weight: 500; }
+  .insight-impact { font-size: 11px; color: var(--text-muted); margin-bottom: 7px; }
+  .insight-impact span { color: var(--teal-dark); font-weight: 700; }
+  .insight-btns { display: flex; gap: 5px; }
+  .ins-btn { font-size: 11px; font-weight: 700; font-family: inherit; padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all 0.12s; border: 1.5px solid; }
+  .ins-btn-apply   { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .ins-btn-apply:hover { background: var(--teal-dark); }
+  .ins-btn-review  { background: var(--white); border-color: var(--cream-border); color: var(--text-secondary); }
+  .ins-btn-review:hover { border-color: var(--teal); color: var(--teal); }
+  .ins-btn-dismiss { background: var(--white); border-color: var(--cream-border); color: var(--text-muted); }
+  .ins-btn-dismiss:hover { border-color: var(--red); color: var(--red); }
+
+  /* ── BOTTOM THREE COL ── */
+  .three-col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+
+  /* ── PACING ── */
+  .pacing-item { padding: 10px 14px; border-bottom: 1px solid var(--cream-border); }
+  .pacing-item:last-child { border-bottom: none; }
+  .pacing-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; }
+  .pacing-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+  .pacing-sub  { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .pacing-val  { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; text-align: right; }
+  .pacing-track { height: 5px; background: var(--cream-dark); border-radius: 3px; overflow: hidden; margin-bottom: 4px; }
+  .pacing-fill  { height: 100%; border-radius: 3px; }
+  .p-good { background: var(--teal); }
+  .p-warn { background: var(--amber); }
+  .p-over { background: var(--red); }
+  .p-low  { background: var(--amber); opacity: 0.6; }
+  .pacing-footer { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); font-weight: 600; }
+
+  /* ── PLATFORM EFFICIENCY ── */
+  .plt-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--cream-border); }
+  .plt-row:last-child { border-bottom: none; }
+  .plt-icon { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .plt-info { flex: 1; min-width: 0; }
+  .plt-name { font-size: 12px; font-weight: 700; color: var(--text-primary); }
+  .plt-sub  { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .plt-bar  { height: 3px; background: var(--cream-dark); border-radius: 2px; margin-top: 5px; overflow: hidden; }
+  .plt-fill { height: 100%; border-radius: 2px; }
+  .plt-stat { text-align: right; flex-shrink: 0; }
+  .plt-cpc  { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; }
+  .plt-ctr  { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .footer-tip { padding: 10px 14px; font-size: 11.5px; font-weight: 700; }
+
+  /* ── LEADERBOARD ── */
+  .leader-row { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--cream-border); }
+  .leader-row:last-child { border-bottom: none; }
+  .leader-rank { font-family: 'Space Mono', monospace; font-size: 11px; font-weight: 700; color: var(--text-muted); width: 28px; flex-shrink: 0; }
+  .leader-info { flex: 1; min-width: 0; }
+  .leader-name { font-size: 12px; font-weight: 700; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leader-meta { font-size: 10px; color: var(--text-muted); margin-top: 1px; }
+  .leader-score { font-family: 'Space Mono', monospace; font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 5px; }
+  .ls-top { background: var(--green-light); color: var(--green); }
+  .ls-bot { background: var(--red-light); color: var(--red); }
+  .ls-mid { background: var(--amber-light); color: var(--amber); }
+  .leader-divider { border: none; border-top: 2px solid var(--cream-border); margin: 4px 0; }
+  .leader-section { padding: 6px 14px 4px; font-size: 9px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+  .ls-label-top { color: var(--green); }
+  .ls-label-bot { color: var(--red); }
+
+  /* ── AGENCY NOTE ── */
+  .agency-note { background: var(--purple-light); border: 1.5px solid #c4c0f0; border-radius: 8px; padding: 10px 14px; display: flex; align-items: flex-start; gap: 10px; }
+  .agency-note-label { font-size: 9px; font-weight: 800; letter-spacing: 0.8px; text-transform: uppercase; color: var(--purple); margin-bottom: 4px; }
+  .agency-note-text { font-size: 12px; color: var(--text-secondary); font-weight: 500; line-height: 1.5; }
+
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--cream-border); border-radius: 10px; }
+
+  /* ── DOT MENU ── */
+  .action-col { width: 36px; text-align: center; }
+  .dot-menu-wrap { position: relative; display: inline-block; }
+  .dot-btn { width: 26px; height: 26px; border-radius: 6px; border: 1.5px solid transparent; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 16px; font-weight: 900; opacity: 0; letter-spacing: 1px; line-height: 1; transition: opacity 0.12s; }
+  .camp-table tbody tr:hover > td .dot-btn { opacity: 1; }
+  .dot-btn:hover, .dot-btn.menu-open { opacity: 1 !important; border-color: var(--cream-border); background: var(--cream); color: var(--text-primary); }
+  .dot-menu { position: absolute; right: 0; top: 32px; background: var(--white); border: 2px solid var(--cream-border); border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,0.13); z-index: 300; min-width: 185px; overflow: hidden; display: none; }
+  .dot-menu.open { display: block; }
+  .dot-menu-item { display: flex; align-items: center; gap: 9px; padding: 9px 14px; font-size: 12px; font-weight: 600; color: var(--text-secondary); cursor: pointer; transition: background 0.1s; white-space: nowrap; }
+  .dot-menu-item:hover { background: var(--cream); color: var(--text-primary); }
+  .dot-menu-divider { height: 1px; background: var(--cream-border); margin: 3px 0; }
+  .dot-menu-item.danger { color: var(--red); }
+  .dot-menu-item.danger:hover { background: var(--red-light); }
+
+  /* ── INLINE BUDGET EDIT ── */
+  .budget-edit { display: none; position: absolute; top: 50%; right: 40px; transform: translateY(-50%); background: var(--white); border: 2px solid var(--teal); border-radius: 8px; padding: 6px 10px; z-index: 200; box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: none; align-items: center; gap: 8px; white-space: nowrap; }
+  .budget-edit.open { display: flex; }
+  .budget-edit input { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; width: 90px; border: none; outline: none; color: var(--text-primary); }
+  .budget-edit-save { background: var(--teal); color: #fff; border: none; border-radius: 5px; padding: 4px 10px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; }
+  .budget-edit-cancel { background: none; border: none; color: var(--text-muted); font-size: 14px; cursor: pointer; padding: 2px 4px; }
+
+  /* ── VIEW TOGGLE ── */
+  .view-toggle { display:flex; background:var(--cream); border:2px solid var(--cream-border); border-radius:8px; overflow:hidden; }
+  .view-btn { padding:5px 12px; font-size:11px; font-weight:700; font-family:inherit; cursor:pointer; border:none; background:none; color:var(--text-muted); transition:all 0.12s; border-right:1px solid var(--cream-border); display:flex; align-items:center; gap:5px; white-space:nowrap; }
+  .view-btn:last-child { border-right:none; }
+  .view-btn.active { background:var(--text-primary); color:#fff; }
+  .view-btn.active.client-mode { background:var(--coral); }
+
+  /* ── CLIENT VIEW BANNER ── */
+  .client-view-banner { background:var(--coral-light); border-bottom:2px solid #f5c4b8; padding:8px 24px; display:none; align-items:center; gap:10px; font-size:12px; font-weight:700; color:var(--coral-dark); flex-shrink:0; }
+  .client-view-banner.show { display:flex; }
+
+  /* ── EXPORT DROPDOWN ── */
+  .export-wrap { position:relative; }
+  .export-menu { position:absolute; right:0; top:38px; background:var(--white); border:2px solid var(--cream-border); border-radius:10px; box-shadow:0 8px 28px rgba(0,0,0,0.13); z-index:100; min-width:210px; overflow:hidden; display:none; }
+  .export-menu.open { display:block; }
+  .export-item { display:flex; align-items:center; gap:10px; padding:10px 14px; font-size:12px; font-weight:600; color:var(--text-secondary); cursor:pointer; transition:background 0.1s; border-bottom:1px solid var(--cream-border); }
+  .export-item:last-child { border-bottom:none; }
+  .export-item:hover { background:var(--cream); color:var(--text-primary); }
+  .export-item-sub { font-size:10px; color:var(--text-muted); margin-top:1px; font-weight:500; }
+
+  /* ── HIERARCHY TABLE ── */
+  .hier-table { width:100%; border-collapse:collapse; }
+  .hier-table thead { background:var(--cream); border-bottom:2px solid var(--cream-border); }
+  .hier-table th { padding:8px 12px; text-align:left; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); white-space:nowrap; }
+  .hier-table td { padding:9px 12px; border-bottom:1px solid var(--cream-border); vertical-align:middle; transition:background 0.1s; }
+  .hier-table tr.grp-end td { border-bottom:2px solid var(--cream-border) !important; }
+  /* Platform rows */
+  .hier-table tr.lvl-1 td { background:var(--white); cursor:pointer; }
+  .hier-table tr.lvl-1:hover td { background:#faf7f2; }
+  /* Campaign rows */
+  .hier-table tr.lvl-2 td { background:#f8f4ed; cursor:pointer; }
+  .hier-table tr.lvl-2:hover td { background:#f3ede3; }
+  /* Ad set rows */
+  .hier-table tr.lvl-3 td { background:#f0ebe0; }
+  /* Left border stagger */
+  .hier-table tr.lvl-1 td:first-child { border-left:3px solid var(--teal); padding-left:12px; }
+  .hier-table tr.lvl-2 td:first-child { border-left:3px solid var(--amber); padding-left:24px; }
+  .hier-table tr.lvl-3 td:first-child { border-left:3px solid var(--cream-border); padding-left:36px; }
+  .plt-name-cell { display:flex; align-items:center; gap:8px; }
+  .plt-badge { width:24px; height:24px; border-radius:5px; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0; }
+  .plt-row-label { font-size:12.5px; font-weight:800; color:var(--text-primary); }
+  .plt-row-sub { font-size:10px; color:var(--text-muted); margin-top:1px; }
+  .adset-name { font-size:11.5px; font-weight:600; color:var(--text-secondary); }
+  .adset-sub { font-size:10px; color:var(--text-muted); margin-top:1px; }
+
+  /* ── CLIENT VIEW HIDING ── */
+  body.client-view .agency-only { display:none !important; }
+  body.client-view .agency-note { display:none !important; }
+  body.client-view .dot-menu-wrap { visibility:hidden; pointer-events:none; }
+  body.client-view .action-col { display:none !important; }
+  body.client-view .banner-actions { display:none !important; }
+  body.client-view .topbar-btn.primary { display:none !important; }
+  body.client-view .sidebar { display:none !important; }
+  body.client-view td.agency-only { display:none !important; }
+  body.client-view th.agency-only { display:none !important; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR — Agency nav -->
+<aside class="sidebar">
+  <div class="logo-row">
+    <svg width="32" height="32" viewBox="0 0 239 239" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 C3.94024569 1.38900747 6.92114024 3.23875492 10.25 5.75 C15.06742803 9.33202247 19.97165939 12.72226686 25 16 C24.43613585 19.36017005 23.77231226 21.42501711 22.125 24.5 C16.04038271 36.2695152 15.75169838 49.01427442 18.8828125 61.61328125 C21.4493163 69.39355676 25.52203726 76.8808794 31 83 C31.66 83 32.32 83 33 83 C33.1959375 82.030625 33.391875 81.06125 33.59375 80.0625 C38.31119032 58.32339603 49.74564149 39.70250308 68.16796875 26.77734375 C83.56294491 16.93706627 97.70248927 13 116 13 C116 22.9 116 32.8 116 43 C111.71 43.66 107.42 44.32 103 45 C89.46604702 49.06018589 77.88937934 55.94898105 70.953125 68.6171875 C67.50099601 74.54850648 67.50099601 74.54850648 66 81 C66.98097656 80.52949219 67.96195313 80.05898437 68.97265625 79.57421875 C91.36912401 69.11263707 114.385047 67.88044479 137.75 76.3125 C148.86755303 80.84037614 160.13850594 87.77441108 168 97 C168 101 168 101 166.6015625 102.60546875 C165.94929687 103.12753906 165.29703125 103.64960937 164.625 104.1875 C160.37636512 107.68015003 156.33381102 111.34722261 152.296875 115.08203125 C150.24380935 116.7964109 148.44010525 117.94224795 146 119 C145.51273438 118.50371094 145.02546875 118.00742188 144.5234375 117.49609375 C132.82654792 106.28834683 119.60352644 101.51300449 103.57421875 101.73828125 C96.11756709 102.28428744 89.00943511 104.4688151 82 107 C82 107.66 82 108.32 82 109 C83.216875 109.33 84.43375 109.66 85.6875 110 C104.83405871 116.4822205 119.12320343 132.14748061 128.25 149.625 C135.67664419 164.72310316 139.68507286 184.46431005 135 201 C128.00634512 200.43617776 121.23899157 199.37639601 114.375 197.9375 C113.46621094 197.75123047 112.55742187 197.56496094 111.62109375 197.37304688 C109.4130997 196.91982704 107.20614876 196.46210307 105 196 C105.03480469 194.90042969 105.06960937 193.80085937 105.10546875 192.66796875 C105.47687395 176.1216797 102.02285658 161.49888445 90.29296875 149.04296875 C85.71798984 144.96679504 80.47384271 141.73692136 75 139 C75.45375 140.216875 75.9075 141.43375 76.375 142.6875 C83.15294131 163.14981569 80.46615794 185.35500541 71.28125 204.6015625 C64.36906879 217.76010589 54.74759209 229.1961249 42 237 C40.67567503 237.36749458 39.34294724 237.70779869 38 238 C35.59890149 234.09877136 33.23383678 230.17690161 30.875 226.25 C30.19050781 225.13882813 29.50601563 224.02765625 28.80078125 222.8828125 C28.16269531 221.81289062 27.52460937 220.74296875 26.8671875 219.640625 C26.27019043 218.65610352 25.67319336 217.67158203 25.05810547 216.65722656 C24 214 24 214 24.71679688 211.72973633 C26.17520464 209.76382707 27.56251837 208.74812079 29.625 207.4375 C40.38715241 199.64421722 46.19932781 186.9357014 48.375 174.125 C49.23803821 166.96497933 48.8047728 160.15595272 48 153 C47.34 153 46.68 153 46 153 C45.79375 153.66 45.5875 154.32 45.375 155 C43.47548803 159.14438975 40.84042643 162.4544097 38 166 C37.49597656 166.65226563 36.99195312 167.30453125 36.47265625 167.9765625 C23.98514396 183.30353358 4.40276326 192.50401346 -15 195 C-26.41576146 195.6423255 -39.1780299 196.24151409 -50 192 C-51.24493129 188.26520613 -50.56794499 186.93669482 -49.34765625 183.23828125 C-48.80141602 181.56088867 -48.80141602 181.56088867 -48.24414062 179.84960938 C-47.85419922 178.68236328 -47.46425781 177.51511719 -47.0625 176.3125 C-46.67642578 175.13365234 -46.29035156 173.95480469 -45.89257812 172.74023438 C-44.93628169 169.82412056 -43.97180117 166.91097616 -43 164 C-39.1929115 163.14813875 -36.80314992 163.15548534 -33 164 C-17.86545716 165.10036605 -5.38372425 162.10079064 7 153 C8.60875 151.8553125 8.60875 151.8553125 10.25 150.6875 C14.56902162 146.46663796 18.29110351 141.41779298 21 136 C19.71222656 136.23976562 19.71222656 136.23976562 18.3984375 136.484375 C-1.39983814 139.4882513 -23.09603381 134.01556886 -39.3046875 122.33984375 C-41.57368146 120.60180965 -43.7891307 118.81111802 -46 117 C-46.59554687 116.55140625 -47.19109375 116.1028125 -47.8046875 115.640625 C-56.15046121 109.10246126 -61.75010352 100.01389952 -66.5 90.6875 C-66.83829834 90.03023926 -67.17659668 89.37297852 -67.52514648 88.69580078 C-69.6064996 84.42970004 -70.55957919 80.72840671 -71 76 C-66.919064 74.82483331 -62.83488859 73.66134593 -58.75 72.5 C-57.59113281 72.16613281 -56.43226562 71.83226563 -55.23828125 71.48828125 C-54.12324219 71.17246094 -53.00820313 70.85664062 -51.859375 70.53125 C-50.83295898 70.23798828 -49.80654297 69.94472656 -48.74902344 69.64257812 C-46 69 -46 69 -42 69 C-41.49210937 70.07378906 -40.98421875 71.14757812 -40.4609375 72.25390625 C-32.87700796 88.03863111 -24.0716729 97.91316398 -7 104 C-1.28228384 105.46373534 4.09960009 106.09475095 10 106 C9.3709375 105.30777344 8.741875 104.61554688 8.09375 103.90234375 C-7.83575578 85.69376712 -15.23872034 64.36079595 -14.14794922 40.11962891 C-13.15322019 25.86841208 -8.13653386 11.72618115 0 0 Z" fill="#FC756C" transform="translate(71,0)"/></svg>
+    <svg height="22" viewBox="0 0 463 90" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M0 0 C1.87461914 -0.01740234 3.78710938 -0.03515625 3.78710938 -0.03515625 C16.08019079 0.00360281 26.192732 2.30772075 35.19140625 11.0859375 C44.86998867 22.58380233 45.17257182 39.1172744 43.98779297 53.40405273 C43.23299388 60.8505255 42.14099561 67.75546299 38.4375 74.375 C32.62341276 83.62888353 25.42323324 87.46577093 17.3515625 89.51953125 C11.62912858 90.69348621 5.94736501 90.70515423 0.125 90.6875 C-15.63466684 90.74405653 -25.76250045 88.18036873 -35.30859375 79.8515625 C-45.49072228 69.44090739 -44.84854919 53.26446521 -44.7109375 39.75390625 C-44.4796806 28.73129269 -42.46603155 19.18181368 -35.1875 10.5625 C-22.164286 -0.12052273 -10.95166984 -0.10198141 0 0 Z M-25.5625 24.375 C-30.48838286 34.73354378 -30.30125536 50.37562599 -27.3125 61.3125 C-25.43245198 66.27932453 -23.20936427 69.41432918 -18.5625 72.125 C-12.45626069 74.66926638 -6.86378043 74.5921203 -0.3125 74.625 C10.30515494 74.72667639 16.11793564 73.95688339 22.25 69.1875 C29.64238327 59.68300722 29.11969046 46.27142823 27.75 34.8125 C26.58502801 28.03097431 25.08624194 23.76532809 19.875 19.0625 C6.44782766 12.47097903 -15.14982846 12.53093695 -25.5625 24.375 Z" fill="#2a9d8f" transform="translate(418.5625,-0.375)"/><path d="M0 0 C5.28 0 10.56 0 16 0 C16.495 20.295 17 41 17 41 C21.455 36.05 26 31 26 31 C29.625 27.375 31.3203125 25.7109375 31.3203125 25.7109375 C40.47187076 15.46914539 52.6171875 2.6015625 52.6171875 2.6015625 C55 0 76 0 76 0 C73.03379303 3.46116388 57.74609375 20.22265625 57.74609375 20.22265625 C50.83984375 27.9453125 40 41 40 41 C52.15704271 54.25455822 70 73.21484375 70 73.21484375 C77.26953125 80.890625 82 88 82 88 C65.6713159 90.0698332 59.79150391 86.75488281 59.79150391 86.75488281 C48 74 33 58 33 58 C28 53 16.38085938 66.87646484 16.38085938 66.87646484 C15.64583483 73.91400244 16 88 16 88 C10.72 88 0 88 0 88 C0 58.96 0 29.92 0 0 Z" fill="#2a9d8f" transform="translate(1,1)"/><path d="M0 0 C5.94 0 11.88 0 18 0 C43 65 43 65 43 65 C56.96875 29.69140625 69 0 69 0 C86 0 86 0 86 0 C78.9375 20.67578125 53 88 53 88 C46.73 88 34 88 34 88 C19.80307667 52.76957328 0 0 0 0 Z" fill="#2a9d8f" transform="translate(268,1)"/><path d="M0 0 C5.28 0 10.56 0 16 0 C16 29.04 16 58.08 16 88 C10.72 88 5.44 88 0 88 C0 58.96 0 29.92 0 0 Z" fill="#449C8B" transform="translate(224,1)"/><path d="M0 0 C17.14233398 0.11352539 17.14233398 0.11352539 50.14233398 88.11352539 C44.53233398 88.11352539 33.14233398 88.11352539 33.14233398 88.11352539 C27.14233398 71.11352539 27.14233398 71.11352539 27.14233398 71.11352539 C14.27233398 71.44352539 -11.85766602 72.11352539 -11.85766602 72.11352539 C-35.85766602 88.11352539 -35.85766602 88.11352539 -35.85766602 88.11352539 C-5.85766602 55.11352539 20.14233398 55.11352539 20.14233398 55.11352539 C8.14233398 22.11352539 7.14233398 22.11352539 7.14233398 22.11352539 Z" fill="#2a9d8f" transform="translate(144.857666015625,0.886474609375)"/></svg>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+      Dashboard
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v4l2.5 1.5"/></svg>
+      AI Insights
+      <span class="nav-pip">7</span>
+    </div>
+    <div class="nav-item active">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12V5l6-3 6 3v7l-6 3-6-3z"/></svg>
+      Clients
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 3H3a1 1 0 00-1 1v1.5l5 4.5v4l2 1v-5l5-4.5V4a1 1 0 00-1-1z"/></svg>
+      Integrations
+      <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:auto;flex-shrink:0;"></span>
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M1 7h14"/></svg>
+      Billing
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>
+      Settings
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card">
+      <div class="avatar">MC</div>
+      <div>
+        <div class="user-name">Media Co Agency</div>
+        <div class="user-role">Agency Plan</div>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- TOPBAR — breadcrumb -->
+  <div class="topbar">
+    <div class="breadcrumb">
+      <a href="#">Clients</a>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current">Harbor Coffee Co.</span>
+    </div>
+    <div class="topbar-right">
+      <div class="period-toggle">
+        <button class="period-btn" onclick="setPeriod(this)">Today</button>
+        <button class="period-btn active" onclick="setPeriod(this)">7D</button>
+        <button class="period-btn" onclick="setPeriod(this)">MTD</button>
+        <button class="period-btn" onclick="setPeriod(this)">Last 30D</button>
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active" id="agencyViewBtn" onclick="setView('agency')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12V5l6-3 6 3v7l-6 3-6-3z"/></svg>
+          Agency View
+        </button>
+        <button class="view-btn" id="clientViewBtn" onclick="setView('client')">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+          Client View
+        </button>
+      </div>
+      <div class="export-wrap">
+        <button class="topbar-btn" onclick="toggleExport(event)">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 8h12M8 2l6 6-6 6"/></svg>
+          Export <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px;"><path d="M4 6l4 4 4-4"/></svg>
+        </button>
+        <div class="export-menu" id="exportMenu">
+          <div class="export-item" onclick="doExport('agency')">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12V5l6-3 6 3v7l-6 3-6-3z"/></svg>
+            <div><div>Agency Report</div><div class="export-item-sub">Full data inc. fees, AI scores &amp; notes</div></div>
+          </div>
+          <div class="export-item" onclick="doExport('client')">
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+            <div><div>Client Report</div><div class="export-item-sub">Client view — no fees, scores or internal data</div></div>
+          </div>
+        </div>
+      </div>
+      <button class="topbar-btn primary" onclick="alert('Client portal link copied to clipboard.')">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1v14M1 8h14"/></svg>
+        Share with Client
+      </button>
+    </div>
+  </div>
+
+  <!-- CLIENT VIEW BANNER -->
+  <div class="client-view-banner" id="clientViewBanner">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+    Client View Preview &mdash; This is how Harbor Coffee Co. sees their portal. Agency-only data is hidden.
+    <button onclick="setView('agency')" style="margin-left:auto;font-size:11px;font-weight:700;font-family:inherit;padding:4px 10px;border-radius:6px;border:1.5px solid var(--coral);background:var(--white);color:var(--coral);cursor:pointer;">Back to Agency View</button>
+  </div>
+
+  <!-- CLIENT HEADER BANNER -->
+  <div class="client-banner">
+    <div class="client-banner-dot">HC</div>
+    <div>
+      <div class="client-banner-name">Harbor Coffee Co.</div>
+      <div class="client-banner-meta">Shopify · E-commerce · 3 platforms · Client since Jan 2026</div>
+    </div>
+    <div class="client-banner-score agency-only">
+      <div>
+        <div class="score-label">Kaivo Score</div>
+        <div class="score-big">48.2</div>
+        <div class="score-delta">▼ 4.1 this week</div>
+      </div>
+    </div>
+    <div class="banner-stats">
+      <div class="banner-stat">
+        <div class="banner-stat-label">Spend</div>
+        <div class="banner-stat-val">$12,400</div>
+      </div>
+      <div class="banner-stat">
+        <div class="banner-stat-label">Budget</div>
+        <div class="banner-stat-val">$15,000</div>
+      </div>
+      <div class="banner-stat">
+        <div class="banner-stat-label">Pacing</div>
+        <div class="banner-stat-val" style="color:var(--teal);">83%</div>
+      </div>
+      <div class="banner-stat agency-only">
+        <div class="banner-stat-label">Client Fee</div>
+        <div class="banner-stat-val" style="color:var(--teal);">$2,480</div>
+      </div>
+      <div class="banner-stat agency-only">
+        <div class="banner-stat-label">Alerts</div>
+        <div class="banner-stat-val" style="color:var(--red);">⚡ 2</div>
+      </div>
+    </div>
+    <div class="banner-actions">
+      <div class="ai-mode-badge ai-manual">⊙ Manual AI</div>
+      <button class="topbar-btn" style="font-size:11px;">Switch to Hybrid →</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- ALERT -->
+    <div class="alert-banner agency-only">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 1L10 6h5l-4 3 1.5 5L8 11l-4.5 3L5 9 1 6h5L8 1z"/></svg>
+      2 critical AI recommendations pending for this client — creative fatigue on TikTok and overspend on Video Demo campaign.
+      <strong style="text-decoration:underline;cursor:pointer;margin-left:4px;">Review now →</strong>
+    </div>
+
+    <!-- KPI STRIP -->
+    <div class="kpi-strip">
+      <div class="kpi-card featured agency-only">
+        <div class="kpi-label">Kaivo Score</div>
+        <div class="kpi-value">48.2</div>
+        <div class="kpi-delta"><span style="color:rgba(255,255,255,0.9);font-weight:700;">▼ 4.1</span> vs last period</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--coral);"></div>
+        <div class="kpi-label">Total Spend</div>
+        <div class="kpi-value">$12.4k</div>
+        <div class="kpi-delta"><span class="up">▲ 8%</span> vs last period</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--red);"></div>
+        <div class="kpi-label">Avg CPC</div>
+        <div class="kpi-value">$3.92</div>
+        <div class="kpi-delta"><span class="down">▲ $0.84</span> worsening</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--amber);"></div>
+        <div class="kpi-label">Avg CTR</div>
+        <div class="kpi-value">0.9%</div>
+        <div class="kpi-delta"><span class="down">▼ 0.4%</span> vs last period</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--teal);"></div>
+        <div class="kpi-label">Conversions</div>
+        <div class="kpi-value">312</div>
+        <div class="kpi-delta"><span class="down">▼ 18%</span> vs last period</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-accent" style="background:var(--red);"></div>
+        <div class="kpi-label">Cost / Conv.</div>
+        <div class="kpi-value">$39.74</div>
+        <div class="kpi-delta"><span class="down">▲ $8.20</span> worsening</div>
+      </div>
+    </div>
+
+    <!-- CAMPAIGN HIERARCHY — full width -->
+    <div class="full-row">
+      <!-- CAMPAIGN HIERARCHY -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">&#127919; Campaigns <span class="card-count">3 platforms &middot; 5 campaigns &middot; 11 ad sets</span></div>
+          <div style="display:flex;align-items:center;gap:8px;" class="agency-only">
+            <button class="topbar-btn" style="padding:5px 10px;font-size:11px;" onclick="expandAll()">Expand All</button>
+            <button class="topbar-btn" style="padding:5px 10px;font-size:11px;" onclick="collapseAll()">Collapse All</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="hier-table" style="min-width:780px;">
+          <thead><tr>
+            <th style="min-width:200px;">Name</th>
+            <th class="agency-only">Score</th>
+            <th>Impressions</th>
+            <th>Clicks</th>
+            <th>Spend</th>
+            <th>Budget</th>
+            <th>Pacing</th>
+            <th>CPC</th>
+            <th>CTR</th>
+            <th>Conv.</th>
+            <th>Status</th>
+            <th class="agency-only">AI Mode</th>
+            <th class="action-col agency-only"></th>
+          </tr></thead>
+          <tbody>
+
+            <!-- META -->
+            <tr class="lvl-1" id="hc-meta-row" onclick="toggle('hc-meta',this)">
+              <td><div class="plt-name-cell"><div class="plt-badge" style="background:#e8effe;color:#1877f2;">f</div><div><div class="plt-row-label">Meta</div><div class="plt-row-sub">2 campaigns &middot; $6,200</div></div></div></td>
+              <td class="agency-only"><span class="score-badge s-red">44.2</span></td>
+              <td><span class="mono">128,400</span></td>
+              <td><span class="mono">1,156</span></td>
+              <td><span class="mono va">$6,200</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$7,500</span></td>
+              <td><span class="mono" style="color:var(--teal);">83%</span></td>
+              <td><span class="mono vr">$4.20</span></td>
+              <td><span class="mono vr">0.9%</span></td>
+              <td><span class="mono">151</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause All</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in Meta</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Remove Platform</div></div></div></td>
+            </tr>
+            <tr class="lvl-2" data-parent="hc-meta" id="hc-meta-c1-row" onclick="toggle('hc-meta-c1',this)">
+              <td><div class="camp-name">Summer Sale &mdash; Awareness</div><div class="camp-meta">Awareness &middot; Lookalike 2%</div></td>
+              <td class="agency-only"><span class="score-badge s-red">38.9</span></td>
+              <td><span class="mono">84,200</span></td>
+              <td><span class="mono">589</span></td>
+              <td><span class="mono vr">$3,800</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$4,500</span></td>
+              <td><span class="mono" style="color:var(--teal);">84%</span></td>
+              <td><span class="mono vr">$4.62</span></td>
+              <td><span class="mono vr">0.7%</span></td>
+              <td><span class="mono">82</span></td>
+              <td><span class="status-dot st-pending">&bull; Pending</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit Budget</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in Meta</div><div class="dot-menu-item" onclick="event.stopPropagation()">⧉ Duplicate</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3" data-parent="hc-meta-c1">
+              <td><div class="adset-name">Lookalike 2% &mdash; 25&ndash;44</div><div class="adset-sub">$120/day &middot; 3 ads</div></td>
+              <td class="agency-only"><span class="score-badge s-red">36.2</span></td>
+              <td><span class="mono">48,100</span></td>
+              <td><span class="mono">289</span></td>
+              <td><span class="mono vr">$2,100</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$2,500</span></td>
+              <td><span class="mono" style="color:var(--teal);">84%</span></td>
+              <td><span class="mono vr">$5.10</span></td>
+              <td><span class="mono vr">0.6%</span></td>
+              <td><span class="mono">41</span></td>
+              <td><span class="status-dot st-pending">&bull; Pending</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3 grp-end" data-parent="hc-meta-c1">
+              <td><div class="adset-name">Broad 18&ndash;34</div><div class="adset-sub">$60/day &middot; 2 ads</div></td>
+              <td class="agency-only"><span class="score-badge s-red">40.1</span></td>
+              <td><span class="mono">36,100</span></td>
+              <td><span class="mono">289</span></td>
+              <td><span class="mono vr">$1,700</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$2,000</span></td>
+              <td><span class="mono" style="color:var(--teal);">85%</span></td>
+              <td><span class="mono vr">$4.05</span></td>
+              <td><span class="mono vr">0.8%</span></td>
+              <td><span class="mono">41</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-2 grp-end" data-parent="hc-meta" id="hc-meta-c2-row" onclick="toggle('hc-meta-c2',this)">
+              <td><div class="camp-name">Loyalty Rewards</div><div class="camp-meta">Retargeting &middot; Existing customers</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">61.4</span></td>
+              <td><span class="mono">44,200</span></td>
+              <td><span class="mono">619</span></td>
+              <td><span class="mono va">$2,400</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$3,000</span></td>
+              <td><span class="mono" style="color:var(--teal);">80%</span></td>
+              <td><span class="mono va">$2.94</span></td>
+              <td><span class="mono va">1.4%</span></td>
+              <td><span class="mono">69</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-hybrid">&oplus; Hybrid</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit Budget</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in Meta</div><div class="dot-menu-item" onclick="event.stopPropagation()">⧉ Duplicate</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3" data-parent="hc-meta-c2">
+              <td><div class="adset-name">Existing Customers &mdash; 90 day</div><div class="adset-sub">$80/day &middot; 2 ads</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">64.0</span></td>
+              <td><span class="mono">26,400</span></td>
+              <td><span class="mono">422</span></td>
+              <td><span class="mono va">$1,400</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$1,800</span></td>
+              <td><span class="mono" style="color:var(--amber);">78%</span></td>
+              <td><span class="mono va">$2.70</span></td>
+              <td><span class="mono va">1.6%</span></td>
+              <td><span class="mono">41</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-hybrid">&oplus; Hybrid</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3 grp-end" data-parent="hc-meta-c2">
+              <td><div class="adset-name">Cart Abandoners &mdash; 14 day</div><div class="adset-sub">$40/day &middot; 1 ad</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">58.8</span></td>
+              <td><span class="mono">17,800</span></td>
+              <td><span class="mono">214</span></td>
+              <td><span class="mono va">$1,000</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$1,200</span></td>
+              <td><span class="mono" style="color:var(--teal);">83%</span></td>
+              <td><span class="mono va">$3.18</span></td>
+              <td><span class="mono va">1.2%</span></td>
+              <td><span class="mono">28</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-hybrid">&oplus; Hybrid</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+
+            <!-- TIKTOK -->
+            <tr class="lvl-1" id="hc-tik-row" onclick="toggle('hc-tik',this)">
+              <td><div class="plt-name-cell"><div class="plt-badge" style="background:#e6f9fb;color:#00b8c4;">T</div><div><div class="plt-row-label">TikTok</div><div class="plt-row-sub">1 campaign &middot; $3,800</div></div></div></td>
+              <td class="agency-only"><span class="score-badge s-amber">54.8</span></td>
+              <td><span class="mono">96,200</span></td>
+              <td><span class="mono">1,058</span></td>
+              <td><span class="mono va">$3,800</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$4,500</span></td>
+              <td><span class="mono" style="color:var(--teal);">84%</span></td>
+              <td><span class="mono va">$3.40</span></td>
+              <td><span class="mono va">1.1%</span></td>
+              <td><span class="mono">112</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause All</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in TikTok</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Remove Platform</div></div></div></td>
+            </tr>
+            <tr class="lvl-2" data-parent="hc-tik" id="hc-tik-c1-row" onclick="toggle('hc-tik-c1',this)">
+              <td><div class="camp-name">Summer Vibes &mdash; Video</div><div class="camp-meta">Awareness &middot; Broad 18&ndash;34</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">54.8</span></td>
+              <td><span class="mono">96,200</span></td>
+              <td><span class="mono">1,058</span></td>
+              <td><span class="mono va">$3,800</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$4,500</span></td>
+              <td><span class="mono" style="color:var(--teal);">84%</span></td>
+              <td><span class="mono va">$3.40</span></td>
+              <td><span class="mono va">1.1%</span></td>
+              <td><span class="mono">112</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit Budget</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in TikTok</div><div class="dot-menu-item" onclick="event.stopPropagation()">⧉ Duplicate</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3" data-parent="hc-tik-c1">
+              <td><div class="adset-name">Broad 18&ndash;24 &mdash; Video Feed</div><div class="adset-sub">$100/day &middot; 2 ads</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">57.1</span></td>
+              <td><span class="mono">54,300</span></td>
+              <td><span class="mono">652</span></td>
+              <td><span class="mono va">$2,100</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$2,800</span></td>
+              <td><span class="mono" style="color:var(--amber);">75%</span></td>
+              <td><span class="mono va">$3.20</span></td>
+              <td><span class="mono va">1.2%</span></td>
+              <td><span class="mono">66</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3 grp-end" data-parent="hc-tik-c1">
+              <td><div class="adset-name">Interest &mdash; Coffee &amp; Food</div><div class="adset-sub">$60/day &middot; 1 ad</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">51.4</span></td>
+              <td><span class="mono">41,900</span></td>
+              <td><span class="mono">377</span></td>
+              <td><span class="mono va">$1,700</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$1,700</span></td>
+              <td><span class="mono" style="color:var(--red);">100%</span></td>
+              <td><span class="mono vr">$3.64</span></td>
+              <td><span class="mono vr">0.9%</span></td>
+              <td><span class="mono">46</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+
+            <!-- GOOGLE -->
+            <tr class="lvl-1" id="hc-ggl-row" onclick="toggle('hc-ggl',this)">
+              <td><div class="plt-name-cell"><div class="plt-badge" style="background:#fdecea;color:#ea4335;">G</div><div><div class="plt-row-label">Google Ads</div><div class="plt-row-sub">2 campaigns &middot; $2,400</div></div></div></td>
+              <td class="agency-only"><span class="score-badge s-amber">51.2</span></td>
+              <td><span class="mono">44,600</span></td>
+              <td><span class="mono">401</span></td>
+              <td><span class="mono va">$2,400</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$3,000</span></td>
+              <td><span class="mono" style="color:var(--teal);">80%</span></td>
+              <td><span class="mono va">$3.86</span></td>
+              <td><span class="mono va">0.9%</span></td>
+              <td><span class="mono">49</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-hybrid">&oplus; Hybrid</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause All</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in Google Ads</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Remove Platform</div></div></div></td>
+            </tr>
+            <tr class="lvl-2" data-parent="hc-ggl" id="hc-ggl-c1-row" onclick="toggle('hc-ggl-c1',this)">
+              <td><div class="camp-name">Google Search &mdash; Brand</div><div class="camp-meta">Conversion &middot; High-intent search</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">58.3</span></td>
+              <td><span class="mono">28,400</span></td>
+              <td><span class="mono">284</span></td>
+              <td><span class="mono va">$1,400</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$2,000</span></td>
+              <td><span class="mono" style="color:var(--amber);">70%</span></td>
+              <td><span class="mono va">$3.62</span></td>
+              <td><span class="mono va">1.0%</span></td>
+              <td><span class="mono">39</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-hybrid">&oplus; Hybrid</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit Budget</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in Google Ads</div><div class="dot-menu-item" onclick="event.stopPropagation()">⧉ Duplicate</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3 grp-end" data-parent="hc-ggl-c1">
+              <td><div class="adset-name">Branded Keywords &mdash; Exact</div><div class="adset-sub">$45/day &middot; 1 ad group</div></td>
+              <td class="agency-only"><span class="score-badge s-amber">58.3</span></td>
+              <td><span class="mono">28,400</span></td>
+              <td><span class="mono">284</span></td>
+              <td><span class="mono va">$1,400</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$2,000</span></td>
+              <td><span class="mono" style="color:var(--amber);">70%</span></td>
+              <td><span class="mono va">$3.62</span></td>
+              <td><span class="mono va">1.0%</span></td>
+              <td><span class="mono">39</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-hybrid">&oplus; Hybrid</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-2 grp-end" data-parent="hc-ggl" id="hc-ggl-c2-row" onclick="toggle('hc-ggl-c2',this)">
+              <td><div class="camp-name">Google Display &mdash; Retargeting</div><div class="camp-meta">Retargeting &middot; Site visitors</div></td>
+              <td class="agency-only"><span class="score-badge s-red">44.1</span></td>
+              <td><span class="mono">16,200</span></td>
+              <td><span class="mono">130</span></td>
+              <td><span class="mono vr">$1,000</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$1,000</span></td>
+              <td><span class="mono" style="color:var(--red);">100%</span></td>
+              <td><span class="mono vr">$4.10</span></td>
+              <td><span class="mono vr">0.8%</span></td>
+              <td><span class="mono">10</span></td>
+              <td><span class="status-dot st-pending">&bull; Pending</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit Budget</div><div class="dot-menu-item" onclick="event.stopPropagation()">↗ Open in Google Ads</div><div class="dot-menu-item" onclick="event.stopPropagation()">⧉ Duplicate</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3" data-parent="hc-ggl-c2">
+              <td><div class="adset-name">Site Visitors &mdash; 30 day</div><div class="adset-sub">$30/day &middot; 2 ads</div></td>
+              <td class="agency-only"><span class="score-badge s-red">46.0</span></td>
+              <td><span class="mono">10,100</span></td>
+              <td><span class="mono">91</span></td>
+              <td><span class="mono va">$620</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$700</span></td>
+              <td><span class="mono" style="color:var(--teal);">89%</span></td>
+              <td><span class="mono vr">$3.88</span></td>
+              <td><span class="mono vr">0.9%</span></td>
+              <td><span class="mono">7</span></td>
+              <td><span class="status-dot st-live">&bull; Live</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+            <tr class="lvl-3 grp-end" data-parent="hc-ggl-c2">
+              <td><div class="adset-name">Product Page Visitors &mdash; 7 day</div><div class="adset-sub">$20/day &middot; 1 ad</div></td>
+              <td class="agency-only"><span class="score-badge s-red">42.2</span></td>
+              <td><span class="mono">6,100</span></td>
+              <td><span class="mono">43</span></td>
+              <td><span class="mono vr">$380</span></td>
+              <td><span class="mono" style="color:var(--text-muted);">$300</span></td>
+              <td><span class="mono" style="color:var(--red);">100%</span></td>
+              <td><span class="mono vr">$4.32</span></td>
+              <td><span class="mono vr">0.7%</span></td>
+              <td><span class="mono">3</span></td>
+              <td><span class="status-dot st-pending">&bull; Pending</span></td>
+              <td class="agency-only"><span class="ai-mode ai-manual">&odot; Manual</span></td>
+              <td class="action-col agency-only" onclick="event.stopPropagation()"><div class="dot-menu-wrap"><button class="dot-btn" onclick="toggleMenu(this)">···</button><div class="dot-menu"><div class="dot-menu-item" onclick="event.stopPropagation()">⏸ Pause</div><div class="dot-menu-item" onclick="event.stopPropagation()">✎ Edit</div><div class="dot-menu-divider"></div><div class="dot-menu-item danger" onclick="event.stopPropagation()">✕ Delete</div></div></div></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="table-footer">
+          <span>3 platforms &middot; 5 campaigns &middot; 11 ad sets &middot; $12,400 total spend</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI INSIGHTS — full width, agency only -->
+    <div class="full-row agency-only" id="insightsCard">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title" style="color:var(--coral);">⚡ AI Insights <span class="card-count" style="background:var(--red-light);color:var(--red);border-color:var(--red-light);">2 critical</span></div>
+          <a class="card-link" href="#">All →</a>
+        </div>
+        <div class="insight-list">
+          <div class="insight-item">
+            <div class="insight-top"><span class="ins-plt ins-plt-tik">TikTok</span><span class="ins-sev sev-crit">Critical</span></div>
+            <div class="insight-text">Creative fatigue on Summer Vibes — frequency at 4.2x. CPM up 38% this week. CTR dropped from 2.1% to 1.1% in 5 days.</div>
+            <div class="insight-impact">Est. impact: <span>+14–18% ROAS if actioned within 48h</span></div>
+            <div class="insight-btns"><button class="ins-btn ins-btn-apply">✓ Apply</button><button class="ins-btn ins-btn-review">Review</button><button class="ins-btn ins-btn-dismiss">Dismiss</button></div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-top"><span class="ins-plt ins-plt-meta">Meta</span><span class="ins-sev sev-crit">Critical</span></div>
+            <div class="insight-text">Summer Sale awareness campaign CPC at $4.62 — 2.8x account average. Video completion under 12%. Pause and refresh creative immediately.</div>
+            <div class="insight-impact">Est. impact: <span>Save ~$1,260/week in wasted spend</span></div>
+            <div class="insight-btns"><button class="ins-btn ins-btn-apply">✓ Apply</button><button class="ins-btn ins-btn-review">Review</button><button class="ins-btn ins-btn-dismiss">Dismiss</button></div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-top"><span class="ins-plt ins-plt-meta">Meta</span><span class="ins-sev sev-warn">Warning</span></div>
+            <div class="insight-text">Loyalty Rewards retargeting audience is showing frequency at 3.8x — refresh creative within 4 days before fatigue sets in.</div>
+            <div class="insight-impact">Est. impact: <span>Prevent projected CTR drop to 0.8%</span></div>
+            <div class="insight-btns"><button class="ins-btn ins-btn-apply">✓ Apply</button><button class="ins-btn ins-btn-review">Review</button><button class="ins-btn ins-btn-dismiss">Dismiss</button></div>
+          </div>
+          <div class="insight-item">
+            <div class="insight-top"><span class="ins-plt ins-plt-ggl">Google</span><span class="ins-sev sev-opp">Opportunity</span></div>
+            <div class="insight-text">Google Search brand terms CPC dropped $0.40 this week — competitor pulling back. Increase bids 15% to capture the window.</div>
+            <div class="insight-impact">Est. impact: <span>+340 extra clicks/week at lower cost</span></div>
+            <div class="insight-btns"><button class="ins-btn ins-btn-apply">✓ Apply</button><button class="ins-btn ins-btn-review">Review</button><button class="ins-btn ins-btn-dismiss">Dismiss</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+// ── Hierarchy expand/collapse ──
+function toggle(id, row) {
+  var children = document.querySelectorAll('[data-parent="' + id + '"]');
+  var isOpen = row.classList.contains('expanded');
+  if (isOpen) {
+    row.classList.remove('expanded');
+    children.forEach(function(c) {
+      c.style.display = 'none'; c.classList.remove('expanded');
+      var cid = c.id ? c.id.replace('-row','') : null;
+      if (cid) {
+        document.querySelectorAll('[data-parent="' + cid + '"]').forEach(function(gc) { gc.style.display = 'none'; });
+        var cr = document.getElementById(cid + '-row'); if (cr) cr.classList.remove('expanded');
+      }
+    });
+  } else {
+    row.classList.add('expanded');
+    children.forEach(function(c) { c.style.display = ''; });
+  }
+}
+function expandAll() {
+  ['hc-meta','hc-tik','hc-ggl'].forEach(function(pid) {
+    var row = document.getElementById(pid + '-row'); if (!row) return;
+    row.classList.add('expanded');
+    document.querySelectorAll('[data-parent="' + pid + '"]').forEach(function(c) {
+      c.style.display = ''; c.classList.add('expanded');
+      var cid = c.id ? c.id.replace('-row','') : null;
+      if (cid) document.querySelectorAll('[data-parent="' + cid + '"]').forEach(function(gc) { gc.style.display = ''; });
+    });
+  });
+}
+function collapseAll() {
+  ['hc-meta','hc-tik','hc-ggl'].forEach(function(pid) {
+    var row = document.getElementById(pid + '-row'); if (!row) return;
+    row.classList.remove('expanded');
+    document.querySelectorAll('[data-parent="' + pid + '"]').forEach(function(c) {
+      c.style.display = 'none'; c.classList.remove('expanded');
+      var cid = c.id ? c.id.replace('-row','') : null;
+      if (cid) document.querySelectorAll('[data-parent="' + cid + '"]').forEach(function(gc) { gc.style.display = 'none'; });
+    });
+  });
+}
+
+// ── View toggle ──
+function setView(mode) {
+  var ab = document.getElementById('agencyViewBtn');
+  var cb = document.getElementById('clientViewBtn');
+  var banner = document.getElementById('clientViewBanner');
+  if (mode === 'client') {
+    document.body.classList.add('client-view');
+    ab.classList.remove('active'); cb.classList.add('active'); cb.classList.add('client-mode');
+    banner.classList.add('show');
+    expandAll();
+  } else {
+    document.body.classList.remove('client-view');
+    ab.classList.add('active'); cb.classList.remove('active'); cb.classList.remove('client-mode');
+    banner.classList.remove('show');
+  }
+}
+
+// ── Export dropdown ──
+function toggleExport(e) { document.getElementById('exportMenu').classList.toggle('open'); e.stopPropagation(); }
+function doExport(t) {
+  document.getElementById('exportMenu').classList.remove('open');
+  alert(t === 'agency' ? 'Exporting agency report for Harbor Coffee Co.' : 'Exporting client report for Harbor Coffee Co.');
+}
+
+// ── Period toggle ──
+function setPeriod(btn) {
+  document.querySelectorAll('.period-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+}
+
+// ── Dot menus ──
+function toggleMenu(btn) {
+  var menu = btn.nextElementSibling;
+  var isOpen = menu.classList.contains('open');
+  document.querySelectorAll('.dot-menu.open').forEach(function(m) { m.classList.remove('open'); });
+  document.querySelectorAll('.dot-btn.menu-open').forEach(function(b) { b.classList.remove('menu-open'); });
+  if (!isOpen) { menu.classList.add('open'); btn.classList.add('menu-open'); }
+  event.stopPropagation();
+}
+document.addEventListener('click', function() {
+  document.querySelectorAll('.dot-menu.open').forEach(function(m) { m.classList.remove('open'); });
+  document.querySelectorAll('.dot-btn.menu-open').forEach(function(b) { b.classList.remove('menu-open'); });
+  var em = document.getElementById('exportMenu'); if (em) em.classList.remove('open');
+});
+
+// ── Platform pause toggle ──
+function togglePlatform(btn) {
+  if (btn.getAttribute('data-state') === 'live') {
+    btn.setAttribute('data-state','paused'); btn.textContent = '▶ Resume';
+    btn.style.color = 'var(--teal)'; btn.style.borderColor = 'var(--teal)';
+  } else {
+    btn.setAttribute('data-state','live'); btn.textContent = '⏸ Pause';
+    btn.style.color = 'var(--text-muted)'; btn.style.borderColor = 'var(--cream-border)';
+  }
+}
+
+// ── Init: expand all rows on load ──
+document.addEventListener('DOMContentLoaded', function() { expandAll(); });
+</script>
+
+</body>
+</html>

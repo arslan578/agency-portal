@@ -7,6 +7,12 @@ export const AgencySchema = z.object({
   credits: z.number().optional().default(0),
   billing_status: z.string().optional().default('active'),
   stripe_customer_id: z.string().nullable().optional(),
+  email: z.string().nullable().optional(),
+  logo_url: z.string().nullable().optional(),
+  website: z.string().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  timezone: z.string().nullable().optional(),
+  currency: z.string().nullable().optional(),
 });
 
 export const ClientSchema = z.object({

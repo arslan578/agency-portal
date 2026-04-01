@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaivo — Get Started</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --cream:#f4efe6; --cream-dark:#ece6db; --cream-border:#ddd6c8;
+    --teal:#2a9d8f; --teal-dark:#1f7a6e; --teal-light:#e8f5f3;
+    --coral:#e76f51; --coral-light:#fdf0ec;
+    --text-primary:#1a1a2e; --text-secondary:#5a5a72; --text-muted:#9a9aaa;
+    --green:#2d9e5a; --green-light:#e8f7ef;
+    --amber:#d4860a; --amber-light:#fef3dc;
+    --white:#ffffff; --radius:12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Space Grotesk',sans-serif; background:var(--cream); color:var(--text-primary); min-height:100vh; display:flex; flex-direction:column; }
+
+  /* TOP BAR */
+  .topbar { height:60px; background:var(--white); border-bottom:2px solid var(--cream-border); display:flex; align-items:center; justify-content:space-between; padding:0 40px; flex-shrink:0; }
+  .topbar-logo { display:flex; align-items:center; gap:10px; }
+  .topbar-logo-text { font-size:17px; font-weight:800; color:var(--teal); letter-spacing:2px; }
+  .topbar-help { font-size:12px; font-weight:700; color:var(--text-muted); cursor:pointer; }
+  .topbar-help:hover { color:var(--teal); }
+
+  /* PROGRESS STEPPER */
+  .stepper-wrap { background:var(--white); border-bottom:2px solid var(--cream-border); padding:20px 40px; }
+  .stepper { display:flex; align-items:center; gap:0; max-width:680px; margin:0 auto; }
+  .step { display:flex; align-items:center; gap:10px; flex:1; }
+  .step:last-child { flex:none; }
+  .step-circle { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; transition:all 0.2s; border:2px solid var(--cream-border); background:var(--white); color:var(--text-muted); }
+  .step-circle.done { background:var(--teal); border-color:var(--teal); color:#fff; }
+  .step-circle.active { background:var(--teal); border-color:var(--teal); color:#fff; box-shadow:0 0 0 4px var(--teal-light); }
+  .step-info { display:flex; flex-direction:column; }
+  .step-label { font-size:12px; font-weight:700; color:var(--text-primary); }
+  .step-sublabel { font-size:10px; color:var(--text-muted); font-weight:500; margin-top:1px; }
+  .step-line { flex:1; height:2px; background:var(--cream-border); margin:0 12px; transition:background 0.2s; }
+  .step-line.done { background:var(--teal); }
+
+  /* MAIN CONTENT */
+  .main { flex:1; display:flex; align-items:flex-start; justify-content:center; padding:40px 24px 60px; }
+  .wizard-box { width:100%; max-width:640px; }
+
+  /* STEP PANELS */
+  .step-panel { display:none; }
+  .step-panel.active { display:block; }
+  .panel-title { font-size:24px; font-weight:800; color:var(--text-primary); margin-bottom:6px; }
+  .panel-sub { font-size:13px; color:var(--text-muted); font-weight:500; margin-bottom:28px; line-height:1.6; }
+
+  /* CARDS */
+  .card { background:var(--white); border:2px solid var(--cream-border); border-radius:var(--radius); overflow:hidden; margin-bottom:16px; }
+  .card-header { padding:14px 18px; border-bottom:1px solid var(--cream-border); }
+  .card-title { font-size:13px; font-weight:800; color:var(--text-primary); }
+  .card-body { padding:18px; display:flex; flex-direction:column; gap:14px; }
+
+  /* FORMS */
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-group { display:flex; flex-direction:column; gap:6px; }
+  .form-label { font-size:11px; font-weight:700; color:var(--text-secondary); }
+  .form-input { padding:10px 13px; border:2px solid var(--cream-border); border-radius:9px; font-family:inherit; font-size:13px; font-weight:500; color:var(--text-primary); background:var(--white); outline:none; transition:border-color 0.12s; }
+  .form-input:focus { border-color:var(--teal); }
+  .form-select { padding:10px 13px; border:2px solid var(--cream-border); border-radius:9px; font-family:inherit; font-size:13px; font-weight:500; color:var(--text-primary); background:var(--white); outline:none; cursor:pointer; }
+  .form-hint { font-size:10.5px; color:var(--text-muted); font-weight:500; }
+
+  /* LOGO UPLOAD */
+  .logo-upload { display:flex; align-items:center; gap:16px; }
+  .logo-preview { width:64px; height:64px; border-radius:12px; border:2px dashed var(--cream-border); background:var(--cream); display:flex; align-items:center; justify-content:center; font-size:22px; cursor:pointer; flex-shrink:0; transition:border-color 0.12s; }
+  .logo-preview:hover { border-color:var(--teal); }
+
+  /* PLATFORM GRID */
+  .platform-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .plt-tile { background:var(--white); border:2px solid var(--cream-border); border-radius:10px; padding:16px 14px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer; transition:all 0.15s; text-align:center; }
+  .plt-tile:hover { border-color:var(--teal); }
+  .plt-tile.selected { border-color:var(--teal); background:var(--teal-light); }
+  .plt-tile.connecting { border-color:var(--amber); background:var(--amber-light); }
+  .plt-tile.connected { border-color:var(--teal); background:var(--teal-light); }
+  .plt-icon { width:40px; height:40px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; flex-shrink:0; }
+  .plt-name { font-size:12px; font-weight:700; color:var(--text-primary); }
+  .plt-status { font-size:10px; font-weight:700; }
+  .st-idle { color:var(--text-muted); }
+  .st-connect { color:var(--teal); }
+  .st-connecting { color:var(--amber); }
+  .st-connected { color:var(--green); }
+
+  /* ACCOUNT CHECKLIST */
+  .account-list { display:flex; flex-direction:column; gap:0; }
+  .account-row { display:flex; align-items:center; gap:12px; padding:11px 16px; border-bottom:1px solid var(--cream-border); cursor:pointer; transition:background 0.1s; }
+  .account-row:last-child { border-bottom:none; }
+  .account-row:hover { background:#faf7f2; }
+  .account-check { width:18px; height:18px; border-radius:4px; border:2px solid var(--cream-border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:11px; transition:all 0.12s; }
+  .account-check.on { background:var(--teal); border-color:var(--teal); color:#fff; }
+  .account-av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:#fff; flex-shrink:0; }
+  .account-name { font-size:12.5px; font-weight:700; color:var(--text-primary); flex:1; }
+  .account-id { font-size:10px; color:var(--text-muted); font-family:'Space Mono',monospace; }
+  .account-spend { font-family:'Space Mono',monospace; font-size:11px; font-weight:700; color:var(--text-secondary); }
+
+  /* WINDOW SELECTOR */
+  .window-opts { display:flex; gap:8px; }
+  .window-opt { padding:6px 14px; border-radius:7px; border:2px solid var(--cream-border); background:var(--white); font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; color:var(--text-muted); transition:all 0.12s; }
+  .window-opt.active { background:var(--teal); border-color:var(--teal); color:#fff; }
+
+  /* SYNC SCREEN */
+  .sync-list { display:flex; flex-direction:column; gap:10px; }
+  .sync-item { display:flex; align-items:center; gap:14px; padding:14px 18px; background:var(--white); border:2px solid var(--cream-border); border-radius:10px; }
+  .sync-icon { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; flex-shrink:0; }
+  .sync-info { flex:1; }
+  .sync-name { font-size:13px; font-weight:700; color:var(--text-primary); }
+  .sync-detail { font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:500; }
+  .sync-status { font-size:11px; font-weight:700; }
+  .sync-bar-wrap { width:80px; }
+  .sync-bar { height:4px; background:var(--cream-dark); border-radius:2px; overflow:hidden; margin-top:4px; }
+  .sync-bar-fill { height:100%; background:var(--teal); border-radius:2px; transition:width 0.4s ease; }
+
+  /* SUCCESS SCREEN */
+  .success-screen { text-align:center; padding:20px 0; }
+  .success-icon { width:80px; height:80px; border-radius:50%; background:var(--teal-light); display:flex; align-items:center; justify-content:center; font-size:36px; margin:0 auto 20px; }
+  .success-title { font-size:26px; font-weight:800; color:var(--text-primary); margin-bottom:8px; }
+  .success-sub { font-size:14px; color:var(--text-muted); font-weight:500; line-height:1.6; max-width:400px; margin:0 auto 32px; }
+  .success-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:400px; margin:0 auto 32px; }
+  .success-stat { background:var(--white); border:2px solid var(--cream-border); border-radius:10px; padding:14px; }
+  .success-stat-val { font-family:'Space Mono',monospace; font-size:22px; font-weight:700; color:var(--teal); }
+  .success-stat-label { font-size:10px; color:var(--text-muted); font-weight:600; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
+
+  /* NAV BUTTONS */
+  .nav-btns { display:flex; justify-content:space-between; align-items:center; margin-top:24px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:11px 22px; border-radius:9px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer; border:2px solid; transition:all 0.12s; }
+  .btn-primary { background:var(--teal); border-color:var(--teal); color:#fff; }
+  .btn-primary:hover { background:var(--teal-dark); }
+  .btn-secondary { background:var(--white); border-color:var(--cream-border); color:var(--text-secondary); }
+  .btn-secondary:hover { border-color:var(--teal); color:var(--teal); }
+  .btn-skip { background:none; border:none; color:var(--text-muted); font-size:12px; font-weight:600; font-family:inherit; cursor:pointer; padding:8px 0; }
+  .btn-skip:hover { color:var(--text-secondary); }
+  .btn-large { padding:14px 32px; font-size:14px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-logo">
+    <svg width="28" height="28" viewBox="0 0 239 239" fill="none"><path d="M0 0 C3.94 1.39 6.92 3.24 10.25 5.75 C15.07 9.33 19.97 12.72 25 16 C24.44 19.36 23.77 21.43 22.13 24.5 C16.04 36.27 15.75 49.01 18.88 61.61 C21.45 69.39 25.52 76.88 31 83 L33 83 C38.31 58.32 68.17 26.78 116 13 L116 43 C89.47 49.06 66 81 66 81 C137.75 76.31 168 97 146 119 C132.83 106.29 82 107 82 109 C128.25 149.63 135 201 105 196 C105.47 176.12 75 139 75 139 C83.15 163.15 42 237 38 238 C24 214 24.72 211.73 48.38 174.13 C48 153 46 153 38 166 C24 183.3 -15 195 -50 192 C-43 164 -33 164 7 153 C21 136 -1.4 139.49 -71 76 C-42 69 -40.46 72.25 -7 104 C10 106 -13.15 25.87 0 0 Z" fill="#e76f51" transform="translate(71,0)"/></svg>
+    <span class="topbar-logo-text">KAIVO</span>
+  </div>
+  <div class="topbar-help">Need help? Contact support →</div>
+</div>
+
+<!-- STEPPER -->
+<div class="stepper-wrap">
+  <div class="stepper">
+    <div class="step">
+      <div class="step-circle active" id="sc1">1</div>
+      <div class="step-info"><div class="step-label">Agency Profile</div><div class="step-sublabel">Your details</div></div>
+    </div>
+    <div class="step-line" id="sl1"></div>
+    <div class="step">
+      <div class="step-circle" id="sc2">2</div>
+      <div class="step-info"><div class="step-label">Connect Platform</div><div class="step-sublabel">Link your ad accounts</div></div>
+    </div>
+    <div class="step-line" id="sl2"></div>
+    <div class="step">
+      <div class="step-circle" id="sc3">3</div>
+      <div class="step-info"><div class="step-label">Select Clients</div><div class="step-sublabel">Choose accounts to pull</div></div>
+    </div>
+    <div class="step-line" id="sl3"></div>
+    <div class="step">
+      <div class="step-circle" id="sc4">4</div>
+      <div class="step-info"><div class="step-label">All Set</div><div class="step-sublabel">Start managing</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- WIZARD CONTENT -->
+<div class="main">
+  <div class="wizard-box">
+
+    <!-- STEP 1: AGENCY PROFILE -->
+    <div class="step-panel active" id="panel1">
+      <div class="panel-title">Set up your agency</div>
+      <div class="panel-sub">Tell us about your agency. This takes less than a minute and you can change everything later in Settings.</div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Agency Details</div></div>
+        <div class="card-body">
+          <div class="logo-upload">
+            <div class="logo-preview" title="Click to upload logo">🏢</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Agency Logo</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Optional — you can add this later. Used in the client portal.</div>
+              <button class="btn btn-secondary" style="padding:6px 12px;font-size:11px;" onclick="alert('File upload coming soon.')">Upload Logo</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Agency Name *</label>
+              <input class="form-input" type="text" id="agencyName" placeholder="Acme Media Agency">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Email *</label>
+              <input class="form-input" type="email" id="agencyEmail" placeholder="hello@youragency.com">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Timezone *</label>
+              <select class="form-select" id="agencyTz">
+                <option value="">Select timezone...</option>
+                <option selected>America/Los_Angeles (PST)</option>
+                <option>America/New_York (EST)</option>
+                <option>America/Chicago (CST)</option>
+                <option>Europe/London (GMT)</option>
+                <option>Europe/Paris (CET)</option>
+                <option>Asia/Tokyo (JST)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Currency</label>
+              <select class="form-select">
+                <option selected>USD — US Dollar ($)</option>
+                <option>GBP — British Pound (£)</option>
+                <option>EUR — Euro (€)</option>
+                <option>AUD — Australian Dollar (A$)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <div></div>
+        <button class="btn btn-primary" onclick="goStep(2)">Continue <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 8h8M8 4l4 4-4 4"/></svg></button>
+      </div>
+    </div>
+
+    <!-- STEP 2: CONNECT PLATFORM -->
+    <div class="step-panel" id="panel2">
+      <div class="panel-title">Connect your first platform</div>
+      <div class="panel-sub">Connect at least one ad platform to get started. Your clients come from the ad accounts you have access to on each platform.</div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Available Platforms</div></div>
+        <div class="card-body" style="padding:16px;">
+          <div class="platform-grid" id="platformGrid">
+            <div class="plt-tile" id="plt-meta" onclick="connectPlatform('meta')">
+              <div class="plt-icon" style="background:#e8effe;color:#1877f2;">f</div>
+              <div class="plt-name">Meta</div>
+              <div class="plt-status st-idle" id="ps-meta">Click to connect</div>
+            </div>
+            <div class="plt-tile" id="plt-google" onclick="connectPlatform('google')">
+              <div class="plt-icon" style="background:#fdecea;color:#ea4335;">G</div>
+              <div class="plt-name">Google Ads</div>
+              <div class="plt-status st-idle" id="ps-google">Click to connect</div>
+            </div>
+            <div class="plt-tile" id="plt-tiktok" onclick="connectPlatform('tiktok')">
+              <div class="plt-icon" style="background:#e6f9fb;color:#00b8c4;">T</div>
+              <div class="plt-name">TikTok</div>
+              <div class="plt-status st-idle" id="ps-tiktok">Click to connect</div>
+            </div>
+            <div class="plt-tile" id="plt-linkedin" onclick="connectPlatform('linkedin')">
+              <div class="plt-icon" style="background:#e8f0f8;color:#0077b5;">in</div>
+              <div class="plt-name">LinkedIn</div>
+              <div class="plt-status st-idle" id="ps-linkedin">Click to connect</div>
+            </div>
+            <div class="plt-tile" id="plt-snapchat" onclick="connectPlatform('snapchat')">
+              <div class="plt-icon" style="background:#fffbe6;color:#FFCC00;">👻</div>
+              <div class="plt-name">Snapchat</div>
+              <div class="plt-status st-idle" id="ps-snapchat">Click to connect</div>
+            </div>
+            <div class="plt-tile" id="plt-pinterest" onclick="connectPlatform('pinterest')">
+              <div class="plt-icon" style="background:#fdecea;color:#e60023;">P</div>
+              <div class="plt-name">Pinterest</div>
+              <div class="plt-status st-idle" id="ps-pinterest">Click to connect</div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);font-weight:500;margin-top:4px;">More platforms available after setup in Integrations</div>
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn btn-secondary" onclick="goStep(1)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 8H4M8 4L4 8l4 4"/></svg> Back</button>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button class="btn-skip" onclick="skipConnect()">Skip for now</button>
+          <button class="btn btn-primary" id="continueStep2" onclick="goStep(3)" disabled style="opacity:0.4;cursor:not-allowed;">Continue <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 8h8M8 4l4 4-4 4"/></svg></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3: SELECT CLIENTS -->
+    <div class="step-panel" id="panel3">
+      <div class="panel-title">Select your clients</div>
+      <div class="panel-sub">These are the ad accounts you have access to on Meta. Tick the ones you want to manage in Kaivo. You can add or remove accounts anytime from Integrations.</div>
+
+      <div class="card">
+        <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="card-title">Meta — 12 accounts available</div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-secondary" style="padding:5px 12px;font-size:11px;" onclick="selectAllAccounts()">Select all</button>
+            <button class="btn btn-secondary" style="padding:5px 12px;font-size:11px;" onclick="selectNoAccounts()">Deselect all</button>
+          </div>
+        </div>
+        <div class="account-list" id="accountList">
+          <div class="account-row" onclick="toggleAcc(this)"><div class="account-check on">✓</div><div class="account-av" style="background:#e76f51;">HC</div><div style="flex:1;"><div class="account-name">Harbor Coffee Co.</div><div class="account-id">act_112934501</div></div><div class="account-spend">$12,400 MTD</div></div>
+          <div class="account-row" onclick="toggleAcc(this)"><div class="account-check on">✓</div><div class="account-av" style="background:#2a9d8f;">NS</div><div style="flex:1;"><div class="account-name">Nova Skincare</div><div class="account-id">act_228847291</div></div><div class="account-spend">$18,600 MTD</div></div>
+          <div class="account-row" onclick="toggleAcc(this)"><div class="account-check on">✓</div><div class="account-av" style="background:#5c54c8;">PO</div><div style="flex:1;"><div class="account-name">Peaks Outdoor</div><div class="account-id">act_334521098</div></div><div class="account-spend">$9,800 MTD</div></div>
+          <div class="account-row" onclick="toggleAcc(this)"><div class="account-check on">✓</div><div class="account-av" style="background:#d4860a;">FS</div><div style="flex:1;"><div class="account-name">Forge Supplements</div><div class="account-id">act_441209873</div></div><div class="account-spend">$14,100 MTD</div></div>
+          <div class="account-row" onclick="toggleAcc(this)"><div class="account-check on">✓</div><div class="account-av" style="background:#2d9e5a;">SH</div><div style="flex:1;"><div class="account-name">Solstice Home</div><div class="account-id">act_552018834</div></div><div class="account-spend">$6,800 MTD</div></div>
+          <div class="account-row" onclick="toggleAcc(this)"><div class="account-check">&#160;</div><div class="account-av" style="background:#9a8c7e;">OC</div><div style="flex:1;"><div class="account-name">Old Client Account</div><div class="account-id">act_118923450</div></div><div class="account-spend" style="color:var(--text-muted);">$0</div></div>
+          <div class="account-row" onclick="toggleAcc(this)"><div class="account-check">&#160;</div><div class="account-av" style="background:#9a8c7e;">TA</div><div style="flex:1;"><div class="account-name">Test Account 001</div><div class="account-id">act_129034512</div></div><div class="account-spend" style="color:var(--text-muted);">$0</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Historical Data</div></div>
+        <div class="card-body">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:8px;">How far back should Kaivo pull data?</div>
+            <div class="window-opts">
+              <button class="window-opt" onclick="setWindow(this)">30 days</button>
+              <button class="window-opt active" onclick="setWindow(this)">90 days</button>
+              <button class="window-opt" onclick="setWindow(this)">6 months</button>
+              <button class="window-opt" onclick="setWindow(this)">1 year</button>
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:8px;font-weight:500;">90 days gives the AI enough history to spot trends and generate accurate insights. You can always pull more later.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav-btns">
+        <button class="btn btn-secondary" onclick="goStep(2)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 8H4M8 4L4 8l4 4"/></svg> Back</button>
+        <button class="btn btn-primary" onclick="startSync()">Start Syncing <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 8h8M8 4l4 4-4 4"/></svg></button>
+      </div>
+    </div>
+
+    <!-- STEP 4: SYNCING + SUCCESS -->
+    <div class="step-panel" id="panel4">
+      <div id="syncingView">
+        <div class="panel-title">Pulling your data...</div>
+        <div class="panel-sub">Kaivo is connecting to Meta and loading your campaign history. This usually takes 1–3 minutes. You can leave this page — we'll keep syncing in the background.</div>
+
+        <div class="sync-list">
+          <div class="sync-item">
+            <div class="sync-icon" style="background:#e8effe;color:#1877f2;">f</div>
+            <div class="sync-info">
+              <div class="sync-name">Meta — Harbor Coffee Co.</div>
+              <div class="sync-detail" id="sd1">Connecting...</div>
+            </div>
+            <div class="sync-bar-wrap">
+              <div style="font-size:10px;font-weight:700;color:var(--teal);text-align:right;" id="sp1">0%</div>
+              <div class="sync-bar"><div class="sync-bar-fill" id="sf1" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="sync-item">
+            <div class="sync-icon" style="background:#e8effe;color:#1877f2;">f</div>
+            <div class="sync-info">
+              <div class="sync-name">Meta — Nova Skincare</div>
+              <div class="sync-detail" id="sd2">Waiting...</div>
+            </div>
+            <div class="sync-bar-wrap">
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-align:right;" id="sp2">—</div>
+              <div class="sync-bar"><div class="sync-bar-fill" id="sf2" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="sync-item">
+            <div class="sync-icon" style="background:#e8effe;color:#1877f2;">f</div>
+            <div class="sync-info">
+              <div class="sync-name">Meta — Peaks Outdoor</div>
+              <div class="sync-detail" id="sd3">Waiting...</div>
+            </div>
+            <div class="sync-bar-wrap">
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-align:right;" id="sp3">—</div>
+              <div class="sync-bar"><div class="sync-bar-fill" id="sf3" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="sync-item">
+            <div class="sync-icon" style="background:#e8effe;color:#1877f2;">f</div>
+            <div class="sync-info">
+              <div class="sync-name">Meta — Forge Supplements</div>
+              <div class="sync-detail" id="sd4">Waiting...</div>
+            </div>
+            <div class="sync-bar-wrap">
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-align:right;" id="sp4">—</div>
+              <div class="sync-bar"><div class="sync-bar-fill" id="sf4" style="width:0%;"></div></div>
+            </div>
+          </div>
+          <div class="sync-item">
+            <div class="sync-icon" style="background:#e8effe;color:#1877f2;">f</div>
+            <div class="sync-info">
+              <div class="sync-name">Meta — Solstice Home</div>
+              <div class="sync-detail" id="sd5">Waiting...</div>
+            </div>
+            <div class="sync-bar-wrap">
+              <div style="font-size:10px;font-weight:700;color:var(--text-muted);text-align:right;" id="sp5">—</div>
+              <div class="sync-bar"><div class="sync-bar-fill" id="sf5" style="width:0%;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="nav-btns" style="margin-top:24px;">
+          <div></div>
+          <button class="btn btn-secondary" onclick="skipToSuccess()">Skip — go to dashboard</button>
+        </div>
+      </div>
+
+      <div id="successView" style="display:none;">
+        <div class="success-screen">
+          <div class="success-icon">✓</div>
+          <div class="success-title">You are all set!</div>
+          <div class="success-sub">Kaivo has pulled 90 days of campaign data across 5 clients and is already generating AI insights for your portfolio.</div>
+          <div class="success-stats">
+            <div class="success-stat"><div class="success-stat-val">5</div><div class="success-stat-label">Clients connected</div></div>
+            <div class="success-stat"><div class="success-stat-val">23</div><div class="success-stat-label">Campaigns loaded</div></div>
+            <div class="success-stat"><div class="success-stat-val">4</div><div class="success-stat-label">AI insights ready</div></div>
+          </div>
+          <button class="btn btn-primary btn-large" onclick="alert('Navigating to dashboard...')">
+            Go to Dashboard <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 8h8M8 4l4 4-4 4"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+var currentStep = 1;
+var connectedPlatforms = [];
+
+function goStep(n) {
+  if (n === 2) {
+    var name = document.getElementById("agencyName").value.trim();
+    var email = document.getElementById("agencyEmail").value.trim();
+    if (n > currentStep && (!name || !email)) {
+      alert("Please enter your agency name and contact email to continue.");
+      return;
+    }
+  }
+  document.getElementById("panel" + currentStep).classList.remove("active");
+  document.getElementById("panel" + n).classList.add("active");
+
+  for (var i = 1; i <= 4; i++) {
+    var circle = document.getElementById("sc" + i);
+    circle.className = "step-circle";
+    if (i < n) { circle.classList.add("done"); circle.textContent = "\u2713"; }
+    else if (i === n) { circle.classList.add("active"); circle.textContent = i; }
+    else { circle.textContent = i; }
+    if (i < 4) {
+      document.getElementById("sl" + i).className = "step-line" + (i < n ? " done" : "");
+    }
+  }
+  currentStep = n;
+}
+
+function connectPlatform(id) {
+  var tile = document.getElementById("plt-" + id);
+  var status = document.getElementById("ps-" + id);
+  if (connectedPlatforms.indexOf(id) > -1) return;
+  tile.className = "plt-tile connecting";
+  status.className = "plt-status st-connecting";
+  status.textContent = "Connecting...";
+  setTimeout(function() {
+    tile.className = "plt-tile connected";
+    status.className = "plt-status st-connected";
+    status.textContent = "\u2713 Connected";
+    connectedPlatforms.push(id);
+    var btn = document.getElementById("continueStep2");
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+  }, 1200);
+}
+
+function skipConnect() {
+  if (!confirm("Skip connecting a platform? You can connect one later from Integrations, but you won't have any client data until you do.")) return;
+  goStep(3);
+}
+
+function toggleAcc(row) {
+  var chk = row.querySelector(".account-check");
+  var on = chk.classList.contains("on");
+  chk.classList.toggle("on");
+  chk.textContent = on ? "\u00a0" : "\u2713";
+}
+
+function selectAllAccounts() {
+  document.querySelectorAll(".account-check").forEach(function(c) { c.classList.add("on"); c.textContent = "\u2713"; });
+}
+
+function selectNoAccounts() {
+  document.querySelectorAll(".account-check").forEach(function(c) { c.classList.remove("on"); c.textContent = "\u00a0"; });
+}
+
+function setWindow(btn) {
+  document.querySelectorAll(".window-opt").forEach(function(b) { b.classList.remove("active"); });
+  btn.classList.add("active");
+}
+
+function startSync() {
+  goStep(4);
+  var items = [
+    { delay: 0, dur: 1800 },
+    { delay: 600, dur: 1600 },
+    { delay: 1000, dur: 2000 },
+    { delay: 1400, dur: 1500 },
+    { delay: 1800, dur: 1700 },
+  ];
+  var details = ["Fetching campaigns...", "Loading ad sets...", "Pulling performance data...", "Processing metrics...", "Finalising..."];
+  items.forEach(function(item, i) {
+    var n = i + 1;
+    setTimeout(function() {
+      document.getElementById("sd" + n).textContent = details[0];
+      document.getElementById("sp" + n).style.color = "var(--teal)";
+      var start = Date.now();
+      var timer = setInterval(function() {
+        var pct = Math.min(100, Math.round((Date.now() - start) / item.dur * 100));
+        document.getElementById("sf" + n).style.width = pct + "%";
+        document.getElementById("sp" + n).textContent = pct + "%";
+        var di = Math.floor(pct / 25);
+        document.getElementById("sd" + n).textContent = details[Math.min(di, details.length-1)];
+        if (pct >= 100) {
+          clearInterval(timer);
+          document.getElementById("sd" + n).textContent = "\u2713 Complete";
+          document.getElementById("sp" + n).textContent = "Done";
+          if (n === 5) { setTimeout(showSuccess, 800); }
+        }
+      }, 50);
+    }, item.delay);
+  });
+}
+
+function skipToSuccess() { showSuccess(); }
+
+function showSuccess() {
+  document.getElementById("syncingView").style.display = "none";
+  document.getElementById("successView").style.display = "block";
+}
+</script>
+</body>
+</html>

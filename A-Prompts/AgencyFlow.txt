@@ -1,0 +1,79 @@
+
+
+# The Complete Picture — Who is Who & How Everything Works
+
+---
+
+## ✅ WHAT was the confusion?
+
+You were confused between two different types of "clients" and two different types of "invites." There are actually **3 types of people** in this system and **2 types of invites**. Christopher confirmed all of this in the #agency-portal channel on March 30th. Let me separate them completely.
+
+---
+
+## 👤 WHO are the 3 types of people?
+
+**Person 1 — The Agency (e.g. "XYZ Marketing Agency")**
+This is the main user of the portal. They are a marketing agency that manages ads for multiple businesses. They sign up on getkaivo.com, pay via Stripe, and get access to the agency portal.
+
+**Person 2 — Agency Team Member (e.g. a junior at XYZ Marketing)**
+This is someone who works *inside* the agency. The agency admin invites them through the **Settings / Team Management** section. They join via a magic link. They are NOT a client. They are just another staff member of the same agency. Christopher confirmed this in Slack: *"These are managed in settings and will have logins."*
+
+**Person 3 — The Client (e.g. "Fresh Burger Restaurant")**
+This is the business that hired the agency to run their ads. They are NOT a regular user of the portal. They don't log in daily. Christopher said in Slack: *"Adding client users would be Phase 2 — we would just generate a magic link that goes just to the client detail page for the customer to see during monthly report times."* So the client only gets a magic link occasionally, to see a read-only report — no full login, no onboarding, no account creation.
+
+---
+
+## 🔴 WHERE does each person come from?
+
+**Agency** → Signs up on **getkaivo.com** → completes Stripe payment → receives magic link → clicks it → goes through onboarding screen → connects Meta/Google/TikTok → their clients appear automatically.
+
+**Agency Team Member** → Agency admin goes to **Settings → Team Management** inside the portal → types their email → sends invite → that person gets a magic link → clicks it → lands directly into the portal → NO onboarding screen (Christopher confirmed: *"they go through the same process - invite kicks off a magic link with email and they sign up but no onboarding"*).
+
+**Client (Business)** → The agency admin goes to the **Client Management screen** → creates a client profile manually (name, logo, etc.) → assigns the relevant ad accounts (from Meta/Google) to that client → optionally generates a magic link → sends it to the client → client clicks it and sees ONLY their own report page in read-only view with agency markup applied (e.g. $1000 spend shown as $1200).
+
+---
+
+## 🔴 WHEN does each invite happen?
+
+| Invite | When it happens |
+|---|---|
+| Agency gets magic link | Right after Stripe payment on getkaivo.com |
+| Team member gets magic link | Whenever agency admin sends invite from Settings |
+| Client gets magic link | Whenever agency admin generates one from Client Management screen — usually at monthly report time |
+
+---
+
+## 🔴 WHY is the Client Management screen important?
+
+This is the big one Christopher added to ClickUp on March 27th with a full spec doc attached. Here's what it actually does — straight from the spec:
+
+The screen has **two panels**. Left side = list of clients. Right side = list of "unassigned platform accounts" (ad accounts from Meta/Google that haven't been assigned to a client yet).
+
+The agency admin can:
+1. **Create a client** manually — give them a name, avatar, etc.
+2. **Assign ad accounts to that client** — e.g. drag/assign the "Fresh Burger Meta Ads" account to the "Fresh Burger" client profile
+3. **Set markup per client** — e.g. add 20% markup on spend so the client sees $1200 when the real spend was $1000. Impressions and clicks are NOT marked up — only spend, CPC, and cost-per-conversion
+4. **Generate a magic link** for the client to see their read-only report
+5. **Smart grouping suggestion** — the system automatically suggests which ad accounts belong together (using name matching + spend similarity) so the admin doesn't have to manually assign 100 accounts
+
+---
+
+## 🔴 HOW does the full flow work from start to finish?
+
+Here it is in the simplest possible order:
+
+**Step 1** — Agency pays on getkaivo.com → gets magic link → logs in → sees onboarding screen → connects Meta Business Manager → platform pulls in all their ad accounts automatically.
+
+**Step 2** — Agency goes to Client Management screen → sees all those ad accounts listed as "unassigned" → creates client profiles (Fresh Burger, Blue Ocean Clothing, etc.) → assigns the right ad accounts to each client → sets markup percentages.
+
+**Step 3** — Agency views their dashboard → all clients visible → clicks a client → sees their campaigns, spend, performance with markup applied.
+
+**Step 4** — Agency admin goes to Settings → Team Management → invites a colleague → colleague gets magic link → joins as agency_viewer or agency_admin → no onboarding.
+
+**Step 5** — At end of month, agency goes to Client Management → finds "Fresh Burger" → clicks "Generate Magic Link" → sends it to the client → client opens it and sees their read-only report with the markup applied and no AI insights or scores showing.
+
+---
+
+## The One-Line Summary
+
+The **agency team member invite** (via Settings) = adding your own staff to your agency account. The **client magic link** (via Client Management) = sending a temporary read-only report link to the business you manage. These are two completely separate things. Clients do NOT have accounts — they only get a temporary link at report time.
