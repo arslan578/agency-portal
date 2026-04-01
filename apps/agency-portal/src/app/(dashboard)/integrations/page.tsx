@@ -15,6 +15,7 @@ const META_PENDING_CODE_KEY = 'kaivo_meta_oauth_code';
 const REDDIT_CLIENT_ID = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || '';
 const REDDIT_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_REDDIT_REDIRECT_URI || '';
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || '';
+const TIKTOK_CLIENT_KEY = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || '';
 
 /** Template-matched sync log rows (UI only; no backend). */
 const SYNC_LOG_STATIC_ROWS: {
@@ -116,11 +117,15 @@ export default function IntegrationsPage() {
   const [redditAutoLinking, setRedditAutoLinking] = useState(false);
   const [spotifyStatus, setSpotifyStatus] = useState<SpotifyAgencyStatus | null>(null);
   const [spotifyConnecting, setSpotifyConnecting] = useState(false);
+  const [tiktokStatus, setTiktokStatus] = useState<{ connected: boolean; connected_at: string | null; token_valid?: boolean } | null>(null);
+  const [tiktokAccounts, setTiktokAccounts] = useState<BMAccount[]>([]);
+  const [tiktokAccountsLoading, setTiktokAccountsLoading] = useState(false);
 
   // Panels & Modals
   const [showAccountsPanel, setShowAccountsPanel] = useState(false);
   const [showRedditAccountsPanel, setShowRedditAccountsPanel] = useState(false);
   const [showSpotifyAccountsPanel, setShowSpotifyAccountsPanel] = useState(false);
+  const [showTiktokAccountsPanel, setShowTiktokAccountsPanel] = useState(false);
   const [panelEntered, setPanelEntered] = useState(false);
   const [bmAccounts, setBmAccounts] = useState<BMAccount[]>([]);
   const [bmAccountsLoading, setBmAccountsLoading] = useState(false);
@@ -191,11 +196,25 @@ export default function IntegrationsPage() {
     }
   }, [accessToken, agencyId]);
 
+  const fetchTiktokStatus = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    try {
+      const data = await apiClient.get<{ connected: boolean; connected_at: string | null }>(
+        API_ENDPOINTS.TIKTOK.STATUS(agencyId),
+        { accessToken, agencyId },
+      );
+      setTiktokStatus(data);
+    } catch {
+      setTiktokStatus(null);
+    }
+  }, [accessToken, agencyId]);
+
   useEffect(() => {
     void fetchMetaStatus();
     void fetchRedditStatus();
     void fetchSpotifyStatus();
-  }, [fetchMetaStatus, fetchRedditStatus, fetchSpotifyStatus]);
+    void fetchTiktokStatus();
+  }, [fetchMetaStatus, fetchRedditStatus, fetchSpotifyStatus, fetchTiktokStatus]);
 
   const fetchBmAccounts = useCallback(async () => {
     if (!accessToken || !agencyId) return;
@@ -245,6 +264,22 @@ export default function IntegrationsPage() {
     }
   }, [accessToken, agencyId]);
 
+  const fetchTiktokAccounts = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    setTiktokAccountsLoading(true);
+    try {
+      const data = await apiClient.get<{ connected: boolean; accounts: BMAccount[] }>(
+        API_ENDPOINTS.TIKTOK.ACCOUNTS(agencyId),
+        { accessToken, agencyId },
+      );
+      setTiktokAccounts(data.accounts || []);
+    } catch {
+      setTiktokAccounts([]);
+    } finally {
+      setTiktokAccountsLoading(false);
+    }
+  }, [accessToken, agencyId]);
+
   // ── Handlers ───────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -274,6 +309,54 @@ export default function IntegrationsPage() {
     const storedCode = window.sessionStorage.getItem(META_PENDING_CODE_KEY);
     if (storedCode) setPendingMetaCode(storedCode);
   }, [pendingMetaCode]);
+
+  // TikTok OAuth callback → agency connect
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tiktok_callback') !== '1') return;
+    const code = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
+    const errorDescription = params.get('error_description');
+    if (error) {
+      const urlErr = new URL(window.location.href);
+      urlErr.searchParams.delete('tiktok_callback');
+      urlErr.searchParams.delete('code');
+      urlErr.searchParams.delete('state');
+      urlErr.searchParams.delete('error');
+      urlErr.searchParams.delete('error_description');
+      window.history.replaceState({}, '', urlErr.toString());
+      toast.error(errorDescription || error || 'TikTok authorization failed');
+      return;
+    }
+
+    // Wait until auth context is ready before consuming the callback.
+    if (!code || !accessToken || !agencyId) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('tiktok_callback');
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    url.searchParams.delete('error');
+    url.searchParams.delete('error_description');
+    window.history.replaceState({}, '', url.toString());
+
+    (async () => {
+      try {
+        await apiClient.post(
+          API_ENDPOINTS.TIKTOK.CONNECT(agencyId),
+          { code, redirectUri: `${window.location.origin}/integrations/tiktok/oauth/callback`, state },
+          { accessToken, agencyId },
+        );
+        toast.success('TikTok connected!');
+        await fetchTiktokStatus();
+        await fetchTiktokAccounts();
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, 'Failed to connect TikTok'));
+      }
+    })();
+  }, [accessToken, agencyId, fetchTiktokStatus, fetchTiktokAccounts]);
 
   useEffect(() => {
     if (!pendingMetaCode || !accessToken || !agencyId || metaConnecting) return;
@@ -425,6 +508,23 @@ export default function IntegrationsPage() {
       });
       if (scopes) params.set('scope', scopes);
       window.location.href = `${base}?${params.toString()}`;
+    } else if (platform === 'TikTok') {
+      if (!TIKTOK_CLIENT_KEY) {
+        toast.error('Missing NEXT_PUBLIC_TIKTOK_CLIENT_KEY');
+        return;
+      }
+      const redirectUri = `${window.location.origin}/integrations/tiktok/oauth/callback`;
+      const state = Math.random().toString(36).slice(2);
+      const scopes = ['user.info.basic'].join(',');
+      const base = 'https://www.tiktok.com/v2/auth/authorize/';
+      const params = new URLSearchParams({
+        client_key: TIKTOK_CLIENT_KEY,
+        redirect_uri: redirectUri,
+        scope: scopes,
+        state,
+        response_type: 'code',
+      });
+      window.location.href = `${base}?${params.toString()}`;
     } else {
       toast.info(`${platform} integration coming soon!`);
     }
@@ -556,15 +656,17 @@ export default function IntegrationsPage() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(total);
   }, [bmAccounts]);
 
+  const activeTiktokCount = tiktokAccounts.filter(a => a.linked_client_id !== null).length;
+
   // ── Animation Controllers ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (showAccountsPanel || showRedditAccountsPanel || showSpotifyAccountsPanel || panelPlatform) {
+    if (showAccountsPanel || showRedditAccountsPanel || showSpotifyAccountsPanel || showTiktokAccountsPanel || panelPlatform) {
       const frame = requestAnimationFrame(() => setPanelEntered(true));
       return () => cancelAnimationFrame(frame);
     }
     setPanelEntered(false);
-  }, [showAccountsPanel, showRedditAccountsPanel, showSpotifyAccountsPanel, panelPlatform]);
+  }, [showAccountsPanel, showRedditAccountsPanel, showSpotifyAccountsPanel, showTiktokAccountsPanel, panelPlatform]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -572,6 +674,7 @@ export default function IntegrationsPage() {
     void fetchMetaStatus();
     void fetchRedditStatus();
     void fetchSpotifyStatus();
+    void fetchTiktokStatus();
     toast.message('Refreshing connected platforms…');
   };
 
@@ -809,11 +912,19 @@ export default function IntegrationsPage() {
                           if (!accessToken || !agencyId) return;
                           if (!window.confirm('Disconnect Spotify? This will reset all client mappings.')) return;
                           try {
-                            await apiClient.post(API_ENDPOINTS.SPOTIFY.DISCONNECT(agencyId), {}, { accessToken, agencyId });
+                            await apiClient.post(
+                              API_ENDPOINTS.SPOTIFY.DISCONNECT(agencyId),
+                              {},
+                              { accessToken, agencyId },
+                            );
                             toast.success('Spotify disconnected');
+                            setSpotifyStatus(null);
                             setSpotifyAccounts([]);
                           } catch (err: unknown) {
                             toast.error(getErrorMessage(err, 'Failed to disconnect Spotify'));
+                          } finally {
+                            // Ensure UI reflects latest backend status
+                            void fetchSpotifyStatus();
                           }
                         }}
                         className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
@@ -833,7 +944,100 @@ export default function IntegrationsPage() {
                 </div>
               </div>
 
-              {MOCK_PLATFORMS.filter((p) => p.status === 'connected' && p.id !== 'meta').map((p) => {
+              {/* TikTok */}
+              <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40">
+                <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 bg-[#e6f9fb] text-[#00b8c4] leading-none">
+                    T
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-text-primary">TikTok</h3>
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] font-semibold mt-1 ${tiktokStatus?.connected ? 'text-green' : 'text-text-muted'}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${tiktokStatus?.connected ? 'bg-green' : 'bg-text-muted'}`} />
+                      {tiktokStatus?.connected ? 'Connected · Agency Token' : 'Not connected'}
+                    </div>
+                    {tiktokStatus?.connected && (
+                      <p className="text-[11px] text-text-muted font-semibold mt-2">
+                        {tiktokAccounts.length
+                          ? `${activeTiktokCount} of ${tiktokAccounts.length} accounts active`
+                          : 'Loading account list…'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="px-3.5 py-3 flex flex-wrap items-center gap-2">
+                  {tiktokStatus?.connected ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowTiktokAccountsPanel(true);
+                          fetchTiktokAccounts();
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
+                      >
+                        Manage Accounts
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!accessToken || !agencyId) return;
+                          try {
+                            const result = await apiClient.post<{ matched: number }>(
+                              API_ENDPOINTS.TIKTOK.AUTO_LINK(agencyId),
+                              {},
+                              { accessToken, agencyId },
+                            );
+                            toast.success(`Successfully auto-linked ${result.matched} TikTok account(s).`);
+                            await fetchTiktokAccounts();
+                          } catch (err: unknown) {
+                            toast.error(getErrorMessage(err, 'Auto-link failed'));
+                          }
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
+                      >
+                        Auto-link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!accessToken || !agencyId) return;
+                          if (!window.confirm('Disconnect TikTok? This will reset all client mappings.')) return;
+                          try {
+                            await apiClient.post(
+                              API_ENDPOINTS.TIKTOK.DISCONNECT(agencyId),
+                              {},
+                              { accessToken, agencyId },
+                            );
+                            toast.success('TikTok disconnected');
+                            setTiktokStatus(null);
+                            setTiktokAccounts([]);
+                          } catch (err: unknown) {
+                            toast.error(getErrorMessage(err, 'Failed to disconnect TikTok'));
+                          } finally {
+                            void fetchTiktokStatus();
+                          }
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnectTrigger('TikTok')}
+                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
+                    >
+                      Connect TikTok
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {MOCK_PLATFORMS.filter((p) => p.status === 'connected' && p.id !== 'meta' && p.id !== 'tiktok').map((p) => {
                 const variant = 'integrationUiVariant' in p ? p.integrationUiVariant : 'connected_ok';
                 const isError = variant === 'auth_error';
                 return (
@@ -1325,16 +1529,18 @@ export default function IntegrationsPage() {
                 ) : spotifyAccounts.length === 0 ? (
                   <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
                 ) : spotifyAccounts.map(acc => {
-                  const linkedClient = acc.linked_client_id ? clients.find(c => c.id === Number(acc.linked_client_id)) : null;
-                  return (
-                    <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#f5fbf7] transition-colors">
+                const linkedClient = acc.linked_client_id ? clients.find(c => c.id === Number(acc.linked_client_id)) : null;
+                const displayName = (acc.account_name ?? (acc as any).name ?? acc.account_id ?? '').toString();
+                const initials = displayName ? displayName.slice(0, 2).toUpperCase() : 'SP';
+                return (
+                <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#f5fbf7] transition-colors">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex items-start gap-4 min-w-0">
                           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#1db954]">
-                            {acc.account_name.slice(0, 2).toUpperCase()}
+                            {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-bold text-text-primary leading-tight truncate">{acc.account_name}</div>
+                            <div className="text-sm font-bold text-text-primary leading-tight truncate">{displayName || 'Spotify Account'}</div>
                             <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency}</div>
                           </div>
                         </div>
