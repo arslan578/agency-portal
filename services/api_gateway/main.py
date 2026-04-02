@@ -30,7 +30,11 @@ if env_path.exists():
 else:
     # Fallback to current directory
     load_dotenv()
-    logger.warning(f".env not found at {env_path}, trying current directory")
+    env_name = os.getenv("ENVIRONMENT", "development").lower()
+    if env_name in {"production", "staging"}:
+        logger.info(f".env not found at {env_path}; relying on environment variables")
+    else:
+        logger.warning(f".env not found at {env_path}, trying current directory")
     token_check = os.getenv("META_ACCESS_TOKEN")
     logger.info(f"META_ACCESS_TOKEN loaded: {'Yes' if token_check else 'No'} (length: {len(token_check) if token_check else 0})")
 
@@ -431,6 +435,16 @@ async def root():
             "reporting": "/reporting"
         }
     }
+
+
+@app.head("/")
+async def root_head():
+    return Response(status_code=200)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
 
 @app.get("/capabilities")
 @app.get("/capabilities/")  # Add trailing slash route to prevent redirect loop

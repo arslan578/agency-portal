@@ -65,6 +65,39 @@ _AUDIT_INDEXES = (
     "CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);",
 )
 
+_AI_INSIGHTS_DDL = """
+CREATE TABLE IF NOT EXISTS ai_insights (
+    id VARCHAR PRIMARY KEY,
+    agency_id INTEGER NOT NULL REFERENCES agencies(id),
+    client_id INTEGER NOT NULL REFERENCES clients(id),
+    platform VARCHAR,
+    platform_label VARCHAR,
+    severity VARCHAR NOT NULL,
+    categories JSONB,
+    title VARCHAR(120) NOT NULL,
+    description VARCHAR(400),
+    impact_metrics JSONB,
+    apply_label VARCHAR,
+    review_label VARCHAR,
+    review_url VARCHAR,
+    icon VARCHAR,
+    accent_color VARCHAR,
+    icon_bg VARCHAR,
+    status VARCHAR DEFAULT 'pending',
+    action_taken TEXT,
+    priority_score FLOAT DEFAULT 0.5,
+    recoverable_spend_cents INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+"""
+
+_AI_INSIGHTS_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS ix_ai_insights_id ON ai_insights(id);",
+    "CREATE INDEX IF NOT EXISTS ix_ai_insights_client_id ON ai_insights(client_id);",
+    "CREATE INDEX IF NOT EXISTS ix_ai_insights_agency_status ON ai_insights(agency_id, status);",
+)
+
 _ADD_PLANTIER_LABELS = """
 DO $$
 DECLARE
@@ -350,6 +383,12 @@ def ensure_orm_schema(engine: Engine) -> None:
             conn.execute(text(_AUDIT_LOGS_DDL))
             conn.execute(text("COMMIT;"))
             for stmt in _AUDIT_INDEXES:
+                conn.execute(text(stmt))
+                conn.execute(text("COMMIT;"))
+        if "agencies" in existing_tables and "clients" in existing_tables:
+            conn.execute(text(_AI_INSIGHTS_DDL))
+            conn.execute(text("COMMIT;"))
+            for stmt in _AI_INSIGHTS_INDEXES:
                 conn.execute(text(stmt))
                 conn.execute(text("COMMIT;"))
         conn.execute(text("SET statement_timeout = '0';"))

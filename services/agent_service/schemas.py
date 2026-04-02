@@ -172,7 +172,7 @@ class OrchestratorInput(BaseModel):
         super().__init__(**data)
 
     class Config:
-        allow_population_by_field_name = True
+        validate_by_name = True
 
 class ToolCall(BaseModel):
     tool_name: str
