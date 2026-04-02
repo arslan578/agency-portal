@@ -97,8 +97,6 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [profileMenuOpen]);
 
-  const { count: unassignedCount } = useUnassignedCount();
-  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
 
   if (status === 'loading') return <DashboardSkeleton />;
   if (status !== 'authenticated') return null;
