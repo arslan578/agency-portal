@@ -19,7 +19,13 @@ export default function SpotifyOauthCallbackPage() {
     if (errorDescription) params.set('error_description', errorDescription);
 
     // Use hard navigation here to avoid app-router transition stalls on OAuth callback.
-    window.location.replace(`/integrations?${params.toString()}`);
+    const returnBase =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('kaivo_oauth_return_base') || '/integrations'
+        : '/integrations';
+    if (typeof window !== 'undefined') sessionStorage.removeItem('kaivo_oauth_return_base');
+
+    window.location.replace(`${returnBase}?${params.toString()}`);
   }, []);
 
   return (

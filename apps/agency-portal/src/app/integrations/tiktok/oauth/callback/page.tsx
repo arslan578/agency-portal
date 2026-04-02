@@ -18,8 +18,14 @@ export default function TiktokOauthCallbackPage() {
     if (error) params.set('error', error);
     if (errorDescription) params.set('error_description', errorDescription);
 
+    const returnBase =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('kaivo_oauth_return_base') || '/integrations'
+        : '/integrations';
+    if (typeof window !== 'undefined') sessionStorage.removeItem('kaivo_oauth_return_base');
+
     // Hard navigation to avoid app-router transition issues on OAuth callback.
-    window.location.replace(`/integrations?${params.toString()}`);
+    window.location.replace(`${returnBase}?${params.toString()}`);
   }, []);
 
   return (
