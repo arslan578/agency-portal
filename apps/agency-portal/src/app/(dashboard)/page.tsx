@@ -43,6 +43,35 @@ function AccountModeBadge({ mode }: { mode: string }) {
   );
 }
 
+type Client = {
+  id: number;
+  name: string;
+  is_active: boolean;
+  industry?: string | null;
+  website?: string | null;
+  account_mode?: string | null;
+  [key: string]: any;
+};
+
+function PlatformTag({ name, className: cls }: { name: string; className?: string }) {
+  const colors: Record<string, string> = {
+    tiktok: 'bg-[#e6f9fb] text-[#00b8c4]',
+    meta: 'bg-[#e8effe] text-[#1877f2]',
+    google: 'bg-[#fdecea] text-[#ea4335]',
+    youtube: 'bg-[#fdecea] text-[#ff0000]',
+  };
+  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold ${colors[cls || ''] || 'bg-surface-secondary text-text-muted'}`}>{name}</span>;
+}
+
+function SeverityBadge({ severity }: { severity: string }) {
+  const styles: Record<string, string> = {
+    critical: 'bg-red-light text-red',
+    warning: 'bg-amber-light text-amber',
+    opportunity: 'bg-green-light text-green',
+  };
+  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold capitalize ${styles[severity] || ''}`}>{severity}</span>;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { status } = useRequireAuth();
@@ -206,9 +235,9 @@ export default function DashboardPage() {
               <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/[0.06]" />
               <div className="absolute -right-2 -bottom-6 w-20 h-20 rounded-full bg-white/[0.04]" />
             </div>
-            <KpiCard label="Total Managed Spend" value={`$${(totalSpend / 1000).toFixed(1)}k`} delta="+12.4%" positive />
-            <KpiCard label="AI Actions Pending" value={String(summary?.total_pending ?? 0)} delta={`${summary?.critical_count ?? 0} critical`} positive={false} />
-            <KpiCard label="Clients Affected" value={String(summary?.clients_affected_count ?? 0)} delta={clients.length > 0 ? `of ${clients.length} total` : 'No clients'} positive={false} />
+            <KpiCard label="Active Campaigns" value={String(activeCampaignsCount)} subtitle={`${campaignsCount} total campaigns`} />
+            <KpiCard label="AI Actions Pending" value={String(summary?.total_pending ?? 0)} subtitle={`${summary?.critical_count ?? 0} critical priorities`} />
+            <KpiCard label="Clients Affected" value={String(summary?.clients_affected_count ?? 0)} subtitle={clients.length > 0 ? `of ${clients.length} total clients` : 'No clients'} />
           </div>
 
           {/* Two-column: Table + Info */}
@@ -350,33 +379,29 @@ export default function DashboardPage() {
                         Dismiss
                       </button>
                     </div>
-
-                    {/* Client breakdown by industry */}
-                    {clients.length > 0 && (
-                      <div className="glass-card border border-border rounded-xl p-4 space-y-3">
-                        <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Clients by Industry</div>
-                        <div className="space-y-2">
-                          {Object.entries(
-                            clients.reduce<Record<string, number>>((acc, c) => {
-                              const ind = c.industry || 'Uncategorized';
-                              acc[ind] = (acc[ind] || 0) + 1;
-                              return acc;
-                            }, {})
-                          ).sort(([,a], [,b]) => b - a).map(([industry, count]) => (
-                            <div key={industry} className="flex items-center justify-between">
-                              <span className="text-[12px] text-text-secondary">{industry}</span>
-                              <span className="text-[12px] font-semibold text-text-primary font-mono">{count}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="flex items-center justify-center h-32 text-[12px] text-text-muted">
-                    No agency data available
                   </div>
                 ))}
+
+                {/* Client breakdown by industry */}
+                {clients.length > 0 && (
+                  <div className="glass-card border border-border rounded-xl p-4 space-y-3 mt-4">
+                    <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Clients by Industry</div>
+                    <div className="space-y-2">
+                      {Object.entries(
+                        clients.reduce<Record<string, number>>((acc, c) => {
+                          const ind = c.industry || 'Uncategorized';
+                          acc[ind] = (acc[ind] || 0) + 1;
+                          return acc;
+                        }, {})
+                      ).sort(([,a], [,b]) => b - a).map(([industry, count]) => (
+                        <div key={industry} className="flex items-center justify-between">
+                          <span className="text-[12px] text-text-secondary">{industry}</span>
+                          <span className="text-[12px] font-semibold text-text-primary font-mono">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {insights.length > 8 && (
                   <Link href="/insights" className="block text-center text-[11px] font-bold text-v-teal py-2 hover:underline">
                     View {insights.length - 8} more insights →
