@@ -10,6 +10,7 @@ import {
   validateResponse, validateArray,
   type DashboardData, type Client, type TeamMember, type Invite,
   type Campaign, type ReportRecord, type ClientHierarchyResponse,
+  type AIInsight, type AIInsightSummary,
 } from '@/lib/api/contracts';
 
 function useAuthHeaders() {
@@ -98,19 +99,19 @@ export function useInvites() {
   return { invites: data ?? [], error, isLoading, refresh: mutate };
 }
 
-export function useClientHierarchy(period: string, clientId?: number) {
+export function useClientHierarchy(period: string, clientId?: number, includeCampaigns: boolean = true) {
   const { accessToken, agencyId } = useAuthHeaders();
   const key =
     accessToken && agencyId
-      ? ['clientHierarchy', accessToken, agencyId, period, String(clientId ?? '')]
+      ? ['clientHierarchy', accessToken, agencyId, period, String(clientId ?? ''), includeCampaigns]
       : null;
 
   const { data, error, isLoading, mutate } = useSWR<ClientHierarchyResponse>(
     key,
-    async ([, token, agency, p, cidStr]: [string, string, string, string, string]) => {
+    async ([, token, agency, p, cidStr, inc]: [string, string, string, string, string, boolean]) => {
       const parsed = cidStr === '' ? NaN : Number(cidStr);
       const clientIdArg = Number.isFinite(parsed) ? parsed : undefined;
-      const url = API_ENDPOINTS.AGENCY.CLIENT_HIERARCHY(agency, p, clientIdArg);
+      const url = API_ENDPOINTS.AGENCY.CLIENT_HIERARCHY(agency, p, clientIdArg, inc);
       const raw = await apiClient.get<unknown>(url, { accessToken: token, agencyId: agency });
       const v = validateResponse(ClientHierarchyResponseSchema, raw);
       if (!v.ok) {
@@ -167,6 +168,77 @@ export function useCampaignReports(campaignId: number | null) {
   return { reports: data ?? [], error, isLoading };
 }
 
+export function useUnassignedCount() {
+  const { accessToken, agencyId } = useAuthHeaders();
+  const key = accessToken && agencyId ? ['unassigned-count', accessToken, agencyId] : null;
+
+  const { data, error, isLoading, mutate } = useSWR<{ count: number }>(
+    key,
+    async ([, token, agency]: [string, string, string]) => {
+      const url = API_ENDPOINTS.CLIENT_MANAGER.UNASSIGNED_COUNT(agency);
+      const raw = await apiClient.get<unknown>(url, { accessToken: token, agencyId: agency });
+      return raw as { count: number };
+    },
+    { revalidateOnFocus: true, refreshInterval: 60_000 },
+  );
+
+  return { count: data?.count ?? 0, error, isLoading, refresh: mutate };
+}
+
+export function useClientManager() {
+  const { accessToken, agencyId } = useAuthHeaders();
+  const key = accessToken && agencyId ? ['client-manager', accessToken, agencyId] : null;
+
+  const { data, error, isLoading, mutate } = useSWR<any>(
+    key,
+    async ([, token, agency]: [string, string, string]) => {
+      const url = API_ENDPOINTS.CLIENT_MANAGER.SUMMARY(agency);
+      const raw = await apiClient.get<unknown>(url, { accessToken: token, agencyId: agency });
+      return raw;
+    },
+    { revalidateOnFocus: false },
+  );
+
+  return { data, error, isLoading, refresh: mutate };
+}
+
 export function useApiAuth() {
   return useAuthHeaders();
+}
+
+export function useInsights(status: string = 'pending', clientId?: number) {
+  const { accessToken, agencyId } = useAuthHeaders();
+  const key = accessToken && agencyId
+    ? ['insights', accessToken, agencyId, status, String(clientId ?? '')]
+    : null;
+
+  const { data, error, isLoading, mutate } = useSWR<AIInsight[]>(
+    key,
+    async ([, token, agency]: [string, string, string]) => {
+      const url = API_ENDPOINTS.INSIGHTS.LIST(status, clientId);
+      const raw = await apiClient.get<unknown>(url, { accessToken: token, agencyId: agency });
+      if (!Array.isArray(raw)) return [] as AIInsight[];
+      return raw as AIInsight[];
+    },
+    { revalidateOnFocus: false, dedupingInterval: 10_000 },
+  );
+
+  return { insights: data ?? [], error, isLoading, refresh: mutate };
+}
+
+export function useInsightsSummary() {
+  const { accessToken, agencyId } = useAuthHeaders();
+  const key = accessToken && agencyId ? ['insights-summary', accessToken, agencyId] : null;
+
+  const { data, error, isLoading, mutate } = useSWR<AIInsightSummary>(
+    key,
+    async ([, token, agency]: [string, string, string]) => {
+      const url = API_ENDPOINTS.INSIGHTS.SUMMARY;
+      const raw = await apiClient.get<unknown>(url, { accessToken: token, agencyId: agency });
+      return raw as AIInsightSummary;
+    },
+    { revalidateOnFocus: true, refreshInterval: 60_000 },
+  );
+
+  return { summary: data, error, isLoading, refresh: mutate };
 }

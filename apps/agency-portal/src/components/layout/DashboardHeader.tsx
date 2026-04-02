@@ -8,7 +8,7 @@ const PAGE_META: Record<string, { title: string; subtitle?: string }> = {
   "/settings": { title: "Settings" },
   "/integrations": { title: "Integrations" },
   "/insights": { title: "AI Insights" },
-  "/reports": { title: "Reporting" },
+  "/reports": { title: "Client Manager" },
   "/billing": { title: "Billing" },
   "/onboarding": { title: "Get Started" },
 };

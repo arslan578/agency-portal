@@ -14,7 +14,7 @@ from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from packages.db.database import get_db
-from packages.db.models import Agency, Client, AgencyMembership, AgencyRole, User, AgencyInvite, InviteStatus, Campaign, CampaignStatus
+from packages.db.models import Agency, Client, AgencyMembership, AgencyRole, User, AgencyInvite, InviteStatus, Campaign, CampaignStatus, PlatformAccount, ClientAccountGroup, ClientPortalSettings
 from services.account_service.email import send_agency_invite_email
 from services.account_service import schemas_agency
 from services.account_service.agency_access import ensure_agency_scope
@@ -538,6 +538,7 @@ def get_agency_clients_hierarchy(
     agency_id: int,
     period: str = "7d",
     client_id: Optional[int] = None,
+    include_campaigns: bool = True,
     db: Session = Depends(get_db),
     ctx: dict = Depends(require_any_member),
 ):
@@ -553,7 +554,12 @@ def get_agency_clients_hierarchy(
         ).first()
         if not row:
             raise HTTPException(status_code=404, detail="Client not found")
-    payload = build_client_hierarchy(db, agency_id, period=period, client_id=client_id)
+    payload = build_client_hierarchy(
+        db, agency_id,
+        period=period,
+        client_id=client_id,
+        include_campaigns=include_campaigns
+    )
     return payload
 
 
@@ -875,6 +881,7 @@ def get_client_meta_insights(
     Uses agency BM token, NOT client's Kaivo token.
     Returns campaigns (live), ad_accounts (cached), ad_sets (cached).
     """
+    import traceback
     from services.account_service.meta_bm_service import fetch_client_meta_insights
 
     try:
@@ -890,7 +897,520 @@ def get_client_meta_insights(
     except PermissionError:
         raise HTTPException(status_code=403, detail="Agency does not own this client")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch insights: {str(e)}")
+        import logging
+        logging.getLogger(__name__).error(
+            f"meta-insights error for client {client_id}: {e}\n{traceback.format_exc()}"
+        )
+        # Return a graceful fallback instead of a 500 so the frontend stops retrying
+        return {
+            "connected": False,
+            "reason": "server_error",
+            "meta_account_status": "error",
+            "ad_accounts": [],
+            "campaigns": [],
+            "ad_sets": [],
+            "token_valid": False,
+            "token_expires_at": None,
+            "error": str(e),
+        }
+
+
+# ── Client Manager (Reporting replacement) ─────────────────────────────────────
+
+
+
+@router.get("/api/agency/accounts/unassigned", response_model=List[schemas_agency.ClientManagerAccount])
+def get_unassigned_accounts(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """List platform accounts that are not yet grouped in Client Manager."""
+    ensure_agency_scope(ctx, agency_id)
+    accounts = (
+        db.query(PlatformAccount)
+        .outerjoin(ClientAccountGroup)
+        .filter(ClientAccountGroup.id == None)
+        .join(Client)
+        .filter(Client.agency_id == agency_id)
+        .all()
+    )
+    return [
+        schemas_agency.ClientManagerAccount(
+            id=pa.id,
+            platform=pa.platform,
+            account_id=pa.account_id,
+            display_name=pa.account_id,
+            client_id=pa.client_id,
+            client_name=pa.client.name if pa.client else None,
+            group_client_id=None,
+            group_client_name=None,
+            is_assigned=False,
+        )
+        for pa in accounts
+    ]
+
+
+@router.get("/api/agency/accounts/unassigned/count", response_model=dict)
+def get_unassigned_count(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    """Return count of unassigned platform accounts for this agency."""
+    ensure_agency_scope(ctx, agency_id)
+    count = (
+        db.query(PlatformAccount)
+        .outerjoin(ClientAccountGroup)
+        .filter(ClientAccountGroup.id == None)
+        .join(Client)
+        .filter(Client.agency_id == agency_id)
+        .count()
+    )
+    return {"count": count}
+
+
+@router.get("/api/agency/accounts/suggestions", response_model=List[dict])
+def get_account_suggestions(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """Placeholder endpoint for future fuzzy matching suggestions."""
+    ensure_agency_scope(ctx, agency_id)
+    return [
+        {
+            "id": "s1",
+            "name": "Nova Skincare",
+            "count": 3,
+            "platforms": ["meta", "tiktok"],
+            "confidence": 0.92,
+        },
+    ]
+
+
+@router.get(
+    "/agency/{agency_id}/client-manager",
+    response_model=schemas_agency.ClientManagerSummary,
+)
+def get_client_manager_summary(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """Return unassigned accounts and per-client grouping/portal settings."""
+    ensure_agency_scope(ctx, agency_id)
+
+    clients = (
+        db.query(Client)
+        .filter(Client.agency_id == agency_id, Client.is_active == True)
+        .all()
+    )
+    client_ids = [c.id for c in clients] or [-1]
+
+    platform_accounts = (
+        db.query(PlatformAccount)
+        .join(Client)
+        .filter(Client.agency_id == agency_id)
+        .all()
+    )
+    pa_ids = [p.id for p in platform_accounts] or [-1]
+
+    groups = (
+        db.query(ClientAccountGroup)
+        .filter(
+            ClientAccountGroup.agency_id == agency_id,
+            ClientAccountGroup.platform_account_id.in_(pa_ids),
+        )
+        .all()
+    )
+    groups_by_pa = {g.platform_account_id: g for g in groups}
+
+    settings_list = (
+        db.query(ClientPortalSettings)
+        .filter(ClientPortalSettings.client_id.in_(client_ids))
+        .all()
+    )
+    settings_by_client = {s.client_id: s for s in settings_list}
+
+    # Identify implicit accounts from Client table columns (Meta/Reddit) and ensure they have PlatformAccount rows
+    migrated_count = 0
+    for c in clients:
+        # Meta
+        if c.agency_meta_account_id:
+            pa = (
+                db.query(PlatformAccount)
+                .filter(PlatformAccount.platform == "meta", PlatformAccount.account_id == c.agency_meta_account_id)
+                .first()
+            )
+            if not pa:
+                # Create PlatformAccount row to migrate it into the new management system
+                pa = PlatformAccount(
+                    client_id=c.id,
+                    platform="meta",
+                    account_id=c.agency_meta_account_id
+                )
+                db.add(pa)
+                db.flush()
+                # Also ensure ClientAccountGroup exists
+                db.add(ClientAccountGroup(
+                    agency_id=agency_id,
+                    client_id=c.id,
+                    platform_account_id=pa.id
+                ))
+                # Move existing campaigns to this client
+                from packages.db.models import Campaign
+                db.query(Campaign).filter(Campaign.account_id == pa.id).update({
+                    "client_id": c.id
+                }, synchronize_session=False)
+                migrated_count += 1
+        # Reddit
+        if hasattr(c, 'agency_reddit_account_id') and c.agency_reddit_account_id:
+             pa = (
+                db.query(PlatformAccount)
+                .filter(PlatformAccount.platform == "reddit", PlatformAccount.account_id == c.agency_reddit_account_id)
+                .first()
+            )
+             if not pa:
+                pa = PlatformAccount(
+                    client_id=c.id,
+                    platform="reddit",
+                    account_id=c.agency_reddit_account_id
+                )
+                db.add(pa)
+                db.flush()
+                db.add(ClientAccountGroup(
+                    agency_id=agency_id,
+                    client_id=c.id,
+                    platform_account_id=pa.id
+                ))
+                # Move existing campaigns to this client
+                from packages.db.models import Campaign
+                db.query(Campaign).filter(Campaign.account_id == pa.id).update({
+                    "client_id": c.id
+                }, synchronize_session=False)
+                migrated_count += 1
+    
+    if migrated_count > 0:
+        db.commit()
+        # Refresh lists after migration
+        platform_accounts = (
+            db.query(PlatformAccount)
+            .join(Client)
+            .filter(Client.agency_id == agency_id)
+            .all()
+        )
+        groups_by_pa = {g.platform_account_id: g for g in db.query(ClientAccountGroup).filter(ClientAccountGroup.agency_id == agency_id).all()}
+
+    accounts_out: List[schemas_agency.ClientManagerAccount] = []
+    for pa in platform_accounts:
+        group = groups_by_pa.get(pa.id)
+        accounts_out.append(
+            schemas_agency.ClientManagerAccount(
+                id=pa.id,
+                platform=pa.platform,
+                account_id=pa.account_id,
+                display_name=pa.account_id,
+                client_id=pa.client_id,
+                client_name=pa.client.name if pa.client else None,
+                group_client_id=group.client_id if group else None,
+                group_client_name=group.client.name if group else None,
+                is_assigned=group is not None,
+            )
+        )
+
+    unassigned = [a for a in accounts_out if not a.is_assigned]
+
+    accounts_by_group_client: dict[int, List[schemas_agency.ClientManagerAccount]] = {}
+    for a in accounts_out:
+        target_cid = a.group_client_id or a.client_id
+        if target_cid:
+            accounts_by_group_client.setdefault(target_cid, []).append(a)
+
+    client_details: List[schemas_agency.ClientManagerClientDetail] = []
+    for c in clients:
+        attached = accounts_by_group_client.get(c.id, [])
+        platforms = sorted({a.platform for a in attached})
+        summary = schemas_agency.ClientManagerClientSummary(
+            id=c.id,
+            name=c.name,
+            industry=c.industry,
+            account_count=len(attached),
+            platforms=platforms,
+            spend_mtd=0.0,
+            avatar_color=getattr(c, 'avatar_color', None),
+        )
+        settings = settings_by_client.get(c.id)
+        client_details.append(
+            schemas_agency.ClientManagerClientDetail(
+                client=summary,
+                accounts=attached,
+                portal_settings=schemas_agency.ClientPortalSettingsOut.from_orm(settings)
+                if settings
+                else None,
+            )
+        )
+
+    return schemas_agency.ClientManagerSummary(
+        unassigned_accounts=unassigned,
+        clients=client_details,
+    )
+
+
+@router.post("/agency/{agency_id}/client-manager/assign", response_model=dict)
+def assign_platform_accounts(
+    agency_id: int,
+    body: schemas_agency.ClientManagerAssignRequest,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """Assign platform accounts to a specific client. Supports virtual accounts and legacy columns."""
+    ensure_agency_scope(ctx, agency_id)
+
+    client = db.query(Client).filter(Client.id == body.client_id, Client.agency_id == agency_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found for this agency")
+
+    processed_ids = []
+    
+    for item in body.accounts:
+        pa = None
+        if item.id and item.id > 0:
+            pa = db.query(PlatformAccount).filter(PlatformAccount.id == item.id).first()
+        elif item.platform and item.account_id:
+            # Look up or create by platform/account_id
+            pa = db.query(PlatformAccount).filter(
+                PlatformAccount.platform == item.platform,
+                PlatformAccount.account_id == item.account_id
+            ).first()
+            if not pa:
+                pa = PlatformAccount(
+                    client_id=body.client_id,
+                    platform=item.platform,
+                    account_id=item.account_id
+                )
+                db.add(pa)
+                db.flush()
+
+        if not pa:
+            continue
+            
+        processed_ids.append(pa.id)
+        pa.client_id = body.client_id
+        
+        # Modern routing
+        existing_group = db.query(ClientAccountGroup).filter(ClientAccountGroup.platform_account_id == pa.id).first()
+        if existing_group:
+            existing_group.client_id = body.client_id
+            existing_group.agency_id = agency_id
+        else:
+            db.add(ClientAccountGroup(
+                agency_id=agency_id,
+                client_id=body.client_id,
+                platform_account_id=pa.id
+            ))
+        
+        # Update internal campaigns to follow the account to the new client
+        from packages.db.models import Campaign
+        db.query(Campaign).filter(Campaign.account_id == pa.id).update({
+            "client_id": body.client_id
+        }, synchronize_session=False)
+
+        # Legacy Column Sync
+        if pa.platform == "meta":
+            # Clear previous associations
+            db.query(Client).filter(
+                Client.agency_id == agency_id,
+                Client.agency_meta_account_id == pa.account_id
+            ).update({
+                Client.agency_meta_account_id: None,
+                Client.meta_account_status: "not_linked"
+            }, synchronize_session=False)
+            # Set new
+            client.agency_meta_account_id = pa.account_id
+            client.meta_account_status = "linked_manual"
+        elif pa.platform == "reddit":
+            if hasattr(Client, 'agency_reddit_account_id'):
+                db.query(Client).filter(
+                    Client.agency_id == agency_id,
+                    getattr(Client, 'agency_reddit_account_id', None) == pa.account_id
+                ).update({
+                    'agency_reddit_account_id': None
+                }, synchronize_session=False)
+                setattr(client, 'agency_reddit_account_id', pa.account_id)
+
+    db.commit()
+    return {"success": True, "processed_count": len(processed_ids)}
+
+
+@router.patch("/agency/{agency_id}/clients/{client_id}", response_model=schemas_agency.ClientOut)
+def update_client_details(
+    agency_id: int,
+    client_id: int,
+    update: schemas_agency.ClientUpdate,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    client = db.query(Client).filter(Client.id == client_id, Client.agency_id == agency_id).first()
+    if not client: raise HTTPException(status_code=404, detail="Client not found")
+    
+    payload = update.model_dump(exclude_unset=True)
+    for field, value in payload.items():
+        setattr(client, field, value)
+    
+    db.commit()
+    db.refresh(client)
+    return client
+
+@router.delete("/agency/{agency_id}/clients/{client_id}", response_model=dict)
+def delete_client_and_unassign(
+    agency_id: int,
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    client = db.query(Client).filter(Client.id == client_id, Client.agency_id == agency_id).first()
+    if not client: raise HTTPException(status_code=404, detail="Client not found")
+    
+    # Detach all accounts first
+    db.query(ClientAccountGroup).filter(ClientAccountGroup.client_id == client_id).delete()
+    db.delete(client)
+    db.commit()
+    return {"success": True}
+
+@router.post("/agency/{agency_id}/clients/{client_id}/accounts", response_model=dict)
+def assign_accounts_to_specific_client_endpoint(
+    agency_id: int,
+    client_id: int,
+    body: schemas_agency.ClientAccountAssignment,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    client = db.query(Client).filter(Client.id == client_id, Client.agency_id == agency_id).first()
+    if not client: raise HTTPException(status_code=404, detail="Client not found")
+
+    # Reuse existing assign logic internally
+    return assign_platform_accounts(agency_id, schemas_agency.ClientManagerAssignRequest(client_id=client_id, accounts=body.accounts), db, ctx)
+
+@router.delete("/agency/{agency_id}/clients/{client_id}/accounts/{account_id}", response_model=dict)
+def detach_specific_account_endpoint(
+    agency_id: int,
+    client_id: int,
+    account_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    group = db.query(ClientAccountGroup).filter(
+        ClientAccountGroup.agency_id == agency_id,
+        ClientAccountGroup.client_id == client_id,
+        ClientAccountGroup.platform_account_id == account_id
+    ).first()
+    if group:
+        db.delete(group)
+        db.commit()
+    return {"success": True}
+
+
+@router.get("/api/agency/clients/{client_id}/access", response_model=schemas_agency.ClientPortalSettingsOut)
+def get_client_access(
+    agency_id: int,
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    settings = db.query(ClientPortalSettings).filter(ClientPortalSettings.client_id == client_id).first()
+    if not settings: return ClientPortalSettings(client_id=client_id)
+    return settings
+
+@router.post("/api/agency/clients/{client_id}/access/link", response_model=dict)
+def generate_magic_link(
+    agency_id: int,
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    # Placeholder for token generation logic
+    token = "magic_" + os.urandom(8).hex()
+    return {"token": token, "expires_at": "2026-12-31T23:59:59"}
+
+@router.get("/api/agency/clients/{client_id}/markup", response_model=schemas_agency.ClientPortalSettingsOut)
+def get_client_markup(
+    agency_id: int,
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    return get_client_access(agency_id, client_id, db, ctx)
+
+@router.get("/api/agency/clients/{client_id}/display", response_model=schemas_agency.ClientPortalSettingsOut)
+def get_client_display(
+    agency_id: int,
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    return get_client_access(agency_id, client_id, db, ctx)
+
+
+@router.post("/agency/{agency_id}/client-manager/detach", response_model=dict)
+def detach_platform_account(
+    agency_id: int,
+    body: schemas_agency.ClientManagerDetachRequest,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """Detach a platform account from any client manager grouping (back to Unassigned)."""
+    ensure_agency_scope(ctx, agency_id)
+
+    group = (
+        db.query(ClientAccountGroup)
+        .filter(
+            ClientAccountGroup.agency_id == agency_id,
+            ClientAccountGroup.platform_account_id == body.platform_account_id,
+        )
+        .first()
+    )
+    if group:
+        db.delete(group)
+        db.commit()
+    return {"success": True}
+
+
+@router.patch("/clients/{client_id}/portal-settings", response_model=schemas_agency.ClientPortalSettingsOut)
+def update_client_portal_settings(
+    client_id: int,
+    update: schemas_agency.ClientPortalSettingsUpdate,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    """Update per-client portal and markup/display settings."""
+    client = db.query(Client).filter(Client.id == client_id).first()
+    if not client:
+        raise HTTPException(status_code=404, detail="Client not found")
+    ensure_agency_scope(ctx, client.agency_id)
+
+    settings = (
+        db.query(ClientPortalSettings)
+        .filter(ClientPortalSettings.client_id == client_id)
+        .first()
+    )
+    if not settings:
+        settings = ClientPortalSettings(client_id=client_id)
+        db.add(settings)
+
+    payload = update.model_dump(exclude_unset=True)
+    for field, value in payload.items():
+        setattr(settings, field, value)
+
+    db.commit()
+    db.refresh(settings)
+    return schemas_agency.ClientPortalSettingsOut.from_orm(settings)
 
 
 # ── Reddit Agency Endpoints ───────────────────────────────────────────────────
@@ -1173,3 +1693,144 @@ def get_client_spotify_insights(
         raise HTTPException(status_code=403, detail="Agency does not own this client")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch Spotify insights: {str(e)}")
+
+
+# ── TikTok Agency Endpoints ───────────────────────────────────────────────────
+
+@router.post("/agency/{agency_id}/tiktok/connect")
+def connect_tiktok_agency(
+    agency_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import connect_tiktok_agency as _connect
+
+    code = body.get("code")
+    redirect_uri = body.get("redirectUri")
+    if not code:
+        raise HTTPException(status_code=400, detail="OAuth code is required")
+
+    try:
+        return _connect(db, agency_id, code, user_id=ctx.get("user_id"), redirect_uri=redirect_uri)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect TikTok: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/tiktok/disconnect")
+def disconnect_tiktok_agency(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import disconnect_tiktok_agency as _disconnect
+
+    try:
+        return _disconnect(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/tiktok/status")
+def get_tiktok_agency_status(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import get_tiktok_status
+
+    try:
+        return get_tiktok_status(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/tiktok/accounts")
+def get_tiktok_agency_accounts(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import get_tiktok_agency_accounts
+
+    try:
+        return get_tiktok_agency_accounts(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch TikTok accounts: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/tiktok/auto-link")
+def auto_link_tiktok_clients(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.tiktok_agency_service import auto_link_tiktok_clients
+
+    try:
+        return auto_link_tiktok_clients(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-link failed: {str(e)}")
+
+
+@router.post("/clients/{client_id}/tiktok/manual-link")
+def manual_link_tiktok_client(
+    client_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    from services.account_service.tiktok_agency_service import manual_link_tiktok_client
+
+    ad_account_id = body.get("ad_account_id")
+    if not ad_account_id:
+        raise HTTPException(status_code=400, detail="ad_account_id is required")
+
+    try:
+        return manual_link_tiktok_client(
+            db=db,
+            client_id=client_id,
+            ad_account_id=ad_account_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Manual link failed: {str(e)}")
+
+
+@router.get("/clients/{client_id}/tiktok-insights")
+def get_client_tiktok_insights(
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    from services.account_service.tiktok_agency_service import fetch_client_tiktok_insights
+
+    try:
+        return fetch_client_tiktok_insights(
+            db,
+            client_id=client_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch TikTok insights: {str(e)}")
