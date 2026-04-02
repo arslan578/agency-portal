@@ -125,6 +125,11 @@ class Agency(Base):
     tiktok_refresh_token = Column(Text, nullable=True)
     tiktok_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     tiktok_connected_at = Column(DateTime(timezone=True), nullable=True)
+    # --- Microsoft Ads Agency OAuth ---
+    microsoft_agency_access_token = Column(Text, nullable=True)
+    microsoft_refresh_token = Column(Text, nullable=True)
+    microsoft_token_expires_at = Column(DateTime(timezone=True), nullable=True)
+    microsoft_connected_at = Column(DateTime(timezone=True), nullable=True)
     
     memberships = relationship("packages.db.models.AgencyMembership", back_populates="agency")
     clients = relationship("packages.db.models.Client", back_populates="agency")
@@ -221,6 +226,11 @@ class Client(Base):
     tiktok_account_status = Column(String(30), default="agency_not_connected")
     tiktok_account_name = Column(String(255), nullable=True)
     tiktok_linked_at = Column(DateTime(timezone=True), nullable=True)
+    # --- Microsoft Ads account linking ---
+    agency_microsoft_account_id = Column(String(100), nullable=True)
+    microsoft_account_status = Column(String(30), default="agency_not_connected")
+    microsoft_account_name = Column(String(255), nullable=True)
+    microsoft_linked_at = Column(DateTime(timezone=True), nullable=True)
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

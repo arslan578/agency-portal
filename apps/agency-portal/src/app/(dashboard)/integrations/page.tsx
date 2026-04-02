@@ -16,6 +16,8 @@ const REDDIT_CLIENT_ID = process.env.NEXT_PUBLIC_REDDIT_CLIENT_ID || '';
 const REDDIT_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_REDDIT_REDIRECT_URI || '';
 const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || '';
 const TIKTOK_CLIENT_KEY = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || '';
+const MICROSOFT_ADS_CLIENT_ID = process.env.NEXT_PUBLIC_MICROSOFT_ADS_CLIENT_ID || '';
+const MICROSOFT_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_MICROSOFT_REDIRECT_URI || '';
 
 /** Template-matched sync log rows (UI only; no backend). */
 const SYNC_LOG_STATIC_ROWS: {
@@ -96,6 +98,14 @@ function getSpotifyRedirectUri() {
   return '/integrations/spotify/oauth/callback';
 }
 
+function getMicrosoftRedirectUri() {
+  if (MICROSOFT_REDIRECT_URI_OVERRIDE.trim()) return MICROSOFT_REDIRECT_URI_OVERRIDE.trim();
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/integrations/microsoft/oauth/callback`;
+  }
+  return '/integrations/microsoft/oauth/callback';
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
@@ -120,12 +130,18 @@ export default function IntegrationsPage() {
   const [tiktokStatus, setTiktokStatus] = useState<{ connected: boolean; connected_at: string | null; token_valid?: boolean } | null>(null);
   const [tiktokAccounts, setTiktokAccounts] = useState<BMAccount[]>([]);
   const [tiktokAccountsLoading, setTiktokAccountsLoading] = useState(false);
+  const [microsoftStatus, setMicrosoftStatus] = useState<{ connected: boolean; connected_at: string | null; token_valid?: boolean } | null>(null);
+  const [microsoftAccounts, setMicrosoftAccounts] = useState<BMAccount[]>([]);
+  const [microsoftAccountsLoading, setMicrosoftAccountsLoading] = useState(false);
+  const [microsoftConnecting, setMicrosoftConnecting] = useState(false);
+  const [microsoftAutoLinking, setMicrosoftAutoLinking] = useState(false);
 
   // Panels & Modals
   const [showAccountsPanel, setShowAccountsPanel] = useState(false);
   const [showRedditAccountsPanel, setShowRedditAccountsPanel] = useState(false);
   const [showSpotifyAccountsPanel, setShowSpotifyAccountsPanel] = useState(false);
   const [showTiktokAccountsPanel, setShowTiktokAccountsPanel] = useState(false);
+  const [showMicrosoftAccountsPanel, setShowMicrosoftAccountsPanel] = useState(false);
   const [panelEntered, setPanelEntered] = useState(false);
   const [bmAccounts, setBmAccounts] = useState<BMAccount[]>([]);
   const [bmAccountsLoading, setBmAccountsLoading] = useState(false);
@@ -209,12 +225,26 @@ export default function IntegrationsPage() {
     }
   }, [accessToken, agencyId]);
 
+  const fetchMicrosoftStatus = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    try {
+      const data = await apiClient.get<{ connected: boolean; connected_at: string | null; token_valid?: boolean }>(
+        API_ENDPOINTS.MICROSOFT.STATUS(agencyId),
+        { accessToken, agencyId },
+      );
+      setMicrosoftStatus(data);
+    } catch {
+      setMicrosoftStatus(null);
+    }
+  }, [accessToken, agencyId]);
+
   useEffect(() => {
     void fetchMetaStatus();
     void fetchRedditStatus();
     void fetchSpotifyStatus();
     void fetchTiktokStatus();
-  }, [fetchMetaStatus, fetchRedditStatus, fetchSpotifyStatus, fetchTiktokStatus]);
+    void fetchMicrosoftStatus();
+  }, [fetchMetaStatus, fetchRedditStatus, fetchSpotifyStatus, fetchTiktokStatus, fetchMicrosoftStatus]);
 
   const fetchBmAccounts = useCallback(async () => {
     if (!accessToken || !agencyId) return;
@@ -277,6 +307,22 @@ export default function IntegrationsPage() {
       setTiktokAccounts([]);
     } finally {
       setTiktokAccountsLoading(false);
+    }
+  }, [accessToken, agencyId]);
+
+  const fetchMicrosoftAccounts = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    setMicrosoftAccountsLoading(true);
+    try {
+      const data = await apiClient.get<{ connected: boolean; accounts: BMAccount[] }>(
+        API_ENDPOINTS.MICROSOFT.ACCOUNTS(agencyId),
+        { accessToken, agencyId },
+      );
+      setMicrosoftAccounts(data.accounts || []);
+    } catch {
+      setMicrosoftAccounts([]);
+    } finally {
+      setMicrosoftAccountsLoading(false);
     }
   }, [accessToken, agencyId]);
 
@@ -476,6 +522,54 @@ export default function IntegrationsPage() {
     })();
   }, [accessToken, agencyId, spotifyConnecting, fetchSpotifyStatus, fetchSpotifyAccounts]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('microsoft_callback') !== '1') return;
+    const code = params.get('code');
+    const oauthError = params.get('error');
+    const oauthErrorDescription = params.get('error_description');
+
+    if (oauthError) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('microsoft_callback');
+      url.searchParams.delete('code');
+      url.searchParams.delete('state');
+      url.searchParams.delete('error');
+      url.searchParams.delete('error_description');
+      window.history.replaceState({}, '', url.toString());
+      toast.error(oauthErrorDescription || oauthError || 'Microsoft authorization failed');
+      return;
+    }
+
+    if (!code || !accessToken || !agencyId || microsoftConnecting) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('microsoft_callback');
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    window.history.replaceState({}, '', url.toString());
+
+    (async () => {
+      setMicrosoftConnecting(true);
+      try {
+        const exactRedirectUri = getMicrosoftRedirectUri();
+        await apiClient.post(
+          API_ENDPOINTS.MICROSOFT.CONNECT(agencyId),
+          { code, redirectUri: exactRedirectUri },
+          { accessToken, agencyId },
+        );
+        toast.success('Microsoft Ads connected!');
+        await fetchMicrosoftStatus();
+        await fetchMicrosoftAccounts();
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, 'Failed to connect Microsoft Ads'));
+      } finally {
+        setMicrosoftConnecting(false);
+      }
+    })();
+  }, [accessToken, agencyId, microsoftConnecting, fetchMicrosoftStatus, fetchMicrosoftAccounts]);
+
   const handleConnectTrigger = (platform: string) => {
     if (platform === 'Meta') {
       const redirectUri = `${window.location.origin}/integrations?meta_callback=1`;
@@ -525,6 +619,17 @@ export default function IntegrationsPage() {
         response_type: 'code',
       });
       window.location.href = `${base}?${params.toString()}`;
+    } else if (platform === 'Microsoft Ads') {
+      if (!MICROSOFT_ADS_CLIENT_ID) {
+        toast.error('Missing NEXT_PUBLIC_MICROSOFT_ADS_CLIENT_ID');
+        return;
+      }
+      const redirectUri = getMicrosoftRedirectUri();
+      const state = Math.random().toString(36).slice(2);
+      const scope = encodeURIComponent('https://ads.microsoft.com/msads.manage offline_access');
+      const encodedRedirect = encodeURIComponent(redirectUri);
+      window.location.href =
+        `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(MICROSOFT_ADS_CLIENT_ID)}&response_type=code&redirect_uri=${encodedRedirect}&response_mode=query&scope=${scope}&state=${encodeURIComponent(state)}`;
     } else {
       toast.info(`${platform} integration coming soon!`);
     }
@@ -620,6 +725,38 @@ export default function IntegrationsPage() {
     }
   };
 
+  const handleAutoLinkMicrosoft = async () => {
+    if (!accessToken || !agencyId) return;
+    setMicrosoftAutoLinking(true);
+    try {
+      const result = await apiClient.post<{ matched: number }>(
+        API_ENDPOINTS.MICROSOFT.AUTO_LINK(agencyId), {}, { accessToken, agencyId },
+      );
+      toast.success(`Successfully auto-linked ${result.matched} Microsoft Ads account(s).`);
+      await fetchMicrosoftStatus();
+      if (showMicrosoftAccountsPanel) await fetchMicrosoftAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Auto-link failed'));
+    } finally {
+      setMicrosoftAutoLinking(false);
+    }
+  };
+
+  const handleManualLinkMicrosoft = async (clientId: number, adAccountId: string) => {
+    if (!accessToken || !agencyId) return;
+    try {
+      await apiClient.post(
+        API_ENDPOINTS.MICROSOFT.MANUAL_LINK(String(clientId)),
+        { ad_account_id: adAccountId },
+        { accessToken, agencyId },
+      );
+      toast.success('Microsoft Ads account mapped successfully');
+      await fetchMicrosoftAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Mapping failed'));
+    }
+  };
+
   // ── Derived State ──────────────────────────────────────────────────────────
 
   const metaConnected = metaStatus?.connected ?? false;
@@ -646,9 +783,18 @@ export default function IntegrationsPage() {
     return clients.filter((c) => !linkedIds.has(String(c.id)));
   }, [clients, redditAccounts]);
 
+  const unlinkedMicrosoftClients = useMemo(() => {
+    const linkedIds = new Set(
+      microsoftAccounts.map((a) => a.linked_client_id).filter((id): id is string => id != null && id !== ''),
+    );
+    return clients.filter((c) => !linkedIds.has(String(c.id)));
+  }, [clients, microsoftAccounts]);
+
   const activeBmCount = bmAccounts.filter(a => a.linked_client_id !== null).length;
   const activeRedditCount = redditAccounts.filter(a => a.linked_client_id !== null).length;
   const activeSpotifyCount = spotifyAccounts.filter(a => a.linked_client_id !== null).length;
+  const activeTiktokCount = tiktokAccounts.filter(a => a.linked_client_id !== null).length;
+  const activeMicrosoftCount = microsoftAccounts.filter(a => a.linked_client_id !== null).length;
 
   const metaManagedSpendDisplay = useMemo(() => {
     if (!bmAccounts.length) return '—';
@@ -656,17 +802,15 @@ export default function IntegrationsPage() {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(total);
   }, [bmAccounts]);
 
-  const activeTiktokCount = tiktokAccounts.filter(a => a.linked_client_id !== null).length;
-
   // ── Animation Controllers ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (showAccountsPanel || showRedditAccountsPanel || showSpotifyAccountsPanel || showTiktokAccountsPanel || panelPlatform) {
+    if (showAccountsPanel || showRedditAccountsPanel || showSpotifyAccountsPanel || showTiktokAccountsPanel || showMicrosoftAccountsPanel || panelPlatform) {
       const frame = requestAnimationFrame(() => setPanelEntered(true));
       return () => cancelAnimationFrame(frame);
     }
     setPanelEntered(false);
-  }, [showAccountsPanel, showRedditAccountsPanel, showSpotifyAccountsPanel, showTiktokAccountsPanel, panelPlatform]);
+  }, [showAccountsPanel, showRedditAccountsPanel, showSpotifyAccountsPanel, showTiktokAccountsPanel, showMicrosoftAccountsPanel, panelPlatform]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -675,6 +819,7 @@ export default function IntegrationsPage() {
     void fetchRedditStatus();
     void fetchSpotifyStatus();
     void fetchTiktokStatus();
+    void fetchMicrosoftStatus();
     toast.message('Refreshing connected platforms…');
   };
 
@@ -1032,6 +1177,91 @@ export default function IntegrationsPage() {
                       className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
                     >
                       Connect TikTok
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Microsoft Ads */}
+              <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40">
+                <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 bg-[#e8f0fe] text-[#0078d4] leading-none">
+                    M
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-text-primary">Microsoft Ads</h3>
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] font-semibold mt-1 ${microsoftStatus?.connected ? 'text-green' : 'text-text-muted'}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${microsoftStatus?.connected ? 'bg-green' : 'bg-text-muted'}`} />
+                      {microsoftStatus?.connected ? 'Connected · Agency Token' : 'Not connected'}
+                    </div>
+                    {microsoftStatus?.connected && (
+                      <p className="text-[11px] text-text-muted font-semibold mt-2">
+                        {microsoftAccounts.length
+                          ? `${activeMicrosoftCount} of ${microsoftAccounts.length} accounts active`
+                          : 'Loading account list…'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="px-3.5 py-3 flex flex-wrap items-center gap-2">
+                  {microsoftStatus?.connected ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMicrosoftAccountsPanel(true);
+                          fetchMicrosoftAccounts();
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
+                      >
+                        Manage Accounts
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleAutoLinkMicrosoft()}
+                        disabled={microsoftAutoLinking}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md disabled:opacity-50"
+                      >
+                        {microsoftAutoLinking ? 'Linking…' : 'Auto-link'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!accessToken || !agencyId) return;
+                          if (!isAdmin) {
+                            toast.error('Only agency admins can disconnect Microsoft Ads.');
+                            return;
+                          }
+                          if (!window.confirm('Disconnect Microsoft Ads? This will reset all client mappings.')) return;
+                          try {
+                            await apiClient.post(
+                              API_ENDPOINTS.MICROSOFT.DISCONNECT(agencyId),
+                              {},
+                              { accessToken, agencyId },
+                            );
+                            toast.success('Microsoft Ads disconnected');
+                            setMicrosoftStatus(null);
+                            setMicrosoftAccounts([]);
+                          } catch (err: unknown) {
+                            toast.error(getErrorMessage(err, 'Failed to disconnect Microsoft Ads'));
+                          } finally {
+                            void fetchMicrosoftStatus();
+                          }
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnectTrigger('Microsoft Ads')}
+                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
+                    >
+                      Connect Microsoft Ads
                     </button>
                   )}
                 </div>
@@ -1579,6 +1809,116 @@ export default function IntegrationsPage() {
                                 .map(c => (
                                   <option key={c.id} value={c.id}>{c.name}</option>
                                 ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {showMicrosoftAccountsPanel && (
+        <>
+          <div
+            className="fixed inset-0 z-[100] transition-opacity bg-black/40 backdrop-blur-sm"
+            role="presentation"
+            onClick={() => setShowMicrosoftAccountsPanel(false)}
+          />
+          <aside
+            className={`fixed top-0 right-0 h-full w-[480px] max-w-[100vw] bg-white border-l border-border z-[101] shadow-2xl flex flex-col transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${panelEntered ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <header className="px-5 py-[18px] border-b border-border-subtle flex items-center gap-3 bg-white text-text-primary shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[#e8f0fe] text-[#0078d4] flex items-center justify-center text-base font-semibold shrink-0 leading-none">
+                M
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] font-bold text-text-primary truncate">Manage Microsoft Ads Accounts</h3>
+                <p className="text-[11px] text-text-muted font-medium mt-0.5">
+                  {microsoftAccounts.length ? `${microsoftAccounts.length} accounts available` : 'Microsoft Advertising'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMicrosoftAccountsPanel(false)}
+                className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </header>
+
+            <div className="px-5 py-2 border-b border-border flex items-center gap-2 shrink-0 bg-surface-secondary">
+              <button
+                type="button"
+                onClick={() => void handleAutoLinkMicrosoft()}
+                disabled={microsoftAutoLinking}
+                className="h-9 px-4 rounded-lg bg-[#0078d4] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+              >
+                {microsoftAutoLinking ? 'Linking…' : '⚡ Auto-link'}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="px-5 py-2 text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted bg-surface-secondary border-y border-border">
+                Microsoft Advertising accounts
+              </div>
+              <div className="divide-y divide-border">
+                {microsoftAccountsLoading ? (
+                  <div className="p-10 text-center text-text-muted animate-pulse font-semibold italic">Fetching accounts…</div>
+                ) : microsoftAccounts.length === 0 ? (
+                  <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
+                ) : microsoftAccounts.map((acc) => {
+                  const linkedClient = acc.linked_client_id
+                    ? clients.find((c) => c.id === Number(acc.linked_client_id))
+                    : null;
+                  const displayName = (acc.account_name ?? (acc as { name?: string }).name ?? acc.account_id ?? '').toString();
+                  const initials = displayName ? displayName.slice(0, 2).toUpperCase() : 'MS';
+                  return (
+                    <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#f5f9ff] transition-colors">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-start gap-4 min-w-0">
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#0078d4]">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-text-primary leading-tight truncate">
+                              {displayName || 'Microsoft Ads account'}
+                            </div>
+                            <div className="text-[10px] font-mono text-text-muted mt-1">
+                              {acc.account_id} · {acc.currency ?? '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
+                        {linkedClient ? (
+                          <>
+                            <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">
+                              Connected
+                            </div>
+                            <div className="text-xs font-semibold text-text-secondary truncate">→ {linkedClient.name}</div>
+                          </>
+                        ) : (
+                          <div className="flex-1 flex items-center gap-2">
+                            <select
+                              className="flex-1 h-9 rounded-lg border border-border bg-white text-[11px] font-semibold px-3 outline-none focus:border-teal-deep transition-colors"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) void handleManualLinkMicrosoft(Number(val), acc.account_id);
+                              }}
+                              value=""
+                            >
+                              <option value="">Map to client...</option>
+                              {unlinkedMicrosoftClients.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
                             </select>
                           </div>
                         )}

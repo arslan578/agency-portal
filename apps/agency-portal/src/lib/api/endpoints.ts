@@ -103,4 +103,13 @@ export const API_ENDPOINTS = {
     MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/tiktok/manual-link`,
     CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/tiktok-insights`,
   },
+  MICROSOFT: {
+    CONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/microsoft/connect`,
+    DISCONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/microsoft/disconnect`,
+    STATUS: (agencyId: string) => `${BASE}/agency/${agencyId}/microsoft/status`,
+    ACCOUNTS: (agencyId: string) => `${BASE}/agency/${agencyId}/microsoft/accounts`,
+    AUTO_LINK: (agencyId: string) => `${BASE}/agency/${agencyId}/microsoft/auto-link`,
+    MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/microsoft/manual-link`,
+    CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/microsoft-insights`,
+  },
 } as const;

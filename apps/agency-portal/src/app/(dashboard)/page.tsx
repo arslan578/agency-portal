@@ -69,7 +69,9 @@ export default function DashboardPage() {
   const { clients: apiClients, isLoading: clientsLoading, error: clientsError } = useClients();
   const [tab, setTab] = useState<TabFilter>('all');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const { count: unassignedCount } = useUnassignedCount();
 
   useEffect(() => {
     if (!profileMenuOpen) return;
@@ -113,9 +115,6 @@ export default function DashboardPage() {
     { key: 'top', label: 'Top Performers' },
     { key: 'manual_ai', label: 'Manual AI' },
   ];
-
-  const { count: unassignedCount } = useUnassignedCount();
-  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
 
   return (
     <>

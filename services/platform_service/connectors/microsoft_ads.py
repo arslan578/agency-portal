@@ -11,12 +11,36 @@ msads.manage scope to support both organizational and personal Microsoft account
 """
 
 import os
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..connector_base import PlatformConnector, PlatformStatus
 import logging
 
 logger = logging.getLogger(__name__)
+
+
+def _oauth_redirection_uri_for_web_app() -> str:
+    """
+    Must match the redirect_uri used in the authorize + token exchange steps exactly.
+    If this differs from the URI used to obtain the access token, Bing Ads SOAP calls
+    often fail with 'Invalid client data'.
+
+    Prefer MICROSOFT_ADS_SOAP_REDIRECT_URI when set (same URL the agency portal uses
+    in the OAuth authorize step), so it can differ from MICROSOFT_REDIRECT_URI used
+    elsewhere (e.g. commercial / ngrok).
+    """
+    soap = os.getenv("MICROSOFT_ADS_SOAP_REDIRECT_URI", "").strip()
+    if soap:
+        return soap
+    explicit = os.getenv("MICROSOFT_REDIRECT_URI", "").strip()
+    if explicit:
+        return explicit
+    base = os.getenv(
+        "FRONTEND_URL",
+        os.getenv("NEXT_PUBLIC_APP_URL", "http://localhost:3000"),
+    ).rstrip("/")
+    return f"{base}/integrations/microsoft/oauth/callback"
+
 
 try:
     from bingads.authorization import (
@@ -80,8 +104,12 @@ class MicrosoftAdsConnector(PlatformConnector):
 
         client_id = os.getenv("MICROSOFT_ADS_CLIENT_ID", os.getenv("MICROSOFT_CLIENT_ID", ""))
         client_secret = os.getenv("MICROSOFT_ADS_CLIENT_SECRET", os.getenv("MICROSOFT_CLIENT_SECRET", ""))
-        developer_token = os.getenv("MICROSOFT_ADS_DEVELOPER_TOKEN", "")
-        redirect_uri = os.getenv("MICROSOFT_REDIRECT_URI", "https://app.getkaivo.com/integrations/microsoft/oauth/callback")
+        developer_token = (os.getenv("MICROSOFT_ADS_DEVELOPER_TOKEN", "") or "").strip()
+        if not developer_token:
+            raise ValueError(
+                "MICROSOFT_ADS_DEVELOPER_TOKEN is required for Microsoft Advertising API (SOAP) calls"
+            )
+        redirect_uri = _oauth_redirection_uri_for_web_app()
 
         oauth_tokens = OAuthTokens(
             access_token=token,
@@ -89,13 +117,15 @@ class MicrosoftAdsConnector(PlatformConnector):
             refresh_token=r_token,
         )
 
+        oauth_scope = os.getenv("MICROSOFT_ADS_BINGADS_OAUTH_SCOPE", "msads.manage").strip() or "msads.manage"
+
         authentication = OAuthWebAuthCodeGrant(
             client_id=client_id,
             client_secret=client_secret,
             redirection_uri=redirect_uri,
             oauth_tokens=oauth_tokens,
             env=self.ENVIRONMENT,
-            oauth_scope="msads.manage",
+            oauth_scope=oauth_scope,
         )
 
         acct = account_id or (
@@ -105,9 +135,17 @@ class MicrosoftAdsConnector(PlatformConnector):
             self.credentials.get("customer_id") if isinstance(self.credentials, dict) else None
         )
 
+        def _int_or_none(v: Any) -> Any:
+            if v is None or v == "":
+                return None
+            try:
+                return int(v)
+            except (TypeError, ValueError):
+                return None
+
         authorization_data = AuthorizationData(
-            account_id=acct,
-            customer_id=cust,
+            account_id=_int_or_none(acct),
+            customer_id=_int_or_none(cust),
             developer_token=developer_token,
             authentication=authentication,
         )
@@ -384,7 +422,17 @@ class MicrosoftAdsConnector(PlatformConnector):
             return self._fetch_ad_accounts_stub()
 
         try:
-            auth_data = self._build_authorization_data()
+            try:
+                auth_data = self._build_authorization_data()
+            except ValueError as ve:
+                logger.warning("Microsoft Ads auth setup failed: %s", ve)
+                return {
+                    "success": False,
+                    "error": str(ve),
+                    "error_code": "AUTH_CONFIG",
+                    "ad_accounts": [],
+                }
+
             customer_service = self._get_customer_service(auth_data)
 
             user_response = customer_service.GetUser(UserId=None)
@@ -437,10 +485,13 @@ class MicrosoftAdsConnector(PlatformConnector):
             }
 
         except Exception as e:
-            logger.error(f"Microsoft Ads fetch_ad_accounts error: {e}", exc_info=True)
+            err_text = str(e)
+            if hasattr(e, "fault") and e.fault is not None:
+                err_text = str(e.fault)
+            logger.error("Microsoft Ads fetch_ad_accounts error: %s", err_text, exc_info=True)
             return {
                 "success": False,
-                "error": str(e),
+                "error": err_text,
                 "error_code": "FETCH_ERROR",
                 "ad_accounts": [],
             }
