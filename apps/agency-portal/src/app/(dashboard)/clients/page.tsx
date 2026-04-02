@@ -772,7 +772,7 @@ export default function ClientsPage() {
         }
       />
 
-      <main className="flex-1 overflow-y-auto bg-surface-secondary p-6">
+      <main className="flex-1 overflow-y-auto bg-cream p-6">
         <div className="max-w-[1400px] mx-auto space-y-4">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <div className="flex gap-[6px]">

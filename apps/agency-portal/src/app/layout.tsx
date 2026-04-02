@@ -35,7 +35,7 @@ export default function RootLayout({
         </Script>
       </head>
       <body
-        className="min-h-screen bg-background text-foreground antialiased"
+        className="min-h-screen bg-cream text-foreground antialiased"
         suppressHydrationWarning
       >
         <AgencyAuthProvider>

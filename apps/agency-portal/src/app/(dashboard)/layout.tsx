@@ -8,7 +8,7 @@ export default function DashboardLayout({
   return (
     <div className="flex h-screen bg-cream overflow-hidden" suppressHydrationWarning>
       <AgencySidebar />
-      <div className="flex-1 min-w-0 ml-[232px] flex flex-col overflow-hidden relative z-0" suppressHydrationWarning>
+      <div className="flex-1 min-w-0 ml-[232px] flex flex-col overflow-hidden relative z-0 bg-cream" suppressHydrationWarning>
         {children}
       </div>
     </div>

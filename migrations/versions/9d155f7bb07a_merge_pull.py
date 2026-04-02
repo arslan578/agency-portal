@@ -1,8 +1,8 @@
-"""merge heads
+"""merge pull
 
-Revision ID: d36bc8a417ad
-Revises: 015_add_client_avatar_color, 056tiktokagencyfields
-Create Date: 2026-04-02 19:05:55.846570
+Revision ID: 9d155f7bb07a
+Revises: 015_add_client_avatar_color, 058avacolifmissing
+Create Date: 2026-04-02 22:44:10.214191
 """
 
 from typing import Sequence, Union
@@ -11,8 +11,8 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = 'd36bc8a417ad'
-down_revision: Union[str, None] = ('015_add_client_avatar_color', '056tiktokagencyfields')
+revision: str = '9d155f7bb07a'
+down_revision: Union[str, None] = ('015_add_client_avatar_color', '058avacolifmissing')
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

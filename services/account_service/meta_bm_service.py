@@ -632,10 +632,14 @@ def _fetch_campaigns_live(act_id: str, access_token: str) -> List[Dict[str, Any]
     raw_campaigns = []
     with httpx.Client(timeout=30.0) as client:
         resp = client.get(campaigns_url, params=campaigns_params)
+        logger.info(f"Campaign fetch for {act_id} status: {resp.status_code}")
         if resp.status_code != 200:
             logger.error(f"Campaign fetch failed: {resp.text}")
             return []
-        raw_campaigns = resp.json().get("data", [])
+        data = resp.json()
+        logger.info(f"Campaign fetch raw data keys: {list(data.keys())}")
+        raw_campaigns = data.get("data", [])
+        logger.info(f"Fetched {len(raw_campaigns)} campaigns from Meta.")
 
     if not raw_campaigns:
         return []

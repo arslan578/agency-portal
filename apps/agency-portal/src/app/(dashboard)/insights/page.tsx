@@ -169,7 +169,7 @@ export default function InsightsPage() {
   }, [insights]);
 
   return (
-    <div className="relative flex flex-col h-full bg-surface-secondary overflow-hidden">
+    <div className="relative flex flex-col h-full bg-cream overflow-hidden">
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-20 blur-3xl rounded-[48px]"
