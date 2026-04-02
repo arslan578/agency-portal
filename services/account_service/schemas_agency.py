@@ -9,6 +9,7 @@ used by older tests and internal calls.
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import List, Optional
 from decimal import Decimal
+from datetime import datetime
 from packages.db.models import AgencyRole, ClientRole
 
 _DEFAULT_MARKUP = Decimal("1.0000")
@@ -56,6 +57,11 @@ class AgencyOut(AgencyBase):
     
     class Config:
         from_attributes = True
+
+class ClientManagerAccountSelector(BaseModel):
+    id: Optional[int] = None
+    platform: Optional[str] = None
+    account_id: Optional[str] = None
 
 class MemberOut(BaseModel):
     """Team member representation"""
@@ -117,6 +123,10 @@ class ClientUpdate(BaseModel):
     markup_percent: Optional[Decimal] = None
     is_active: Optional[bool] = None
     account_mode: Optional[str] = None
+    avatar_color: Optional[str] = None
+
+class ClientAccountAssignment(BaseModel):
+    accounts: List[ClientManagerAccountSelector]
 
 class ClientOut(ClientBase):
     """
@@ -124,6 +134,7 @@ class ClientOut(ClientBase):
     """
     id: int
     agency_id: int
+    avatar_color: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -224,3 +235,129 @@ class ClientHierarchyResponse(BaseModel):
     clients: List[HierarchyClient]
     totals: HierarchyMetrics
     counts: HierarchyCounts
+
+
+# --- Client Manager (Reporting replacement) ---
+
+class ClientManagerAccount(BaseModel):
+    id: int
+    platform: str
+    account_id: str
+    display_name: str
+    client_id: Optional[int] = None
+    client_name: Optional[str] = None
+    group_client_id: Optional[int] = None
+    group_client_name: Optional[str] = None
+    is_assigned: bool = False
+
+
+class ClientManagerClientSummary(BaseModel):
+    id: int
+    name: str
+    industry: Optional[str] = None
+    account_count: int = 0
+    platforms: List[str] = Field(default_factory=list)
+    spend_mtd: float = 0.0
+    avatar_color: Optional[str] = None
+
+
+class ClientPortalSettingsOut(BaseModel):
+    portal_enabled: bool = True
+    contact_email: Optional[str] = None
+    owner_user_id: Optional[int] = None
+    portal_link_token: Optional[str] = None
+    portal_link_expires_at: Optional[datetime] = None
+    use_per_platform_markup: bool = False
+    global_markup_percent: Optional[Decimal] = None
+    meta_markup_percent: Optional[Decimal] = None
+    tiktok_markup_percent: Optional[Decimal] = None
+    google_markup_percent: Optional[Decimal] = None
+    show_kaivo_branding: Optional[bool] = None
+    show_performance_score: Optional[bool] = None
+    show_leaderboard: Optional[bool] = None
+    show_trend_comparisons: Optional[bool] = None
+
+
+class ClientPortalSettingsUpdate(BaseModel):
+    portal_enabled: Optional[bool] = None
+    contact_email: Optional[str] = None
+    owner_user_id: Optional[int] = None
+    use_per_platform_markup: Optional[bool] = None
+    global_markup_percent: Optional[Decimal] = None
+    meta_markup_percent: Optional[Decimal] = None
+    tiktok_markup_percent: Optional[Decimal] = None
+    google_markup_percent: Optional[Decimal] = None
+    show_kaivo_branding: Optional[bool] = None
+    show_performance_score: Optional[bool] = None
+    show_leaderboard: Optional[bool] = None
+    show_trend_comparisons: Optional[bool] = None
+
+
+class ClientManagerClientDetail(BaseModel):
+    client: ClientManagerClientSummary
+    accounts: List[ClientManagerAccount] = Field(default_factory=list)
+    portal_settings: Optional[ClientPortalSettingsOut] = None
+
+
+class ClientManagerSummary(BaseModel):
+    unassigned_accounts: List[ClientManagerAccount] = Field(default_factory=list)
+    clients: List[ClientManagerClientDetail] = Field(default_factory=list)
+
+
+
+class ClientManagerAssignRequest(BaseModel):
+    client_id: int
+    accounts: List[ClientManagerAccountSelector]
+
+
+class ClientManagerDetachRequest(BaseModel):
+    platform_account_id: int
+
+
+# --- AI Insights ---
+
+class InsightImpactMetric(BaseModel):
+    label: str
+    value: str
+    color: str # 'green', 'amber', 'red', 'teal', 'default'
+
+class AIInsightOut(BaseModel):
+    insight_id: str
+    client_id: int
+    client_name: str
+    client_short_name: str
+    platform: str
+    platform_label: str
+    severity: str # 'critical', 'warning', 'opportunity', 'anomaly'
+    categories: List[str]
+    title: str
+    description: str
+    impact_metrics: List[InsightImpactMetric]
+    apply_label: Optional[str] = None
+    review_label: Optional[str] = None
+    review_url: Optional[str] = None
+    icon: str
+    accent_color: str
+    icon_bg: str
+    status: str
+    created_at: datetime
+    priority_score: float
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AIInsightSummary(BaseModel):
+    total_pending: int
+    critical_count: int
+    opportunity_count: int
+    recoverable_spend_cents: int
+    clients_affected_count: int
+
+class AIInsightApplyRecommendedResponse(BaseModel):
+    applied_count: int
+    failed_count: int
+    insight_ids: List[str]
+
+class AIInsightActionResponse(BaseModel):
+    success: bool
+    action_taken: Optional[str] = None
+    updated_at: Optional[datetime] = None

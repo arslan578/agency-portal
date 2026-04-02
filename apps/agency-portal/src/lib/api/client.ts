@@ -39,19 +39,50 @@ async function request<T>(
     const data = contentType?.includes('application/json') ? await res.json() : await res.text();
 
     if (!res.ok) {
+      let message = res.statusText;
+      if (typeof data === 'object' && data?.detail) {
+        if (Array.isArray(data.detail)) {
+          // Format 422 Unprocessable Content errors (FastAPI validation)
+          message = data.detail.map((d: any) => `${d.loc.join('.')}: ${d.msg}`).join('; ');
+        } else {
+          message = data.detail;
+        }
+      }
       const err: ApiError = {
         status: res.status,
-        message: typeof data === 'object' && data?.detail ? data.detail : res.statusText,
+        message: String(message),
         details: data,
       };
       throw err;
     }
 
     return data as T;
-  } catch (err) {
+  } catch (err: any) {
     clearTimeout(timeout);
-    if ((err as ApiError).status) throw err;
-    throw { status: 0, message: err instanceof Error ? err.message : 'Network error' } as ApiError;
+    // Normalize already-constructed ApiError
+    if (err.status != null) {
+      // It's already an ApiError
+      Object.defineProperty(err, 'name', { value: 'ApiError' });
+      Object.defineProperty(err, 'stack', { value: new Error().stack });
+      throw err;
+    }
+    // Gracefully handle aborted/timeout fetches so they don't surface as noisy console errors
+    const msg = String(err?.message ?? '');
+    const name = String(err?.name ?? '');
+    if (name === 'AbortError' || msg.toLowerCase().includes('aborted')) {
+      const e: ApiError = {
+        status: 0,
+        message: 'Request aborted',
+        details: err,
+      };
+      Object.defineProperty(e, 'name', { value: 'ApiError' });
+      throw e;
+    }
+
+    const e = new Error(msg || 'Network error') as Error & ApiError;
+    e.status = 0;
+    e.message = msg || 'Network error';
+    throw e;
   }
 }
 

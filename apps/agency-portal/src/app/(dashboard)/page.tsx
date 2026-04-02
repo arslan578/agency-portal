@@ -5,9 +5,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { useDashboard, useClients } from '@/hooks/useAgencyApi';
+import { useDashboard, useClients, useUnassignedCount, useInsights, useInsightsSummary, useApiAuth } from '@/hooks/useAgencyApi';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import type { Client } from '@/lib/api/contracts';
+import { MOCK_CLIENTS } from '@/lib/mock/dashboard';
+import { apiClient } from '@/lib/api/client';
+import { API_ENDPOINTS } from '@/lib/api/endpoints';
 
 type TabFilter = 'all' | 'active' | 'inactive';
 
@@ -46,6 +48,10 @@ export default function DashboardPage() {
   const { status } = useRequireAuth();
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboard();
   const { clients: apiClients, isLoading: clientsLoading, error: clientsError } = useClients();
+  const { insights, refresh: refreshInsights } = useInsights('pending');
+  const { summary, refresh: refreshSummary } = useInsightsSummary();
+  const { accessToken, agencyId } = useApiAuth();
+  
   const [tab, setTab] = useState<TabFilter>('all');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
@@ -59,6 +65,9 @@ export default function DashboardPage() {
     document.addEventListener('mousedown', onPointerDown);
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [profileMenuOpen]);
+
+  const { count: unassignedCount } = useUnassignedCount();
+  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
 
   if (status === 'loading') return <DashboardSkeleton />;
   if (status !== 'authenticated') return null;
@@ -137,6 +146,37 @@ export default function DashboardPage() {
       />
       <main className="flex-1 overflow-y-auto p-6">
         <div className="relative max-w-[1400px] mx-auto space-y-6">
+          {showUnassignedBar && unassignedCount > 0 && (
+            <div className="bg-v-teal text-white px-4 py-3 rounded-xl flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-4">
+              <div className="flex items-center gap-3">
+                <span className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center">
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <circle cx="8" cy="8" r="7" />
+                    <path d="M8 4v4l2.5 1.5" />
+                  </svg>
+                </span>
+                <span className="text-[13px] font-semibold">
+                  You have {unassignedCount} unassigned ad account(s)
+                </span>
+              </div>
+              <div className="flex items-center gap-4">
+                <Link
+                  href="/client-manager"
+                  className="bg-white text-v-teal px-4 py-1.5 rounded-lg text-[12px] font-bold hover:bg-white/90 transition-colors"
+                >
+                  Manage
+                </Link>
+                <button
+                  onClick={() => setShowUnassignedBar(false)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
+                    <path d="M12 4l-8 8M4 4l8 8" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
           <div
             aria-hidden
             className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-25 blur-3xl rounded-[48px] -z-10"
@@ -166,9 +206,9 @@ export default function DashboardPage() {
               <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/[0.06]" />
               <div className="absolute -right-2 -bottom-6 w-20 h-20 rounded-full bg-white/[0.04]" />
             </div>
-            <KpiCard label="Total Campaigns" value={String(campaignsCount)} subtitle={`${activeCampaignsCount} active`} />
-            <KpiCard label="Active Campaigns" value={String(activeCampaignsCount)} subtitle={campaignsCount > 0 ? `of ${campaignsCount} total` : 'No campaigns'} />
-            <KpiCard label="Agency Plan" value={agencyPlan.charAt(0).toUpperCase() + agencyPlan.slice(1)} subtitle={`Credits: ${dashboardData?.agency?.credits ?? 0}`} />
+            <KpiCard label="Total Managed Spend" value={`$${(totalSpend / 1000).toFixed(1)}k`} delta="+12.4%" positive />
+            <KpiCard label="AI Actions Pending" value={String(summary?.total_pending ?? 0)} delta={`${summary?.critical_count ?? 0} critical`} positive={false} />
+            <KpiCard label="Clients Affected" value={String(summary?.clients_affected_count ?? 0)} delta={clients.length > 0 ? `of ${clients.length} total` : 'No clients'} positive={false} />
           </div>
 
           {/* Two-column: Table + Info */}
@@ -242,49 +282,73 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Agency Info Panel */}
             <div className="glass-panel rounded-xl border border-border flex flex-col overflow-hidden shadow-sm">
               <div className="px-5 pt-4 pb-3 border-b border-border-subtle flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
                     aria-hidden
-                    className="inline-flex w-2.5 h-2.5 rounded-full bg-teal-deep shadow-[0_0_24px_rgba(0,123,95,0.35)]"
+                    className="inline-flex w-2.5 h-2.5 rounded-full bg-v-teal shadow-[0_0_24px_rgba(0,123,95,0.35)]"
                   />
-                  <h3 className="text-[13px] font-bold text-text-primary">Agency Overview</h3>
+                  <h3 className="text-[13px] font-bold text-v-text-primary">AI Insights</h3>
                 </div>
+                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md shadow-sm">{insights.length}</span>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {dashboardData ? (
-                  <>
-                    <div className="glass-card border border-border rounded-xl p-4 space-y-2">
-                      <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Agency</div>
-                      <div className="text-[14px] font-bold text-text-primary">{dashboardData.agency.name}</div>
-                      <div className="flex items-center gap-2 flex-wrap mt-1">
-                        <span className="px-2 py-[2px] rounded-md text-[10.5px] font-semibold bg-teal-light text-teal-deep capitalize">{dashboardData.agency.current_plan} Plan</span>
-                        <span className="px-2 py-[2px] rounded-md text-[10.5px] font-semibold bg-green-light text-green capitalize">{dashboardData.agency.billing_status}</span>
-                      </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+                {insights.length === 0 && (
+                  <div className="py-10 text-center text-[12px] text-v-text-muted font-medium">
+                    All caught up! No pending insights.
+                  </div>
+                )}
+                {insights.slice(0, 8).map((insight) => (
+                  <div
+                    key={insight.insight_id}
+                    className="glass-card bg-white border border-border rounded-xl p-4 space-y-2 transition-all hover:border-v-teal/40 hover:-translate-y-0.5 hover:shadow-md"
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[11px] font-bold text-v-text-primary">{insight.client_short_name}</span>
+                      <PlatformTag name={insight.platform_label} className={insight.platform} />
+                      <SeverityBadge severity={insight.severity} />
                     </div>
-
-                    <div className="glass-card border border-border rounded-xl p-4 space-y-3">
-                      <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Summary</div>
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-text-secondary">Total Clients</span>
-                          <span className="text-[12px] font-semibold text-text-primary font-mono">{dashboardData.clients_count}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-text-secondary">Total Campaigns</span>
-                          <span className="text-[12px] font-semibold text-text-primary font-mono">{dashboardData.campaigns_count}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-text-secondary">Active Campaigns</span>
-                          <span className="text-[12px] font-semibold text-text-primary font-mono">{dashboardData.active_campaigns_count}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-[12px] text-text-secondary">Credits</span>
-                          <span className="text-[12px] font-semibold text-text-primary font-mono">{dashboardData.agency.credits}</span>
-                        </div>
-                      </div>
+                    <p className="text-[12px] text-v-text-secondary leading-relaxed font-medium">{insight.title}</p>
+                    <div className="bg-v-teal/5 rounded-lg px-3 py-[6px] text-[11px] font-bold text-v-teal">
+                      Impact: {insight.impact_metrics[0]?.value || 'Optimization'}
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <button 
+                        onClick={async () => {
+                          await apiClient.post(API_ENDPOINTS.INSIGHTS.APPLY(insight.insight_id), { accessToken, agencyId });
+                          refreshInsights();
+                          refreshSummary();
+                        }}
+                        className="bg-v-teal text-white text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-v-teal-dark transition-colors shadow-sm"
+                      >
+                        Apply
+                      </button>
+                      {insight.review_url ? (
+                        <Link 
+                          href={insight.review_url}
+                          className="bg-cream border border-cream-border text-v-text-primary text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-white transition-colors"
+                        >
+                          Review
+                        </Link>
+                      ) : (
+                         <Link 
+                          href={`/clients/${insight.client_id}`}
+                          className="bg-cream border border-cream-border text-v-text-primary text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-white transition-colors"
+                        >
+                          Review
+                        </Link>
+                      )}
+                      <button 
+                        onClick={async () => {
+                          await apiClient.post(API_ENDPOINTS.INSIGHTS.DISMISS(insight.insight_id), { accessToken, agencyId });
+                          refreshInsights();
+                          refreshSummary();
+                        }}
+                        className="text-text-muted text-[10.5px] font-bold px-2 py-[4px] hover:text-red transition-colors ml-auto"
+                      >
+                        Dismiss
+                      </button>
                     </div>
 
                     {/* Client breakdown by industry */}
@@ -312,6 +376,11 @@ export default function DashboardPage() {
                   <div className="flex items-center justify-center h-32 text-[12px] text-text-muted">
                     No agency data available
                   </div>
+                ))}
+                {insights.length > 8 && (
+                  <Link href="/insights" className="block text-center text-[11px] font-bold text-v-teal py-2 hover:underline">
+                    View {insights.length - 8} more insights →
+                  </Link>
                 )}
               </div>
             </div>

@@ -24,6 +24,7 @@ export const ClientSchema = z.object({
   is_active: z.boolean().default(true),
   account_mode: z.string().optional(),
   markup_percent: z.union([z.string(), z.number()]).optional(),
+  avatar_color: z.string().nullable().optional(),
 });
 
 export const TeamMemberSchema = z.object({
@@ -346,5 +347,56 @@ export interface SpotifyAgencyStatus {
   token_valid: boolean;
   token_expires_at: string | null;
   token_warning: boolean;
+}
+
+// ── AI Insights ──────────────────────────────────────────────────────────────
+
+export interface InsightImpactMetric {
+  label: string;
+  value: string;
+  color: 'green' | 'amber' | 'red' | 'teal' | 'default';
+}
+
+export interface AIInsight {
+  insight_id: string;
+  client_id: number;
+  client_name: string;
+  client_short_name: string;
+  platform: string;
+  platform_label: string;
+  severity: 'critical' | 'warning' | 'opportunity' | 'anomaly';
+  categories: string[];
+  title: string;
+  description: string;
+  impact_metrics: InsightImpactMetric[];
+  apply_label?: string;
+  review_label?: string;
+  review_url?: string;
+  icon: string;
+  accent_color: 'red' | 'amber' | 'teal' | 'purple';
+  icon_bg: string;
+  status: 'pending' | 'applied' | 'dismissed';
+  created_at: string;
+  priority_score: number;
+}
+
+export interface AIInsightSummary {
+  total_pending: number;
+  critical_count: number;
+  opportunity_count: number;
+  recoverable_spend_cents: number;
+  clients_affected_count: number;
+}
+
+export interface AIInsightActionResponse {
+  success: boolean;
+  action_taken?: string;
+  updated_at?: string;
+}
+
+export interface AIInsightApplyRecommendedResponse {
+  applied_count: number;
+  failed_count: number;
+  insight_ids: string[];
 }
 

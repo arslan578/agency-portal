@@ -2,17 +2,16 @@
 
 export const runtime = 'edge';
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
 import { ApiErrorBanner } from '@/components/ui/ApiErrorBanner';
-import { useClients, useCampaigns, useClientHierarchy, useApiAuth } from '@/hooks/useAgencyApi';
+import { useClients, useCampaigns, useClientHierarchy, useApiAuth, useInsights, useInsightsSummary } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import type { Campaign, HierarchyClientRow, MetaInsights } from '@/lib/api/contracts';
-import { ClientMetaSection } from '@/components/agency/ClientMetaSection';
 import { ClientRedditSection } from '@/components/agency/ClientRedditSection';
 
 function platformKey(platform: string): string {
@@ -90,6 +89,10 @@ interface DisplayCampaign {
   roas: number;
   cpa: number;
   isReal: boolean;
+  ctr?: number;
+  impressions?: number;
+  clicks?: number;
+  conversions?: number;
 }
 
 interface DisplayPlatformNode {
@@ -112,6 +115,33 @@ interface DisplayPlatformNode {
 function avatarColorFromId(id: number): string {
   const h = (id * 47) % 360;
   return `hsl(${h} 55% 42%)`;
+}
+
+function mapMetaCampaignsToDisplay(meta: MetaInsights): DisplayCampaign[] {
+  if (!meta.campaigns || meta.campaigns.length === 0) return [];
+  return meta.campaigns.map((camp, idx) => {
+    const clicks = Number(camp.clicks || 0);
+    const impressions = Number(camp.impressions || 0);
+    const spend = Number(camp.spend || 0);
+    const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+    const cpc = clicks > 0 ? spend / clicks : 0;
+    const budget = Number(camp.budget || 0);
+    const pacing = budget > 0 ? Math.min(200, (spend / budget) * 100) : 0;
+    const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
+
+    return {
+      id: idx + 1,
+      name: camp.name || `Campaign #${idx + 1}`,
+      platform: 'Meta',
+      status: (camp.status || 'draft').toLowerCase(),
+      budget,
+      spend,
+      pacing: Math.round(pacing),
+      roas: 0,
+      cpa: camp.cost_per_conversion ?? 0,
+      isReal: true,
+    };
+  });
 }
 
 function mapCampaignToDisplay(c: Campaign): DisplayCampaign {
@@ -173,8 +203,14 @@ export default function ClientDetailPage() {
 
   const { clients, isLoading: clientsLoading } = useClients();
   const { campaigns: apiCampaigns, error: campaignError, isLoading: campaignsLoading, refresh: refreshCampaigns } = useCampaigns(Number.isNaN(clientId) ? undefined : clientId);
-  const { hierarchy, error: hierarchyError, isLoading: hierarchyLoading, refresh: refreshHierarchy } = useClientHierarchy('7d', Number.isNaN(clientId) ? undefined : clientId);
+  const [period, setPeriod] = useState<'today' | '7d' | 'mtd' | '30d'>('7d');
+  const { hierarchy, error: hierarchyError, isLoading: hierarchyLoading, refresh: refreshHierarchy } = useClientHierarchy(period, Number.isNaN(clientId) ? undefined : clientId);
   const { accessToken, agencyId } = useApiAuth();
+  const { insights, refresh: refreshInsights } = useInsights('pending', Number.isNaN(clientId) ? undefined : clientId);
+  const { summary, refresh: refreshSummary } = useInsightsSummary();
+  const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
+  const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
+  const metaInsightsFetched = useRef(false);
 
   const hc = hierarchy?.clients?.[0];
 
@@ -200,30 +236,31 @@ export default function ClientDetailPage() {
     };
   }, [fromList, hc]);
 
-  const campaigns: DisplayCampaign[] = useMemo(() => {
-    // Prefer the dedicated campaigns endpoint as the primary source of truth.
-    if (apiCampaigns.length > 0) return apiCampaigns.map(mapCampaignToDisplay);
-    // Fall back to hierarchy usage data when the campaigns list is empty.
-    if (hc) return flattenHierarchyCampaigns(hc);
-    return [];
-  }, [apiCampaigns, hc]);
-
-  const insights = useMemo(
-    () => [] as { id: number; client: string; platform: string; severity: string; text: string; impact: string }[],
-    [],
+  const hasHierarchyCampaigns = useMemo(
+    () => !!hc && hc.platforms.some((p) => p.campaigns.length > 0),
+    [hc],
   );
+
+  const campaigns: DisplayCampaign[] = useMemo(() => {
+    // 1. Prefer hierarchy (rich performance usage from usage_records)
+    if (hasHierarchyCampaigns && hc) {
+      return flattenHierarchyCampaigns(hc);
+    }
+    // 2. Fall back to Meta insights if we have them (direct platform fetch)
+    if (metaInsights && metaInsights.campaigns && metaInsights.campaigns.length > 0) {
+      return mapMetaCampaignsToDisplay(metaInsights);
+    }
+    // 3. Finally, fall back to the dedicated campaigns list (static data if no metrics yet)
+    if (apiCampaigns.length > 0) return apiCampaigns.map(mapCampaignToDisplay);
+
+    return [];
+  }, [apiCampaigns, hc, hasHierarchyCampaigns, metaInsights]);
+
+
 
   const [viewMode, setViewMode] = useState<'agency' | 'client'>('agency');
-  const [dismissedInsightIds, setDismissedInsightIds] = useState<Set<number>>(() => new Set());
   const [pausingId, setPausingId] = useState<number | null>(null);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(() => new Set());
-  const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
-  const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
-
-  const visibleInsights = useMemo(
-    () => insights.filter((i) => !dismissedInsightIds.has(i.id)),
-    [insights, dismissedInsightIds],
-  );
 
   const platforms = useMemo(() => {
     if (hc?.platforms?.length) {
@@ -236,27 +273,39 @@ export default function ClientDetailPage() {
 
   const loadMetaInsightsFallback = useCallback(async () => {
     if (!accessToken || !agencyId || Number.isNaN(clientId)) return;
-    if (metaInsightsLoading) return;
+    if (metaInsightsFetched.current) return;
+    metaInsightsFetched.current = true;
     setMetaInsightsLoading(true);
     try {
       const data = await apiClient.get<MetaInsights>(
         API_ENDPOINTS.META.CLIENT_INSIGHTS(String(clientId)),
         { accessToken, agencyId },
       );
-      setMetaInsights(data);
+      if (data?.campaigns?.length) {
+        setMetaInsights(data);
+      }
     } catch {
-      setMetaInsights(null);
+      // Don't retry on failure
     } finally {
       setMetaInsightsLoading(false);
     }
-  }, [accessToken, agencyId, clientId, metaInsightsLoading]);
+  }, [accessToken, agencyId, clientId]);
 
   useEffect(() => {
-    if ((hc?.platforms?.length ?? 0) > 0) return;
-    if (campaigns.length > 0) return;
-    if (metaInsightsLoading || metaInsights) return;
+    if (hasHierarchyCampaigns) return;
+    if (apiCampaigns.length > 0) return;
+    if (metaInsights) return;
     void loadMetaInsightsFallback();
-  }, [hc, campaigns.length, metaInsightsLoading, metaInsights, loadMetaInsightsFallback]);
+  }, [apiCampaigns.length, hasHierarchyCampaigns, metaInsights, loadMetaInsightsFallback]);
+
+  // Also try to load meta insights even when we have hierarchy/api campaigns,
+  // so we can enrich the platform hierarchy with live Meta data
+  useEffect(() => {
+    if (metaInsights) return;
+    if (!accessToken || !agencyId || Number.isNaN(clientId)) return;
+    if (metaInsightsFetched.current) return;
+    void loadMetaInsightsFallback();
+  }, [accessToken, agencyId, clientId, metaInsights, loadMetaInsightsFallback]);
 
   const avgRoas = useMemo(() => {
     if (campaigns.length === 0) return 0;
@@ -273,97 +322,168 @@ export default function ClientDetailPage() {
     return client?.spend ?? 0;
   }, [campaigns, client]);
 
+  // Build meta campaigns from insights for hierarchy integration
+  const metaDisplayCampaigns = useMemo<DisplayCampaign[]>(() => {
+    if (!metaInsights?.campaigns?.length) return [];
+    return metaInsights.campaigns.map((camp, idx) => {
+      const clicks = Number(camp.clicks || 0);
+      const impressions = Number(camp.impressions || 0);
+      const spend = Number(camp.spend || 0);
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const cpc = clicks > 0 ? spend / clicks : 0;
+      const budget = Number(camp.budget || 0);
+      const pacing = budget > 0 ? Math.min(200, Math.round((spend / budget) * 100)) : 0;
+      return {
+        id: idx + 1,
+        name: camp.name || `Campaign #${idx + 1}`,
+        platform: 'Meta',
+        status: (camp.status || 'draft').toLowerCase(),
+        budget,
+        spend,
+        pacing,
+        roas: 0,
+        cpa: camp.cost_per_conversion ?? 0,
+        isReal: true,
+        ctr,
+        impressions,
+        clicks,
+        conversions: Number(camp.conversions || 0),
+      };
+    });
+  }, [metaInsights]);
+
   const platformNodes = useMemo<DisplayPlatformNode[]>(() => {
-    if (hc?.platforms?.length) {
-      return hc.platforms.map((p) => {
-        const pCampaigns: DisplayCampaign[] = p.campaigns.map((camp) => ({
-          id: camp.id,
-          name: camp.name,
-          platform: p.display_name,
-          status: (camp.status || 'draft').toLowerCase(),
-          budget: camp.metrics.budget,
-          spend: camp.metrics.spend,
-          pacing: Math.round(camp.metrics.pacing),
-          roas: 0,
-          cpa: camp.metrics.cost_per_conversion,
-          isReal: true,
-        }));
+    // 1. If we have hierarchy with actual campaigns, use it as primary structure.
+    const hasHcCampaigns = (hc?.platforms?.some((p) => p.campaigns.length > 0));
+    if (hasHcCampaigns) {
+      const nodes = hc!.platforms.map((p) => {
+        // For meta platform, prefer live meta insights if available and hierarchy campaigns are empty or less detailed
+        let pCampaigns: DisplayCampaign[];
+        if (p.key === 'meta' && metaDisplayCampaigns.length > 0) {
+          pCampaigns = metaDisplayCampaigns;
+        } else {
+          pCampaigns = p.campaigns.map((camp) => ({
+            id: camp.id,
+            name: camp.name,
+            platform: p.display_name,
+            status: (camp.status || 'active').toLowerCase(),
+            budget: camp.metrics.budget,
+            spend: camp.metrics.spend,
+            pacing: Math.round(camp.metrics.pacing),
+            roas: 0,
+            cpa: camp.metrics.cost_per_conversion,
+            isReal: true,
+            ctr: camp.metrics.ctr,
+            impressions: camp.metrics.impressions,
+            clicks: camp.metrics.clicks,
+            conversions: camp.metrics.conversions,
+          }));
+        }
+
+        // Recompute platform metrics from campaigns
+        const pSpend = pCampaigns.reduce((s, c) => s + c.spend, 0);
+        const pBudget = pCampaigns.reduce((s, c) => s + c.budget, 0);
+        const pImpr = pCampaigns.reduce((s, c) => s + (c.impressions || 0), 0);
+        const pClicks = pCampaigns.reduce((s, c) => s + (c.clicks || 0), 0);
+        const pConv = pCampaigns.reduce((s, c) => s + (c.conversions || 0), 0);
+        const useCampaignMetrics = pCampaigns.length > 0 && (pSpend > 0 || pBudget > 0);
+
         return {
           key: p.key,
           name: p.display_name,
-          score: p.metrics.score,
-          impressions: p.metrics.impressions,
-          clicks: p.metrics.clicks,
-          spend: p.metrics.spend,
-          budget: p.metrics.budget,
-          pacing: Math.round(p.metrics.pacing),
-          cpc: p.metrics.cpc,
-          ctr: p.metrics.ctr,
-          conversions: p.metrics.conversions,
+          score: useCampaignMetrics ? Math.min(100, Math.max(0, 75 + (pImpr > 0 ? (pClicks / pImpr) * 100 : 0) * 10 - (pClicks > 0 ? pSpend / pClicks : 0) / 2)) : p.metrics.score,
+          impressions: useCampaignMetrics ? pImpr : p.metrics.impressions,
+          clicks: useCampaignMetrics ? pClicks : p.metrics.clicks,
+          spend: useCampaignMetrics ? pSpend : p.metrics.spend,
+          budget: useCampaignMetrics ? pBudget : p.metrics.budget,
+          pacing: useCampaignMetrics ? (pBudget > 0 ? Math.round(Math.min(200, (pSpend / pBudget) * 100)) : 0) : Math.round(p.metrics.pacing),
+          cpc: useCampaignMetrics ? (pClicks > 0 ? pSpend / pClicks : 0) : p.metrics.cpc,
+          ctr: useCampaignMetrics ? (pImpr > 0 ? (pClicks / pImpr) * 100 : 0) : p.metrics.ctr,
+          conversions: useCampaignMetrics ? pConv : p.metrics.conversions,
           status: 'live',
           aiMode: 'manual',
           campaigns: pCampaigns,
         };
       });
+
+      // If we have meta insights but no meta platform in hierarchy, add it
+      if (metaDisplayCampaigns.length > 0 && !nodes.some((n) => n.key === 'meta')) {
+        const spend = metaDisplayCampaigns.reduce((s, c) => s + c.spend, 0);
+        const budget = metaDisplayCampaigns.reduce((s, c) => s + c.budget, 0);
+        const impressions = metaDisplayCampaigns.reduce((s, c) => s + (c.impressions || 0), 0);
+        const clicks = metaDisplayCampaigns.reduce((s, c) => s + (c.clicks || 0), 0);
+        const conversions = metaDisplayCampaigns.reduce((s, c) => s + (c.conversions || 0), 0);
+        const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+        const cpc = clicks > 0 ? spend / clicks : 0;
+        nodes.unshift({
+          key: 'meta',
+          name: 'Meta',
+          score: Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2)),
+          impressions,
+          clicks,
+          spend,
+          budget,
+          pacing: budget > 0 ? Math.round(Math.min(200, (spend / budget) * 100)) : 0,
+          cpc,
+          ctr,
+          conversions,
+          status: 'live',
+          aiMode: 'manual',
+          campaigns: metaDisplayCampaigns,
+        });
+      }
+
+      return nodes;
     }
 
+    // 2. If we have meta insights, build from those
+    if (metaDisplayCampaigns.length > 0) {
+      const spend = metaDisplayCampaigns.reduce((s, c) => s + c.spend, 0);
+      const budget = metaDisplayCampaigns.reduce((s, c) => s + c.budget, 0);
+      const impressions = metaDisplayCampaigns.reduce((s, c) => s + (c.impressions || 0), 0);
+      const clicks = metaDisplayCampaigns.reduce((s, c) => s + (c.clicks || 0), 0);
+      const conversions = metaDisplayCampaigns.reduce((s, c) => s + (c.conversions || 0), 0);
+      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
+      const cpc = clicks > 0 ? spend / clicks : 0;
+      return [{
+        key: 'meta',
+        name: 'Meta',
+        score: Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2)),
+        impressions,
+        clicks,
+        spend,
+        budget,
+        pacing: budget > 0 ? Math.round(Math.min(200, (spend / budget) * 100)) : 0,
+        cpc,
+        ctr,
+        conversions,
+        status: 'live',
+        aiMode: 'manual',
+        campaigns: metaDisplayCampaigns,
+      }];
+    }
+
+    // 3. Otherwise, build from the unified campaigns list (includes api list etc)
     const byPlatform = new Map<string, DisplayCampaign[]>();
     for (const camp of campaigns) {
-      const arr = byPlatform.get(camp.platform) ?? [];
+      const pName = camp.platform || 'Other';
+      const arr = byPlatform.get(pName) ?? [];
       arr.push(camp);
-      byPlatform.set(camp.platform, arr);
+      byPlatform.set(pName, arr);
     }
-    const fromCampaignApi = Array.from(byPlatform.entries()).map(([name, rows], idx) => {
+    const nodes = Array.from(byPlatform.entries()).map(([name, rows], idx) => {
       const spend = rows.reduce((s, c) => s + c.spend, 0);
       const budget = rows.reduce((s, c) => s + c.budget, 0);
       const pacing = budget > 0 ? Math.round((spend / budget) * 100) : 0;
       const cpc = rows.reduce((s, c) => s + c.cpa, 0) / Math.max(1, rows.length);
-      const ctr = 0;
+      const ctr = rows.reduce((s, c) => s + (c.ctr || 0), 0) / Math.max(1, rows.length);
+      const impressions = rows.reduce((s, c) => s + (c.impressions || 0), 0);
+      const clicks = rows.reduce((s, c) => s + (c.clicks || 0), 0);
+      const conversions = rows.reduce((s, c) => s + (c.conversions || 0), 0);
       const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
       return {
         key: `${name.toLowerCase()}-${idx}`,
         name,
-        score,
-        impressions: 0,
-        clicks: 0,
-        spend,
-        budget,
-        pacing,
-        cpc,
-        ctr,
-        conversions: 0,
-        status: 'live',
-        aiMode: 'manual',
-        campaigns: rows,
-      };
-    });
-    if (fromCampaignApi.length > 0) return fromCampaignApi;
-
-    if (metaInsights?.campaigns?.length) {
-      const mCampaigns: DisplayCampaign[] = metaInsights.campaigns.map((camp, idx) => ({
-        id: Number(String(camp.campaign_id).replace(/[^\d]/g, '')) || idx + 1,
-        name: camp.name || `Campaign #${idx + 1}`,
-        platform: 'Meta',
-        status: (camp.status || 'draft').toLowerCase(),
-        budget: Number(camp.budget || 0),
-        spend: Number(camp.spend || 0),
-        pacing: camp.budget ? Math.round((Number(camp.spend || 0) / Number(camp.budget)) * 100) : 0,
-        roas: 0,
-        cpa: Number(camp.cost_per_conversion || 0),
-        isReal: true,
-      }));
-      const spend = mCampaigns.reduce((s, c) => s + c.spend, 0);
-      const budget = mCampaigns.reduce((s, c) => s + c.budget, 0);
-      const impressions = metaInsights.campaigns.reduce((s, c) => s + Number(c.impressions || 0), 0);
-      const clicks = metaInsights.campaigns.reduce((s, c) => s + Number(c.clicks || 0), 0);
-      const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
-      const cpc = clicks > 0 ? spend / clicks : 0;
-      const pacing = budget > 0 ? Math.round((spend / budget) * 100) : 0;
-      const conversions = metaInsights.campaigns.reduce((s, c) => s + Number(c.conversions || 0), 0);
-      const score = Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2));
-      return [{
-        key: 'meta',
-        name: 'Meta',
         score,
         impressions,
         clicks,
@@ -375,12 +495,13 @@ export default function ClientDetailPage() {
         conversions,
         status: 'live',
         aiMode: 'manual',
-        campaigns: mCampaigns,
-      }];
-    }
+        campaigns: rows,
+      };
+    });
 
+    if (nodes.length > 0) return nodes;
     return [];
-  }, [hc, campaigns, metaInsights]);
+  }, [hc, campaigns, metaDisplayCampaigns]);
 
   const activityEntries = useMemo(() => {
     if (!client) return [];
@@ -525,8 +646,7 @@ export default function ClientDetailPage() {
           </div>
         </section>
 
-        {/* ── META ADS SECTION ── */}
-        <ClientMetaSection key={`meta-${clientId}`} clientId={clientId} />
+        {/* ── REDDIT ADS SECTION ── */}
         <ClientRedditSection key={`reddit-${clientId}`} clientId={clientId} />
 
         {/* KPI row */}
@@ -566,6 +686,24 @@ export default function ClientDetailPage() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <div className="flex bg-cream p-0.5 rounded-lg border-2 border-cream-border mr-2">
+                {[
+                  { key: 'today', label: 'Today' },
+                  { key: '7d', label: '7D' },
+                  { key: 'mtd', label: 'MTD' },
+                  { key: '30d', label: '30D' },
+                ].map((p) => (
+                  <button
+                    key={p.key}
+                    onClick={() => setPeriod(p.key as any)}
+                    className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${
+                      period === p.key ? 'bg-v-teal text-white shadow-sm' : 'text-v-text-muted hover:text-v-text-primary'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 onClick={() => {
@@ -639,24 +777,28 @@ export default function ClientDetailPage() {
                           {pOpen &&
                             p.campaigns.map((row) => {
                               const isActive = row.status === 'active' || row.status === 'running';
+                              const rowCtr = row.ctr ?? ((row.impressions ?? 0) > 0 ? ((row.clicks ?? 0) / (row.impressions ?? 1)) * 100 : 0);
+                              const rowCpc = row.cpa > 0 ? row.cpa : ((row.clicks ?? 0) > 0 ? row.spend / (row.clicks ?? 1) : 0);
+                              const rowScore = Math.min(100, Math.max(0, 75 + rowCtr * 10 - rowCpc / 2));
+                              const scoreColor = rowScore >= 80 ? 'bg-green-light text-green' : rowScore >= 60 ? 'bg-amber-light text-amber' : 'bg-red-light text-red';
                               return (
                                 <tr key={`${pKey}-${row.id}`} className="border-b border-cream-border/70 bg-cream/30 hover:bg-cream/50 transition-colors">
                                   <td className="px-2 py-2" />
                                   <td className="px-4 py-2 pl-8">
                                     <div className="font-bold text-v-text-primary">{row.name}</div>
                                   </td>
-                                  <td className="px-4 py-2"><span className="inline-flex px-2 py-0.5 rounded-md text-[10px] font-black bg-red-light text-red">—</span></td>
-                                  <td className="px-4 py-2 font-mono font-bold">—</td>
-                                  <td className="px-4 py-2 font-mono font-bold">—</td>
+                                  <td className="px-4 py-2"><span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-black ${scoreColor}`}>{rowScore.toFixed(1)}</span></td>
+                                  <td className="px-4 py-2 font-mono font-bold">{(row.impressions ?? 0).toLocaleString()}</td>
+                                  <td className="px-4 py-2 font-mono font-bold">{(row.clicks ?? 0).toLocaleString()}</td>
                                   <td className="px-4 py-2 font-mono font-black text-coral">{formatUsd(row.spend)}</td>
                                   <td className="px-4 py-2 font-mono font-bold text-v-text-muted">{formatUsd(row.budget)}</td>
                                   <td className="px-4 py-2"><span className="font-black text-v-teal">{row.pacing}%</span></td>
-                                  <td className="px-4 py-2 font-mono font-black text-coral">{row.cpa > 0 ? `$${row.cpa.toFixed(2)}` : '—'}</td>
-                                  <td className="px-4 py-2 font-mono font-black text-coral">—</td>
-                                  <td className="px-4 py-2 font-mono font-black">—</td>
+                                  <td className="px-4 py-2 font-mono font-black text-coral">${rowCpc.toFixed(2)}</td>
+                                  <td className="px-4 py-2 font-mono font-black text-coral">{rowCtr.toFixed(1)}%</td>
+                                  <td className="px-4 py-2 font-mono font-black">{(row.conversions ?? 0).toLocaleString()}</td>
                                   <td className="px-4 py-2">
                                     <span className={`text-[10px] font-black ${isActive ? 'text-green' : 'text-amber'}`}>
-                                      • {isActive ? 'Live' : 'Pending'}
+                                      • {isActive ? 'Live' : row.status === 'paused' ? 'Paused' : 'Pending'}
                                     </span>
                                   </td>
                                   <td className="px-4 py-2">
@@ -692,31 +834,75 @@ export default function ClientDetailPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* AI recommendations */}
-          <section className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
-            <div className="px-5 py-4 border-b border-border-subtle bg-surface-secondary/50">
-              <h2 className="text-[14px] font-bold text-text-primary">AI recommendations</h2>
-              <p className="text-[12px] text-text-muted font-medium mt-0.5">Prioritized actions for this client.</p>
+          <section className="bg-white rounded-2xl border-2 border-cream-border overflow-hidden shadow-sm">
+            <div className="px-5 py-4 border-b-2 border-cream-border bg-cream/60 flex items-center justify-between">
+              <div>
+                <h2 className="text-[14px] font-black text-v-text-primary">AI Recommendations</h2>
+                <p className="text-[11px] text-v-text-muted font-bold mt-0.5">Optimizing performance for this account.</p>
+              </div>
+              <span className="bg-v-teal text-white text-[10px] font-black px-2 py-[2px] rounded-md shadow-sm">{insights.length}</span>
             </div>
-            <div className="p-5 space-y-4 max-h-[480px] overflow-y-auto">
-              {visibleInsights.length === 0 ? (
-                <p className="text-[13px] text-text-muted font-medium">No recommendations for this client.</p>
+            <div className="p-5 space-y-4 max-h-[520px] overflow-y-auto scrollbar-hide">
+              {insights.length === 0 ? (
+                <div className="py-10 text-center">
+                   <p className="text-[13px] text-v-text-muted font-bold">No active recommendations for this account.</p>
+                   <p className="text-[11px] text-v-text-muted/60 font-medium mt-1">Our AI is monitoring performance daily.</p>
+                </div>
               ) : (
-                visibleInsights.map((ins) => (
-                  <article key={ins.id} className="rounded-xl border border-border p-4 bg-surface-secondary/40 space-y-3 hover:border-aqua/40 transition-colors">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <SeverityBadge severity={ins.severity} />
-                      <PlatformTag name={ins.platform} />
+                insights.map((ins) => (
+                  <article key={ins.insight_id} className="rounded-xl border-2 border-cream-border p-4 bg-white space-y-3 hover:border-v-teal/40 transition-all hover:shadow-md">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                       <div className="flex items-center gap-2">
+                          <SeverityBadge severity={ins.severity} />
+                          <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-[14px] bg-v-${ins.icon_bg}`}>
+                            {ins.icon}
+                          </span>
+                       </div>
+                       <span className="text-[10px] font-black text-v-text-muted uppercase tracking-wider">{ins.platform_label}</span>
                     </div>
-                    <p className="text-[13px] text-text-secondary leading-snug">{ins.text}</p>
-                    <p className="text-[12px] font-semibold text-teal-deep">Est. impact: {ins.impact}</p>
+                    <div className="space-y-1">
+                       <h4 className="text-[14px] font-black text-v-text-primary leading-tight">{ins.title}</h4>
+                       <p className="text-[12px] text-v-text-secondary leading-snug font-medium">{ins.description}</p>
+                    </div>
+                    
+                    <div className="bg-v-teal/5 rounded-lg px-3 py-2 flex flex-wrap gap-4 border border-v-teal/10">
+                       {ins.impact_metrics.slice(0, 2).map(m => (
+                         <div key={m.label}>
+                            <div className="text-[9px] font-black text-v-text-muted uppercase tracking-tight">{m.label}</div>
+                            <div className={`text-[12px] font-black ${m.color === 'red' ? 'text-v-coral' : m.color === 'green' ? 'text-v-green' : 'text-v-teal'}`}>{m.value}</div>
+                         </div>
+                       ))}
+                    </div>
+
                     <div className="flex flex-wrap gap-2 pt-1">
-                      <button type="button" className="px-3 py-1.5 rounded-lg bg-teal-deep text-white text-[12px] font-semibold hover:bg-teal-deep/90 transition-colors shadow-sm">
-                        Apply
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await apiClient.post(API_ENDPOINTS.INSIGHTS.APPLY(ins.insight_id), { accessToken, agencyId });
+                            refreshInsights();
+                            refreshSummary();
+                            toast.success('Recommendation applied');
+                          } catch (err) {
+                            toast.error('Failed to apply recommendation');
+                          }
+                        }}
+                        type="button" 
+                        className="px-4 py-2 rounded-lg bg-v-teal text-white text-[12px] font-black hover:bg-v-teal-dark shadow-sm transition-all"
+                      >
+                        {ins.apply_label || 'Apply Optimization'}
                       </button>
                       <button
                         type="button"
-                        onClick={() => setDismissedInsightIds((prev) => new Set(prev).add(ins.id))}
-                        className="px-3 py-1.5 rounded-lg border border-border bg-white text-text-secondary text-[12px] font-medium hover:bg-surface-hover transition-colors"
+                        onClick={async () => {
+                          try {
+                            await apiClient.post(API_ENDPOINTS.INSIGHTS.DISMISS(ins.insight_id), { accessToken, agencyId });
+                            refreshInsights();
+                            refreshSummary();
+                          } catch (err) {
+                            toast.error('Failed to dismiss');
+                          }
+                        }}
+                        className="px-3 py-2 rounded-lg border-2 border-cream-border bg-white text-v-text-muted text-[12px] font-bold hover:text-v-coral hover:border-v-coral/20 transition-all"
                       >
                         Dismiss
                       </button>
