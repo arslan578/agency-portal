@@ -50,38 +50,105 @@ def send_agency_invite_email(
   subject = f"You've been invited to join {agency_name} on Kaivo"
   preview_text = f"{agency_name} has invited you to collaborate in the Kaivo agency portal."
 
-  html = f"""
-  <div style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0b1020; padding:32px 0;">
-    <div style="max-width:520px;margin:0 auto;background:#f4efe6;border-radius:16px;padding:24px 24px 28px;border:1px solid #ddd6c8;">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
-        <div style="width:28px;height:28px;border-radius:8px;background:#e76f51;display:flex;align-items:center;justify-content:center;">
-          <span style="font-size:18px;">⚡</span>
-        </div>
-        <div style="font-size:16px;font-weight:800;color:#2a9d8f;letter-spacing:0.16em;">KAIVO</div>
-      </div>
-      <p style="font-size:13px;color:#5a5a72;font-weight:600;margin:0 0 6px;">Team invitation</p>
-      <h1 style="font-size:20px;margin:0 0 10px;color:#1a1a2e;">Join {agency_name} on Kaivo</h1>
-      <p style="font-size:13px;color:#5a5a72;line-height:1.6;margin:0 0 18px;">
-        You've been invited to join <strong>{agency_name}</strong> as
-        <strong>{role_label}</strong> in the Kaivo agency portal.
-      </p>
-      <div style="margin-bottom:22px;">
-        <a href="{invite_url}" style="display:inline-block;padding:10px 20px;border-radius:999px;background:#2a9d8f;color:#ffffff;font-size:13px;font-weight:700;text-decoration:none;">
-          Accept invite &amp; sign in
-        </a>
-      </div>
-      <p style="font-size:12px;color:#9a9aaa;line-height:1.5;margin:0 0 4px;">
-        If the button doesn't work, copy and paste this link into your browser:
-      </p>
-      <p style="font-size:11px;color:#5a5a72;word-break:break-all;margin:0 0 12px;">
-        {invite_url}
-      </p>
-      <p style="font-size:11px;color:#9a9aaa;line-height:1.5;margin:0;">
-        If you weren't expecting this email, you can safely ignore it.
-      </p>
-    </div>
-  </div>
-  """
+  html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{subject}</title>
+  <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+</head>
+<body style="margin:0;padding:0;background-color:#f0f2f5;font-family:'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+  <!-- Preview text (hidden) -->
+  <div style="display:none;max-height:0;overflow:hidden;">{preview_text}</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f0f2f5;padding:40px 0;">
+    <tr>
+      <td align="center">
+        <!-- Main card -->
+        <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="max-width:520px;width:100%;background-color:#ffffff;border-radius:16px;box-shadow:0 2px 8px rgba(0,0,0,0.06);overflow:hidden;">
+          <!-- Header bar -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0f172a 0%,#1e293b 100%);padding:28px 32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="width:36px;height:36px;border-radius:10px;background:#2a9d8f;text-align:center;vertical-align:middle;">
+                    <span style="font-size:20px;line-height:36px;">&#9889;</span>
+                  </td>
+                  <td style="padding-left:12px;">
+                    <span style="font-size:18px;font-weight:800;color:#ffffff;letter-spacing:0.18em;vertical-align:middle;">KAIVO</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:32px 32px 8px;">
+              <p style="margin:0 0 4px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#2a9d8f;">Team invitation</p>
+              <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0f172a;line-height:1.3;">
+                You&rsquo;ve been invited to join<br>{agency_name}
+              </h1>
+              <p style="margin:0 0 24px;font-size:14px;color:#475569;line-height:1.65;">
+                <strong>{agency_name}</strong> has invited you to join their team as
+                <strong style="color:#2a9d8f;">{role_label}</strong> on the Kaivo agency portal.
+                Accept the invitation below to get started.
+              </p>
+            </td>
+          </tr>
+
+          <!-- CTA button -->
+          <tr>
+            <td style="padding:0 32px 28px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="border-radius:10px;background:#2a9d8f;">
+                    <a href="{invite_url}" style="display:inline-block;padding:13px 32px;font-size:14px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:10px;">
+                      Accept Invitation &rarr;
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="padding:0 32px;">
+              <div style="border-top:1px solid #e2e8f0;"></div>
+            </td>
+          </tr>
+
+          <!-- Fallback link -->
+          <tr>
+            <td style="padding:20px 32px 28px;">
+              <p style="margin:0 0 6px;font-size:12px;color:#94a3b8;line-height:1.5;">
+                If the button above doesn&rsquo;t work, copy and paste this URL into your browser:
+              </p>
+              <p style="margin:0;font-size:12px;color:#64748b;word-break:break-all;line-height:1.5;">
+                {invite_url}
+              </p>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color:#f8fafc;padding:20px 32px;border-top:1px solid #e2e8f0;">
+              <p style="margin:0 0 4px;font-size:11px;color:#94a3b8;line-height:1.5;">
+                This invitation was sent by {agency_name} via Kaivo. If you weren&rsquo;t expecting this email, you can safely ignore it.
+              </p>
+              <p style="margin:0;font-size:11px;color:#cbd5e1;line-height:1.5;">
+                &copy; Kaivo &middot; Agency Intelligence Platform
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
 
   from_email = os.getenv("RESEND_FROM_EMAIL", "Kaivo <no-reply@getkaivo.com>")
 

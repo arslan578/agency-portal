@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { useState, useEffect, useMemo, useCallback, type FormEvent } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { useDashboard, useMembers, useInvites, useApiAuth } from '@/hooks/useAgencyApi';
 import { apiClient } from '@/lib/api/client';
 import { API_ENDPOINTS } from '@/lib/api/endpoints';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { toast } from 'sonner';
-import { MOCK_TEAM } from '@/lib/mock/dashboard';
 import {
   ROLE_PERMISSIONS,
   type AgencyRole,
@@ -20,8 +20,7 @@ type SettingsTab =
   | 'team'
   | 'whitelabel'
   | 'account'
-  | 'profile'
-  | 'notifications';
+  | 'profile';
 
 const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'agency', label: 'Agency Profile' },
@@ -29,7 +28,6 @@ const TABS: { id: SettingsTab; label: string }[] = [
   { id: 'whitelabel', label: 'White-label' },
   { id: 'account', label: 'Account' },
   { id: 'profile', label: 'My Profile' },
-  { id: 'notifications', label: 'Notifications' },
 ];
 
 const TIMEZONES = [
@@ -70,6 +68,7 @@ type DisplayMember = {
   roleKey: string;
   status: 'active' | 'invited';
   lastActive: string;
+  inviteId?: number;
 };
 
 function CameraIcon({ className }: { className?: string }) {
@@ -143,21 +142,6 @@ function mapApiMembersToDisplay(members: TeamMember[]): DisplayMember[] {
     roleKey: m.role,
     status: 'active',
     lastActive: m.created_at && m.created_at !== String(m.id) ? m.created_at : '—',
-  }));
-}
-
-function mapMockToDisplay(
-  mock: typeof MOCK_TEAM,
-): DisplayMember[] {
-  return mock.map((m) => ({
-    id: m.id,
-    name: m.name,
-    email: m.email,
-    initials: m.initials,
-    color: m.color,
-    roleKey: m.role,
-    status: m.status,
-    lastActive: m.lastActive,
   }));
 }
 
@@ -235,12 +219,32 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  const [notifCampaign, setNotifCampaign] = useState(true);
-  const [notifBudget, setNotifBudget] = useState(true);
-  const [notifPerformance, setNotifPerformance] = useState(false);
-  const [notifWeeklyDigest, setNotifWeeklyDigest] = useState(true);
-  const [notifMonthly, setNotifMonthly] = useState(true);
-  const [digestSchedule, setDigestSchedule] = useState('Weekly');
+  const [confirmDialog, setConfirmDialog] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    confirmLabel: string;
+    danger: boolean;
+    onConfirm: () => void;
+  }>({ open: false, title: '', message: '', confirmLabel: 'Confirm', danger: false, onConfirm: () => {} });
+
+  const openConfirm = useCallback(
+    (opts: { title: string; message: string; confirmLabel?: string; danger?: boolean; onConfirm: () => void }) => {
+      setConfirmDialog({
+        open: true,
+        title: opts.title,
+        message: opts.message,
+        confirmLabel: opts.confirmLabel || 'Confirm',
+        danger: opts.danger ?? false,
+        onConfirm: opts.onConfirm,
+      });
+    },
+    [],
+  );
+
+  const closeConfirm = useCallback(() => {
+    setConfirmDialog((prev) => ({ ...prev, open: false }));
+  }, []);
 
   const isAdmin =
     session?.user?.isSuperuser === true ||
@@ -267,6 +271,7 @@ export default function SettingsPage() {
         lastActive: invite.created_at
           ? new Date(invite.created_at).toLocaleDateString()
           : 'Invited',
+        inviteId: invite.id,
       };
     });
 
@@ -351,40 +356,25 @@ export default function SettingsPage() {
     }
   }
 
-  async function uploadImageToCloudinary(file: File): Promise<string> {
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
-
-    if (!cloudName || !uploadPreset) {
-      throw new Error(
-        'Image uploading is not configured. Ask your admin to set NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME and NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET.',
-      );
-    }
-
+  async function uploadImage(file: File): Promise<string> {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('upload_preset', uploadPreset);
 
-    const res = await fetch(
-      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      },
-    );
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(
-        `Upload failed with status ${res.status}${text ? `: ${text}` : ''}`,
-      );
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      throw new Error(data.error || `Upload failed (${res.status})`);
     }
 
-    const data = (await res.json()) as { secure_url?: string };
-    if (!data.secure_url) {
-      throw new Error('Cloudinary response did not include secure_url');
+    const data = (await res.json()) as { url?: string };
+    if (!data.url) {
+      throw new Error('Upload response did not include a URL');
     }
-    return data.secure_url;
+    return data.url;
   }
 
   async function handleInvite() {
@@ -507,7 +497,7 @@ export default function SettingsPage() {
                         }
                         try {
                           setAgencyLogoUploading(true);
-                          const url = await uploadImageToCloudinary(file);
+                          const url = await uploadImage(file);
                           setAgencyLogoUrl(url);
                           toast.success('Logo uploaded. Click Save to apply.');
                         } catch (err) {
@@ -741,13 +731,66 @@ export default function SettingsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <span
-                            className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${roleBadgeClass(
-                              formatRoleDisplay(row.roleKey),
-                            )}`}
-                          >
-                            {formatRoleDisplay(row.roleKey)}
-                          </span>
+                          {(() => {
+                            const isSelf =
+                              row.status === 'active' &&
+                              members.find((m) => m.email === row.email)?.user_id ===
+                                Number(session?.user?.id);
+                            if (isAdmin && row.status === 'active' && !isSelf) {
+                              return (
+                                <select
+                                  className="text-[11px] font-semibold px-2 py-1 border border-border rounded-[6px] bg-white focus:outline-none focus:border-teal-deep"
+                                  value={row.roleKey}
+                                  onChange={(e) => {
+                                    const newRole = e.target.value;
+                                    if (newRole === row.roleKey) return;
+                                    const selectEl = e.target;
+                                    selectEl.value = row.roleKey;
+                                    openConfirm({
+                                      title: 'Change role',
+                                      message: `Change ${row.name}'s role to ${formatRoleDisplay(newRole)}?`,
+                                      confirmLabel: 'Change role',
+                                      onConfirm: async () => {
+                                        closeConfirm();
+                                        const member = members.find((m) => m.email === row.email);
+                                        if (!member) return;
+                                        try {
+                                          await apiClient.patch(
+                                            API_ENDPOINTS.AGENCY.UPDATE_MEMBER_ROLE(
+                                              agencyId!,
+                                              member.id,
+                                            ),
+                                            { role: newRole },
+                                            { accessToken, agencyId },
+                                          );
+                                          toast.success(`Role updated to ${formatRoleDisplay(newRole)}`);
+                                          refreshMembers();
+                                        } catch (err: unknown) {
+                                          toast.error(
+                                            (err as { message?: string })?.message ||
+                                              'Failed to update role',
+                                          );
+                                        }
+                                      },
+                                    });
+                                  }}
+                                >
+                                  <option value="agency_admin">Admin</option>
+                                  <option value="agency_member">Manager</option>
+                                  <option value="agency_viewer">Viewer</option>
+                                </select>
+                              );
+                            }
+                            return (
+                              <span
+                                className={`inline-flex px-2 py-0.5 rounded-[6px] text-[11px] font-semibold capitalize ${roleBadgeClass(
+                                  formatRoleDisplay(row.roleKey),
+                                )}`}
+                              >
+                                {formatRoleDisplay(row.roleKey)}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -762,45 +805,125 @@ export default function SettingsPage() {
                           {row.lastActive}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          {isAdmin && row.status === 'active' ? (
-                            <button
-                              type="button"
-                              className="text-[11px] font-semibold text-red hover:underline"
-                              disabled={
-                                members.find((m) => m.email === row.email)?.user_id ===
-                                Number(session?.user?.id)
-                              }
-                              onClick={async () => {
-                                const member = members.find((m) => m.email === row.email);
-                                if (!member) return;
-                                if (
-                                  !window.confirm(
-                                    `Remove ${row.name} from your team? They will lose access immediately.`,
-                                  )
-                                ) {
-                                  return;
-                                }
-                                try {
-                                  await apiClient.delete(
-                                    API_ENDPOINTS.AGENCY.REMOVE_MEMBER(
-                                      agencyId!,
-                                      member.id,
-                                    ),
-                                    { accessToken, agencyId },
-                                  );
-                                  toast.success('Member removed');
-                                  refreshMembers();
-                                } catch (err: unknown) {
-                                  toast.error(
-                                    (err as { message?: string })?.message ||
-                                      'Failed to remove member',
-                                  );
-                                }
-                              }}
-                            >
-                              Remove
-                            </button>
-                          ) : null}
+                          {(() => {
+                            const isSelf =
+                              row.status === 'active' &&
+                              members.find((m) => m.email === row.email)?.user_id ===
+                                Number(session?.user?.id);
+                            if (isSelf) {
+                              return (
+                                <button
+                                  type="button"
+                                  className="px-3 py-1 rounded-[6px] border border-border text-[11px] font-semibold text-text-muted opacity-40 cursor-default"
+                                  disabled
+                                >
+                                  You
+                                </button>
+                              );
+                            }
+                            if (isAdmin && row.status === 'active') {
+                              return (
+                                <button
+                                  type="button"
+                                  className="px-3 py-1 rounded-[6px] border border-red text-[11px] font-semibold text-red hover:bg-red-light transition-colors"
+                                  onClick={() => {
+                                    const member = members.find((m) => m.email === row.email);
+                                    if (!member) return;
+                                    openConfirm({
+                                      title: 'Remove team member',
+                                      message: `Remove ${row.name} from your team? They will lose access immediately.`,
+                                      confirmLabel: 'Remove',
+                                      danger: true,
+                                      onConfirm: async () => {
+                                        closeConfirm();
+                                        try {
+                                          await apiClient.delete(
+                                            API_ENDPOINTS.AGENCY.REMOVE_MEMBER(
+                                              agencyId!,
+                                              member.id,
+                                            ),
+                                            { accessToken, agencyId },
+                                          );
+                                          toast.success('Member removed');
+                                          refreshMembers();
+                                        } catch (err: unknown) {
+                                          toast.error(
+                                            (err as { message?: string })?.message ||
+                                              'Failed to remove member',
+                                          );
+                                        }
+                                      },
+                                    });
+                                  }}
+                                >
+                                  Remove
+                                </button>
+                              );
+                            }
+                            if (isAdmin && row.status === 'invited') {
+                              return (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    type="button"
+                                    className="px-3 py-1 rounded-[6px] border border-border text-[11px] font-semibold text-text-secondary hover:bg-surface-secondary transition-colors"
+                                    onClick={async () => {
+                                      try {
+                                        await apiClient.post(
+                                          API_ENDPOINTS.AGENCY.INVITE(agencyId!),
+                                          { email: row.email, role: row.roleKey },
+                                          { accessToken, agencyId },
+                                        );
+                                        toast.success(`Invite resent to ${row.name}`);
+                                      } catch (err: unknown) {
+                                        toast.error(
+                                          (err as { message?: string })?.message ||
+                                            'Failed to resend invite',
+                                        );
+                                      }
+                                    }}
+                                  >
+                                    Resend
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="px-3 py-1 rounded-[6px] border border-red text-[11px] font-semibold text-red hover:bg-red-light transition-colors"
+                                    onClick={() => {
+                                      if (!row.inviteId) return;
+                                      const invId = row.inviteId;
+                                      openConfirm({
+                                        title: 'Revoke invite',
+                                        message: `Revoke the invite for ${row.name}? They will no longer be able to join using this link.`,
+                                        confirmLabel: 'Revoke',
+                                        danger: true,
+                                        onConfirm: async () => {
+                                          closeConfirm();
+                                          try {
+                                            await apiClient.delete(
+                                              API_ENDPOINTS.AGENCY.CANCEL_INVITE(
+                                                agencyId!,
+                                                invId,
+                                              ),
+                                              { accessToken, agencyId },
+                                            );
+                                            toast.success('Invite revoked');
+                                            refreshInvites();
+                                          } catch (err: unknown) {
+                                            toast.error(
+                                              (err as { message?: string })?.message ||
+                                                'Failed to revoke invite',
+                                            );
+                                          }
+                                        },
+                                      });
+                                    }}
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -1120,7 +1243,7 @@ export default function SettingsPage() {
                         const file = e.target.files?.[0];
                         if (!file) return;
                         try {
-                          const url = await uploadImageToCloudinary(file);
+                          const url = await uploadImage(file);
                           setProfileAvatarUrl(url);
                           toast.success(
                             'Profile photo uploaded. Click Save profile to apply.',
@@ -1251,82 +1374,17 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {activeTab === 'notifications' && (
-            <div className="max-w-xl space-y-6">
-              <h2 className={sectionTitle}>Notifications</h2>
-              <div className="bg-white border border-border rounded-[12px] p-6 space-y-1">
-                {[
-                  {
-                    id: 'n-campaign',
-                    label: 'Campaign alerts',
-                    checked: notifCampaign,
-                    set: setNotifCampaign,
-                  },
-                  {
-                    id: 'n-budget',
-                    label: 'Budget warnings',
-                    checked: notifBudget,
-                    set: setNotifBudget,
-                  },
-                  {
-                    id: 'n-perf',
-                    label: 'Performance drops',
-                    checked: notifPerformance,
-                    set: setNotifPerformance,
-                  },
-                  {
-                    id: 'n-weekly',
-                    label: 'Weekly digest',
-                    checked: notifWeeklyDigest,
-                    set: setNotifWeeklyDigest,
-                  },
-                  {
-                    id: 'n-monthly',
-                    label: 'Monthly report',
-                    checked: notifMonthly,
-                    set: setNotifMonthly,
-                  },
-                ].map((n) => (
-                  <div
-                    key={n.id}
-                    className="flex items-center justify-between gap-3 py-3 border-b border-border"
-                  >
-                    <label
-                      htmlFor={n.id}
-                      className="text-[13px] font-semibold text-text-primary cursor-pointer flex-1"
-                    >
-                      {n.label}
-                    </label>
-                    <ToggleSwitch
-                      id={n.id}
-                      checked={n.checked}
-                      onChange={n.set}
-                    />
-                  </div>
-                ))}
-                <div className="pt-4">
-                  <label className={labelClass} htmlFor="digest-sched">
-                    Digest schedule
-                  </label>
-                  <select
-                    id="digest-sched"
-                    className={inputClass}
-                    value={digestSchedule}
-                    onChange={(e) => setDigestSchedule(e.target.value)}
-                  >
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Monthly">Monthly</option>
-                  </select>
-                </div>
-                <p className="text-[12px] text-text-muted pt-3">
-                  Notification preferences are stored in this browser session only.
-                </p>
-              </div>
-            </div>
-          )}
         </main>
       </div>
+      <ConfirmDialog
+        open={confirmDialog.open}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        confirmLabel={confirmDialog.confirmLabel}
+        danger={confirmDialog.danger}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={closeConfirm}
+      />
     </div>
   );
 }
