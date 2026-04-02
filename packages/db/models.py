@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum, DECIMAL, JSON, DateTime, Text
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Enum, DECIMAL, JSON, DateTime, Text, Float
 from sqlalchemy.orm import relationship, remote
 from sqlalchemy.sql import func
 from packages.db.database import Base
@@ -278,6 +278,41 @@ class ClientAccountGroup(Base):
     agency = relationship("packages.db.models.Agency")
     client = relationship("packages.db.models.Client")
     platform_account = relationship("packages.db.models.PlatformAccount")
+
+
+class AIInsight(Base):
+    __tablename__ = "ai_insights"
+    id = Column(String, primary_key=True, index=True) # UUID or similar
+    agency_id = Column(Integer, ForeignKey("agencies.id"), nullable=False)
+    client_id = Column(Integer, ForeignKey("clients.id"), nullable=False, index=True)
+    
+    platform = Column(String, nullable=True) # 'meta', 'google', etc.
+    platform_label = Column(String, nullable=True) # 'Meta', 'TikTok'
+    severity = Column(String, nullable=False) # 'critical', 'warning', etc.
+    categories = Column(JSON, nullable=True) # ['creative', 'budget']
+    
+    title = Column(String(120), nullable=False)
+    description = Column(String(400), nullable=True)
+    impact_metrics = Column(JSON, nullable=True) # list of {label, value, color}
+    
+    apply_label = Column(String, nullable=True)
+    review_label = Column(String, nullable=True)
+    review_url = Column(String, nullable=True)
+    icon = Column(String, nullable=True)
+    accent_color = Column(String, nullable=True) # 'red', 'amber', 'teal', 'purple'
+    icon_bg = Column(String, nullable=True) # 'red_light', 'amber_light', etc.
+    
+    status = Column(String, default="pending") # 'pending', 'applied', 'dismissed'
+    action_taken = Column(Text, nullable=True) # for confirmation description
+    priority_score = Column(Float, default=0.5)
+    
+    recoverable_spend_cents = Column(Integer, default=0)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    
+    client = relationship("Client")
+    agency = relationship("Agency")
 
 
 class ClientPortalSettings(Base):

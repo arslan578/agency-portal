@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
     DASHBOARD: (id: string) => `${BASE}/agency/${id}/dashboard`,
     MEMBERS: (id: string) => `${BASE}/agencies/${id}/members`,
     REMOVE_MEMBER: (id: string, memberId: number) => `${BASE}/agencies/${id}/members/${memberId}`,
+    UPDATE_MEMBER_ROLE: (id: string, memberId: number) => `${BASE}/agencies/${id}/members/${memberId}`,
     INVITE: (id: string) => `${BASE}/agencies/${id}/invite`,
     INVITES: (id: string) => `${BASE}/agencies/${id}/invites`,
     CANCEL_INVITE: (id: string, inviteId: number) => `${BASE}/agencies/${id}/invites/${inviteId}`,
@@ -111,5 +112,17 @@ export const API_ENDPOINTS = {
     AUTO_LINK: (agencyId: string) => `${BASE}/agency/${agencyId}/microsoft/auto-link`,
     MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/microsoft/manual-link`,
     CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/microsoft-insights`,
+  },
+  INSIGHTS: {
+    LIST: (status: string = 'pending', clientId?: number) => {
+      const q = new URLSearchParams({ status });
+      if (clientId != null) q.set('client_id', String(clientId));
+      return `${BASE}/insights?${q.toString()}`;
+    },
+    SUMMARY: `${BASE}/insights/summary`,
+    APPLY: (id: string) => `${BASE}/insights/${id}/apply`,
+    DISMISS: (id: string) => `${BASE}/insights/${id}/dismiss`,
+    APPLY_RECOMMENDED: `${BASE}/insights/apply_recommended`,
+    SEED: `${BASE}/insights/seed_mock_data`,
   },
 } as const;

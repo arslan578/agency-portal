@@ -5,52 +5,53 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
-import { useDashboard, useClients, useUnassignedCount } from '@/hooks/useAgencyApi';
+import { useDashboard, useClients, useUnassignedCount, useInsights, useInsightsSummary, useApiAuth } from '@/hooks/useAgencyApi';
 import { DashboardHeader } from '@/components/layout/DashboardHeader';
-import { MOCK_CLIENTS, MOCK_INSIGHTS } from '@/lib/mock/dashboard';
+import { MOCK_CLIENTS } from '@/lib/mock/dashboard';
+import { apiClient } from '@/lib/api/client';
+import { API_ENDPOINTS } from '@/lib/api/endpoints';
 
-type TabFilter = 'all' | 'needs_action' | 'top' | 'manual_ai';
+type TabFilter = 'all' | 'active' | 'inactive';
 
-function ScoreBadge({ score }: { score: number }) {
-  const color = score >= 80 ? 'bg-green-light text-green' : score >= 60 ? 'bg-amber-light text-amber' : 'bg-red-light text-red';
-  return <span className={`inline-flex items-center px-2 py-[2px] rounded-md text-[11px] font-semibold ${color}`}>{score}</span>;
+const AVATAR_COLORS = [
+  '#007B5F', '#FF7043', '#5c54c8', '#d4860a', '#2d9e5a',
+  '#c85a3d', '#9b5de5', '#0077b5', '#ea4335', '#00b8c4',
+];
+
+function getClientColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-function PacingBar({ pacing }: { pacing: number }) {
-  const color = pacing >= 90 ? 'bg-green' : pacing >= 80 ? 'bg-teal' : 'bg-coral';
+function getInitials(name: string): string {
+  return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+}
+
+function StatusBadge({ active }: { active: boolean }) {
+  return active
+    ? <span className="inline-flex items-center px-2 py-[2px] rounded-md text-[11px] font-semibold bg-green-light text-green">Active</span>
+    : <span className="inline-flex items-center px-2 py-[2px] rounded-md text-[11px] font-semibold bg-red-light text-red">Inactive</span>;
+}
+
+function AccountModeBadge({ mode }: { mode: string }) {
+  const isManaged = mode === 'kaivo_managed';
   return (
-    <div className="flex items-center gap-2">
-      <div className="w-[60px] h-[5px] rounded-full bg-surface-secondary overflow-hidden">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pacing}%` }} />
-      </div>
-      <span className="text-[11px] font-semibold text-text-muted font-mono">{pacing}%</span>
-    </div>
+    <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold ${isManaged ? 'bg-teal-light text-teal-deep' : 'bg-surface-secondary text-text-muted'}`}>
+      {isManaged ? 'Managed' : 'Reporting'}
+    </span>
   );
 }
 
-function AiModeBadge({ mode }: { mode: string }) {
-  const styles: Record<string, string> = {
-    auto: 'bg-teal-light text-teal-deep',
-    hybrid: 'bg-purple-light text-purple',
-    manual: 'bg-surface-secondary text-text-muted',
-  };
-  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold capitalize ${styles[mode] || styles.manual}`}>{mode}</span>;
-}
-
-function AlertBadge({ count, severity }: { count: number; severity: string }) {
-  if (count === 0) return <span className="text-[11px] text-text-muted">—</span>;
-  const color = severity === 'critical' ? 'bg-coral text-white' : 'bg-amber-light text-amber';
-  return <span className={`min-w-[20px] h-[20px] px-1.5 rounded-md text-[10px] font-semibold flex items-center justify-center ${color}`}>{count}</span>;
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const styles: Record<string, string> = {
-    critical: 'bg-red-light text-red',
-    warning: 'bg-amber-light text-amber',
-    opportunity: 'bg-green-light text-green',
-  };
-  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold capitalize ${styles[severity] || ''}`}>{severity}</span>;
-}
+type Client = {
+  id: number;
+  name: string;
+  is_active: boolean;
+  industry?: string | null;
+  website?: string | null;
+  account_mode?: string | null;
+  [key: string]: any;
+};
 
 function PlatformTag({ name, className: cls }: { name: string; className?: string }) {
   const colors: Record<string, string> = {
@@ -62,11 +63,24 @@ function PlatformTag({ name, className: cls }: { name: string; className?: strin
   return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold ${colors[cls || ''] || 'bg-surface-secondary text-text-muted'}`}>{name}</span>;
 }
 
+function SeverityBadge({ severity }: { severity: string }) {
+  const styles: Record<string, string> = {
+    critical: 'bg-red-light text-red',
+    warning: 'bg-amber-light text-amber',
+    opportunity: 'bg-green-light text-green',
+  };
+  return <span className={`px-2 py-[2px] rounded-md text-[10.5px] font-semibold capitalize ${styles[severity] || ''}`}>{severity}</span>;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const { status } = useRequireAuth();
   const { data: dashboardData, isLoading: dashboardLoading, error: dashboardError } = useDashboard();
   const { clients: apiClients, isLoading: clientsLoading, error: clientsError } = useClients();
+  const { insights, refresh: refreshInsights } = useInsights('pending');
+  const { summary, refresh: refreshSummary } = useInsightsSummary();
+  const { accessToken, agencyId } = useApiAuth();
+  
   const [tab, setTab] = useState<TabFilter>('all');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [showUnassignedBar, setShowUnassignedBar] = useState(true);
@@ -83,38 +97,35 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [profileMenuOpen]);
 
+  const { count: unassignedCount } = useUnassignedCount();
+  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
+
   if (status === 'loading') return <DashboardSkeleton />;
   if (status !== 'authenticated') return null;
 
-  // Prevent UI flicker: do not render mock rows while API is still loading.
   if (dashboardLoading || clientsLoading) {
     return <DashboardSkeleton />;
   }
 
-  const clients = apiClients.length > 0
-    ? apiClients.map((c: Record<string, unknown>, i: number) => ({
-        ...MOCK_CLIENTS[i % MOCK_CLIENTS.length],
-        id: c.id as number,
-        name: (c.name as string) || MOCK_CLIENTS[i % MOCK_CLIENTS.length].name,
-      }))
-    : clientsError || dashboardError
-      ? MOCK_CLIENTS
-      : [];
-
-  const totalSpend = clients.reduce((s: number, c: { spend: number }) => s + c.spend, 0);
-  const needsAction = clients.filter((c: { alerts: { count: number } }) => c.alerts.count > 0).length;
+  const clients: Client[] = apiClients;
+  const activeClients = clients.filter((c) => c.is_active);
+  const inactiveClients = clients.filter((c) => !c.is_active);
 
   const filtered = tab === 'all' ? clients
-    : tab === 'needs_action' ? clients.filter((c: { alerts: { count: number } }) => c.alerts.count > 0)
-    : tab === 'top' ? clients.filter((c: { score: number }) => c.score >= 80)
-    : clients.filter((c: { aiMode: string }) => c.aiMode === 'manual');
+    : tab === 'active' ? activeClients
+    : inactiveClients;
 
   const tabs: { key: TabFilter; label: string }[] = [
     { key: 'all', label: 'All Clients' },
-    { key: 'needs_action', label: 'Needs Action' },
-    { key: 'top', label: 'Top Performers' },
-    { key: 'manual_ai', label: 'Manual AI' },
+    { key: 'active', label: 'Active' },
+    { key: 'inactive', label: 'Inactive' },
   ];
+
+  const agencyName = dashboardData?.agency?.name || 'Agency';
+  const clientsCount = dashboardData?.clients_count ?? clients.length;
+  const campaignsCount = dashboardData?.campaigns_count ?? 0;
+  const activeCampaignsCount = dashboardData?.active_campaigns_count ?? 0;
+  const agencyPlan = dashboardData?.agency?.current_plan || 'free';
 
   return (
     <>
@@ -122,7 +133,7 @@ export default function DashboardPage() {
         title="Portfolio Dashboard"
         actions={
           <div className="flex items-center gap-2">
-            <span className="bg-surface-secondary text-text-muted text-[12px] font-medium px-3 py-[6px] rounded-lg border border-border">Last 30 days</span>
+            <span className="bg-surface-secondary text-text-muted text-[12px] font-medium px-3 py-[6px] rounded-lg border border-border">{agencyName}</span>
             <div ref={profileMenuRef} className="relative shrink-0">
               <button
                 type="button"
@@ -201,6 +212,14 @@ export default function DashboardPage() {
             aria-hidden
             className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-25 blur-3xl rounded-[48px] -z-10"
           />
+
+          {/* Error Banner */}
+          {(dashboardError || clientsError) && (
+            <div className="bg-red-light border border-red/20 rounded-xl p-4 text-[12px] text-red font-medium">
+              Failed to load dashboard data. Please check your connection and try again.
+            </div>
+          )}
+
           {/* KPI Strip */}
           <div className="relative z-10 grid grid-cols-4 gap-4">
             <div className="bg-gradient-to-br from-teal-deep to-teal rounded-xl p-5 text-white relative overflow-hidden shadow-sm transition-all hover:shadow-md">
@@ -208,24 +227,22 @@ export default function DashboardPage() {
                 aria-hidden
                 className="absolute inset-0 bg-[radial-gradient(circle_at_30%_0%,rgba(255,255,255,0.20),transparent_55%)] opacity-80"
               />
-              <div className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Portfolio Score</div>
+              <div className="text-[11px] font-semibold opacity-80 uppercase tracking-wider">Total Clients</div>
               <div className="text-[32px] font-extrabold mt-1 font-mono tracking-tight">
-                {clients.length > 0
-                  ? (clients.reduce((s: number, c: { score: number }) => s + c.score, 0) / clients.length).toFixed(1)
-                  : '—'}
+                {clientsCount}
               </div>
               <div className="flex items-center gap-1 mt-1 text-[11px] font-medium text-white/70">
-                <span className="text-green-300">▲ 4.2%</span> vs last period
+                {activeClients.length} active
               </div>
               <div className="absolute -right-4 -top-4 w-24 h-24 rounded-full bg-white/[0.06]" />
               <div className="absolute -right-2 -bottom-6 w-20 h-20 rounded-full bg-white/[0.04]" />
             </div>
-            <KpiCard label="Total Managed Spend" value={`$${(totalSpend / 1000).toFixed(1)}k`} delta="+12.4%" positive />
-            <KpiCard label="AI Actions Pending" value={String(MOCK_INSIGHTS.length)} delta="3 critical" positive={false} />
-            <KpiCard label="Clients Needing Action" value={String(needsAction)} delta={clients.length > 0 ? `of ${clients.length} total` : 'No clients'} positive={false} />
+            <KpiCard label="Active Campaigns" value={String(activeCampaignsCount)} subtitle={`${campaignsCount} total campaigns`} />
+            <KpiCard label="AI Actions Pending" value={String(summary?.total_pending ?? 0)} subtitle={`${summary?.critical_count ?? 0} critical priorities`} />
+            <KpiCard label="Clients Affected" value={String(summary?.clients_affected_count ?? 0)} subtitle={clients.length > 0 ? `of ${clients.length} total clients` : 'No clients'} />
           </div>
 
-          {/* Two-column: Table + Insights */}
+          {/* Two-column: Table + Info */}
           <div className="grid grid-cols-[1fr_380px] gap-5">
             {/* Client Table */}
             <div className="bg-white rounded-xl border border-border overflow-hidden shadow-sm">
@@ -250,132 +267,188 @@ export default function DashboardPage() {
                 <thead>
                   <tr className="text-[10.5px] font-semibold text-text-muted uppercase tracking-wider border-b border-border-subtle">
                     <th className="px-5 py-3">Client</th>
-                    <th className="px-3 py-3">Score</th>
-                    <th className="px-3 py-3">Fee</th>
-                    <th className="px-3 py-3">Spend</th>
-                    <th className="px-3 py-3">Pacing</th>
-                    <th className="px-3 py-3">Alerts</th>
-                    <th className="px-3 py-3">AI</th>
+                    <th className="px-3 py-3">Industry</th>
+                    <th className="px-3 py-3">Status</th>
+                    <th className="px-3 py-3">Mode</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((c) => (
-                    <tr
-                      key={c.id}
-                      className="border-b border-border-subtle/60 hover:bg-surface-hover/40 hover:shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-shadow transition-colors cursor-pointer"
-                    >
-                      <td className="px-5 py-3">
-                        <Link href={`/clients/${c.id}`} className="flex items-center gap-3">
-                          <div
-                            className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
-                            style={{ background: c.color }}
-                          >
-                            {c.initials}
-                          </div>
-                          <div>
-                            <div className="text-[12.5px] font-semibold text-text-primary">{c.name}</div>
-                            <div className="text-[10.5px] text-text-muted">{c.type}</div>
-                          </div>
-                        </Link>
+                  {filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="px-5 py-8 text-center text-[12px] text-text-muted">
+                        {clients.length === 0 ? 'No clients yet. Create your first client to get started.' : 'No clients match this filter.'}
                       </td>
-                      <td className="px-3 py-3"><ScoreBadge score={c.score} /></td>
-                      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${c.fee.toLocaleString()}</td>
-                      <td className="px-3 py-3 text-[12px] font-semibold text-text-primary font-mono">${c.spend.toLocaleString()}</td>
-                      <td className="px-3 py-3"><PacingBar pacing={c.pacing} /></td>
-                      <td className="px-3 py-3"><AlertBadge count={c.alerts.count} severity={c.alerts.severity} /></td>
-                      <td className="px-3 py-3"><AiModeBadge mode={c.aiMode} /></td>
                     </tr>
-                  ))}
+                  ) : (
+                    filtered.map((c) => (
+                      <tr
+                        key={c.id}
+                        className="border-b border-border-subtle/60 hover:bg-surface-hover/40 hover:shadow-[0_10px_30px_rgba(0,0,0,0.04)] transition-shadow transition-colors cursor-pointer"
+                      >
+                        <td className="px-5 py-3">
+                          <Link href={`/clients/${c.id}`} className="flex items-center gap-3">
+                            <div
+                              className="w-[32px] h-[32px] rounded-lg flex items-center justify-center text-[11px] font-bold text-white shrink-0"
+                              style={{ background: getClientColor(c.name) }}
+                            >
+                              {getInitials(c.name)}
+                            </div>
+                            <div>
+                              <div className="text-[12.5px] font-semibold text-text-primary">{c.name}</div>
+                              {c.website && <div className="text-[10.5px] text-text-muted truncate max-w-[200px]">{c.website}</div>}
+                            </div>
+                          </Link>
+                        </td>
+                        <td className="px-3 py-3 text-[12px] text-text-secondary">{c.industry || '—'}</td>
+                        <td className="px-3 py-3"><StatusBadge active={c.is_active} /></td>
+                        <td className="px-3 py-3"><AccountModeBadge mode={c.account_mode || 'kaivo_managed'} /></td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
               <div className="px-5 py-3 text-[11px] text-text-muted font-medium flex items-center justify-between bg-surface-secondary/50">
                 <span>{filtered.length} clients shown</span>
-                <span className="font-mono">Total spend: ${totalSpend.toLocaleString()}</span>
+                <span className="font-mono">{activeClients.length} active / {inactiveClients.length} inactive</span>
               </div>
             </div>
 
-            {/* AI Insights Panel */}
             <div className="glass-panel rounded-xl border border-border flex flex-col overflow-hidden shadow-sm">
               <div className="px-5 pt-4 pb-3 border-b border-border-subtle flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span
                     aria-hidden
-                    className="inline-flex w-2.5 h-2.5 rounded-full bg-teal-deep shadow-[0_0_24px_rgba(0,123,95,0.35)]"
+                    className="inline-flex w-2.5 h-2.5 rounded-full bg-v-teal shadow-[0_0_24px_rgba(0,123,95,0.35)]"
                   />
-                  <h3 className="text-[13px] font-bold text-text-primary">AI Insights</h3>
+                  <h3 className="text-[13px] font-bold text-v-text-primary">AI Insights</h3>
                 </div>
-                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md shadow-sm">{MOCK_INSIGHTS.length}</span>
+                <span className="bg-coral text-white text-[10px] font-semibold px-2 py-[2px] rounded-md shadow-sm">{insights.length}</span>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {MOCK_INSIGHTS.map((insight) => (
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+                {insights.length === 0 && (
+                  <div className="py-10 text-center text-[12px] text-v-text-muted font-medium">
+                    All caught up! No pending insights.
+                  </div>
+                )}
+                {insights.slice(0, 8).map((insight) => (
                   <div
-                    key={insight.id}
-                    className="glass-card border border-border rounded-xl p-4 space-y-2 transition-all hover:border-aqua/60 hover:-translate-y-0.5 hover:shadow-md"
+                    key={insight.insight_id}
+                    className="glass-card bg-white border border-border rounded-xl p-4 space-y-2 transition-all hover:border-v-teal/40 hover:-translate-y-0.5 hover:shadow-md"
                   >
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[11px] font-semibold text-text-primary">{insight.client}</span>
-                      <PlatformTag name={insight.platform} className={insight.platformClass} />
+                      <span className="text-[11px] font-bold text-v-text-primary">{insight.client_short_name}</span>
+                      <PlatformTag name={insight.platform_label} className={insight.platform} />
                       <SeverityBadge severity={insight.severity} />
                     </div>
-                    <p className="text-[12px] text-text-secondary leading-relaxed">{insight.text}</p>
-                    <div className="bg-teal-light rounded-lg px-3 py-[6px] text-[11px] font-semibold text-teal-deep">
-                      Estimated impact: {insight.impact}
+                    <p className="text-[12px] text-v-text-secondary leading-relaxed font-medium">{insight.title}</p>
+                    <div className="bg-v-teal/5 rounded-lg px-3 py-[6px] text-[11px] font-bold text-v-teal">
+                      Impact: {insight.impact_metrics[0]?.value || 'Optimization'}
                     </div>
                     <div className="flex items-center gap-2 pt-1">
-                      <button className="bg-teal-deep text-white text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md">Apply</button>
-                      <button className="bg-surface-secondary text-text-secondary text-[10.5px] font-semibold px-3 py-[4px] rounded-md hover:bg-surface-hover border border-border hover:border-aqua/40 transition-colors">Review</button>
-                      <button className="text-text-muted text-[10.5px] font-medium px-2 py-[4px] hover:text-text-primary transition-colors">Dismiss</button>
+                      <button 
+                        onClick={async () => {
+                          await apiClient.post(API_ENDPOINTS.INSIGHTS.APPLY(insight.insight_id), { accessToken, agencyId });
+                          refreshInsights();
+                          refreshSummary();
+                        }}
+                        className="bg-v-teal text-white text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-v-teal-dark transition-colors shadow-sm"
+                      >
+                        Apply
+                      </button>
+                      {insight.review_url ? (
+                        <Link 
+                          href={insight.review_url}
+                          className="bg-cream border border-cream-border text-v-text-primary text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-white transition-colors"
+                        >
+                          Review
+                        </Link>
+                      ) : (
+                         <Link 
+                          href={`/clients/${insight.client_id}`}
+                          className="bg-cream border border-cream-border text-v-text-primary text-[10.5px] font-bold px-3 py-[6px] rounded-md hover:bg-white transition-colors"
+                        >
+                          Review
+                        </Link>
+                      )}
+                      <button 
+                        onClick={async () => {
+                          await apiClient.post(API_ENDPOINTS.INSIGHTS.DISMISS(insight.insight_id), { accessToken, agencyId });
+                          refreshInsights();
+                          refreshSummary();
+                        }}
+                        className="text-text-muted text-[10.5px] font-bold px-2 py-[4px] hover:text-red transition-colors ml-auto"
+                      >
+                        Dismiss
+                      </button>
                     </div>
                   </div>
                 ))}
+
+                {/* Client breakdown by industry */}
+                {clients.length > 0 && (
+                  <div className="glass-card border border-border rounded-xl p-4 space-y-3 mt-4">
+                    <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">Clients by Industry</div>
+                    <div className="space-y-2">
+                      {Object.entries(
+                        clients.reduce<Record<string, number>>((acc, c) => {
+                          const ind = c.industry || 'Uncategorized';
+                          acc[ind] = (acc[ind] || 0) + 1;
+                          return acc;
+                        }, {})
+                      ).sort(([,a], [,b]) => b - a).map(([industry, count]) => (
+                        <div key={industry} className="flex items-center justify-between">
+                          <span className="text-[12px] text-text-secondary">{industry}</span>
+                          <span className="text-[12px] font-semibold text-text-primary font-mono">{count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {insights.length > 8 && (
+                  <Link href="/insights" className="block text-center text-[11px] font-bold text-v-teal py-2 hover:underline">
+                    View {insights.length - 8} more insights →
+                  </Link>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Leaderboard Row */}
-          <div className="grid grid-cols-3 gap-4">
-            <LeaderboardCard
-              title="Top Performers"
-              items={[
-                { name: 'Nova Skincare', score: 91.4, color: '#007B5F' },
-                { name: 'Verdant Plant Co.', score: 87.4, color: '#FF7043' },
-                { name: 'Solstice Home', score: 83.1, color: '#059669' },
-              ]}
-            />
-            <LeaderboardCard
-              title="Needs Attention"
-              items={[
-                { name: 'Harbor Coffee Co.', score: 48.2, color: '#FF7043' },
-                { name: 'Forge Supplements', score: 55.8, color: '#FFB74D' },
-                { name: 'Peaks Outdoor', score: 67.2, color: '#7C3AED' },
-              ]}
-              negative
-            />
-            <div className="bg-white rounded-xl border border-border p-5 shadow-sm transition-all hover:shadow-md hover:border-aqua/50">
-              <h4 className="text-[12px] font-bold text-text-primary mb-4">Platform Performance</h4>
-              <div className="space-y-3">
-                {[
-                  { name: 'Meta', spend: '$38.4k', score: 82.4, color: '#1877f2' },
-                  { name: 'Google Ads', spend: '$22.1k', score: 78.1, color: '#ea4335' },
-                  { name: 'TikTok', spend: '$14.2k', score: 64.8, color: '#00b8c4' },
-                ].map(p => (
-                  <div key={p.name} className="flex items-center gap-3">
-                    <div className="w-2 h-2 rounded-full shrink-0" style={{ background: p.color }} />
-                    <span className="text-[12px] font-semibold text-text-primary flex-1">{p.name}</span>
-                    <span className="text-[11px] font-medium text-text-muted font-mono">{p.spend}</span>
-                    <ScoreBadge score={p.score} />
+          {/* Client List Cards */}
+          {clients.length > 0 && (
+            <div className="grid grid-cols-3 gap-4">
+              {clients.slice(0, 6).map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/clients/${c.id}`}
+                  className="bg-white rounded-xl border border-border p-5 shadow-sm transition-all hover:shadow-md hover:border-aqua/50 hover:-translate-y-0.5"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div
+                      className="w-[28px] h-[28px] rounded-md flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                      style={{ background: getClientColor(c.name) }}
+                    >
+                      {getInitials(c.name)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[12px] font-semibold text-text-primary truncate">{c.name}</div>
+                      <div className="text-[10.5px] text-text-muted">{c.industry || 'No industry'}</div>
+                    </div>
+                    <StatusBadge active={c.is_active} />
                   </div>
-                ))}
-              </div>
+                  <div className="flex items-center gap-2">
+                    <AccountModeBadge mode={c.account_mode || 'kaivo_managed'} />
+                  </div>
+                </Link>
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </main>
     </>
   );
 }
 
-function KpiCard({ label, value, delta, positive }: { label: string; value: string; delta: string; positive: boolean }) {
+function KpiCard({ label, value, subtitle }: { label: string; value: string; subtitle: string }) {
   return (
     <div className="group relative bg-white rounded-xl p-5 border border-border shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/60">
       <div
@@ -385,29 +458,9 @@ function KpiCard({ label, value, delta, positive }: { label: string; value: stri
       <div className="relative">
         <div className="text-[11px] font-semibold text-text-muted uppercase tracking-wider">{label}</div>
         <div className="text-[28px] font-extrabold text-text-primary mt-1 font-mono tracking-tight">{value}</div>
-        <div className={`flex items-center gap-1 mt-1 text-[11px] font-medium ${positive ? 'text-green' : 'text-coral'}`}>
-        {positive ? '▲' : ''} {delta}
+        <div className="flex items-center gap-1 mt-1 text-[11px] font-medium text-text-muted">
+          {subtitle}
         </div>
-      </div>
-    </div>
-  );
-}
-
-function LeaderboardCard({ title, items, negative }: { title: string; items: { name: string; score: number; color: string }[]; negative?: boolean }) {
-  return (
-    <div className="bg-white rounded-xl border border-border p-5 shadow-sm transition-all hover:shadow-md hover:border-aqua/50">
-      <h4 className="text-[12px] font-bold text-text-primary mb-4">{title}</h4>
-      <div className="space-y-3">
-        {items.map((item, i) => (
-          <div key={item.name} className="flex items-center gap-3">
-            <span className="text-[11px] font-medium text-text-muted w-4">{i + 1}</span>
-            <div className="w-[24px] h-[24px] rounded-md flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ background: item.color }}>
-              {item.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
-            </div>
-            <span className="text-[12px] font-semibold text-text-primary flex-1 truncate">{item.name}</span>
-            <ScoreBadge score={item.score} />
-          </div>
-        ))}
       </div>
     </div>
   );

@@ -482,30 +482,48 @@ export default function ClientsPage() {
   const filtered = useMemo(() => {
     let list = [...allClients];
 
-    if (tab === 'needs_action') list = list.filter((c) => (clientDisplayMetricsById.get(c.id)?.alerts.count ?? 0) > 0);
-    else if (tab === 'top') list = list.filter((c) => (clientDisplayMetricsById.get(c.id)?.score ?? 0) >= 80);
-    else if (tab === 'manual_ai') list = list.filter((c) => aiModeFromAccountMode(c.account_mode) === 'manual');
+    if (tab === 'needs_action') {
+      list = list.filter((c) => (clientDisplayMetricsById.get(c.id)?.alerts.count ?? 0) > 0);
+    } else if (tab === 'top') {
+      list = list.filter((c) => (clientDisplayMetricsById.get(c.id)?.score ?? 0) >= 80);
+    } else if (tab === 'manual_ai') {
+      list = list.filter((c) => aiModeFromAccountMode(c.account_mode) === 'manual');
+    }
 
     const q = search.trim().toLowerCase();
     if (q) {
-      list = list.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          (c.industry ?? '').toLowerCase().includes(q),
-      );
+      list = list.filter((c) => {
+        // Name/Industry match
+        if (c.name.toLowerCase().includes(q) || (c.industry ?? '').toLowerCase().includes(q)) return true;
+
+        // Platform match (native)
+        if (c.platforms.some((p) => p.display_name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q))) return true;
+
+        // Platform match (fallback/Meta)
+        const metaPlates = metaFallbackPlatformsByClient[c.id] ?? [];
+        if (metaPlates.some((p) => p.display_name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q))) return true;
+
+        const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
+        if (fallbackMap && Array.from(fallbackMap.keys()).some((pk) => pk.toLowerCase().includes(q))) return true;
+
+        return false;
+      });
     }
 
     const dir = sortDir === 'asc' ? 1 : -1;
     return list.sort((a, b) => {
       const am = clientDisplayMetricsById.get(a.id) ?? a.metrics;
       const bm = clientDisplayMetricsById.get(b.id) ?? b.metrics;
+
       if (sortKey === 'score') return (am.score - bm.score) * dir;
       if (sortKey === 'spend') return (am.spend - bm.spend) * dir;
       if (sortKey === 'alerts') return (am.alerts.count - bm.alerts.count) * dir;
       if (sortKey === 'ctr') return (am.ctr - bm.ctr) * dir;
-      return 0;
+      
+      // Default stable sort by name
+      return a.name.localeCompare(b.name) * dir;
     });
-  }, [allClients, tab, search, sortKey, sortDir, clientDisplayMetricsById]);
+  }, [allClients, tab, search, sortKey, sortDir, clientDisplayMetricsById, metaFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
 
   // Footer counts are computed from whichever data source we have (hierarchy / fallbacks / lazy meta-insights).
 
@@ -622,21 +640,17 @@ export default function ClientsPage() {
     for (const c of effectiveHierarchy.clients) {
       const cKey = `c-${c.id}`;
       keys.push(cKey);
-      for (const p of c.platforms) {
-        const pKey = `${cKey}-p-${p.key}`;
-        keys.push(pKey);
-        const accounts = getPlatformAccountNodes(p);
-        for (const acc of accounts) {
-          const aKey = `${pKey}-a-${acc.key}`;
-          keys.push(aKey);
-          for (const camp of p.campaigns) {
-            const campKey = `${aKey}-camp-${camp.id}`;
-            keys.push(campKey);
-            for (const ad of camp.ad_sets ?? []) {
-              keys.push(`${campKey}-ad-${ad.id}`);
-            }
-          }
-        }
+      
+      // Expand platforms (both native and fallback)
+      const nativePlts = c.platforms.map(p => p.key);
+      const metaPlts = (metaFallbackPlatformsByClient[c.id] ?? []).map(p => p.key);
+      const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
+      const fallbackPlts = fallbackMap ? Array.from(fallbackMap.keys()) : [];
+      
+      const allPltKeys = Array.from(new Set([...nativePlts, ...metaPlts, ...fallbackPlts]));
+      
+      for (const pk of allPltKeys) {
+        keys.push(`${cKey}-p-${pk}`);
       }
     }
     setExpanded(new Set(keys));
@@ -867,16 +881,41 @@ export default function ClientsPage() {
                   <thead>
                     <tr className="border-b border-border">
                       <th className="w-[40px] pl-4 pr-0 py-3" />
-                      <th className="pl-2 pr-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Client / Name</th>
-                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Score</th>
-                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Spend</th>
+                      <th 
+                        className="pl-2 pr-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-v-teal transition-colors"
+                        onClick={() => toggleSort('score')}
+                      >
+                        Client / Name {sortKey === 'score' && (sortDir === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th 
+                        className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-v-teal transition-colors"
+                        onClick={() => toggleSort('score')}
+                      >
+                        Score {sortKey === 'score' && (sortDir === 'desc' ? '↓' : '↑')}
+                      </th>
+                      <th 
+                        className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-v-teal transition-colors"
+                        onClick={() => toggleSort('spend')}
+                      >
+                        Spend {sortKey === 'spend' && (sortDir === 'desc' ? '↓' : '↑')}
+                      </th>
                       <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Budget</th>
                       <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">CPC</th>
-                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">CTR</th>
+                      <th 
+                        className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-v-teal transition-colors"
+                        onClick={() => toggleSort('ctr')}
+                      >
+                        CTR {sortKey === 'ctr' && (sortDir === 'desc' ? '↓' : '↑')}
+                      </th>
                       <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Conv.</th>
                       <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Cost/Conv.</th>
                       <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider min-w-[120px]">Pacing</th>
-                      <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Alerts</th>
+                      <th 
+                        className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider cursor-pointer hover:text-v-teal transition-colors"
+                        onClick={() => toggleSort('alerts')}
+                      >
+                        Alerts {sortKey === 'alerts' && (sortDir === 'desc' ? '↓' : '↑')}
+                      </th>
                       <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">Status</th>
                       <th className="px-3 py-3 text-[10.5px] font-semibold text-text-muted uppercase tracking-wider">AI Mode</th>
                     </tr>

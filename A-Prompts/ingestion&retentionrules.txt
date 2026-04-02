@@ -1,0 +1,10 @@
+1 yr default (we need as much data as possible to train/learn LLM) - bring in all campaigns but have a filter on dashboard to show only active campaigns, polling 30 mins on active is fine since it is free to pull, also forgot to ask to add a carat or arrow to collapse left menu pane - also billing is based on usage as in spend on campaigns we are tracking - there is an API for usage setup in stripe - so Saas fee for month ahead and usage for month behind   
+[2:03 AM]Also as we are tracking the daily spend on campaigns we need a way so they dont disconnect accounts after a day and pay for one day but get insights for the past year so we were thinking we ingest accounts but they need to email us if they want to disconnect the account
+
+The client wants us to store at least one year of data so we have as much information as possible to train our language model. They want us to load all campaigns (whether active or not), but on the dashboard, we should only show active campaigns. They also want us to check the active campaigns every 30 minutes because the API allows free, frequent updates.
+
+In addition, they want a small change in the user interface: they want a collapsible arrow on the left menu so users can expand or collapse it.
+
+They also explained the billing model: the fee will be based on how much money is spent on campaigns. They said we will use a Stripe API to set this up—meaning the monthly SaaS fee will be charged in advance, but the usage fee will be based on the previous month’s spending.
+
+Finally, since we are tracking daily campaign spending, they are worried that users might disconnect their accounts after just one day and pay for only one day, but still get insights for the entire past year. So, they suggest that we do the account ingestion, but if someone wants to disconnect their account, they must email us to request it.

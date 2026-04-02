@@ -75,6 +75,10 @@ class MemberOut(BaseModel):
     class Config:
         from_attributes = True
 
+class UpdateMemberRole(BaseModel):
+    """Schema for updating a member's role"""
+    role: str
+
 class InviteMember(BaseModel):
     """Schema for inviting a new member"""
     email: str
@@ -308,3 +312,52 @@ class ClientManagerAssignRequest(BaseModel):
 
 class ClientManagerDetachRequest(BaseModel):
     platform_account_id: int
+
+
+# --- AI Insights ---
+
+class InsightImpactMetric(BaseModel):
+    label: str
+    value: str
+    color: str # 'green', 'amber', 'red', 'teal', 'default'
+
+class AIInsightOut(BaseModel):
+    insight_id: str
+    client_id: int
+    client_name: str
+    client_short_name: str
+    platform: str
+    platform_label: str
+    severity: str # 'critical', 'warning', 'opportunity', 'anomaly'
+    categories: List[str]
+    title: str
+    description: str
+    impact_metrics: List[InsightImpactMetric]
+    apply_label: Optional[str] = None
+    review_label: Optional[str] = None
+    review_url: Optional[str] = None
+    icon: str
+    accent_color: str
+    icon_bg: str
+    status: str
+    created_at: datetime
+    priority_score: float
+
+    model_config = ConfigDict(from_attributes=True)
+
+class AIInsightSummary(BaseModel):
+    total_pending: int
+    critical_count: int
+    opportunity_count: int
+    recoverable_spend_cents: int
+    clients_affected_count: int
+
+class AIInsightApplyRecommendedResponse(BaseModel):
+    applied_count: int
+    failed_count: int
+    insight_ids: List[str]
+
+class AIInsightActionResponse(BaseModel):
+    success: bool
+    action_taken: Optional[str] = None
+    updated_at: Optional[datetime] = None
