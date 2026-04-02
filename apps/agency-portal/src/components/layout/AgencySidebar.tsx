@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   {
     name: "Dashboard",
     href: "/",
+    roles: ['agency_admin', 'agency_member', 'agency_manager', 'agency_viewer'],
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <rect x="1" y="1" width="6" height="6" rx="1.5" />
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
     href: "/insights",
     pip: "7",
     pipColor: "bg-coral",
+    roles: ['agency_admin', 'agency_member', 'agency_manager'],
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <circle cx="8" cy="8" r="6.5" />
@@ -36,6 +38,7 @@ const NAV_ITEMS = [
     href: "/clients",
     pip: "12",
     pipColor: "bg-aqua",
+    roles: ['agency_admin', 'agency_member', 'agency_manager', 'agency_viewer'],
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <path d="M2 12V5l6-3 6 3v7l-6 3-6-3z" />
@@ -45,6 +48,7 @@ const NAV_ITEMS = [
   {
     name: "Client Manager",
     href: "/client-manager",
+    roles: ['agency_admin', 'agency_member', 'agency_manager', 'agency_viewer'],
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <rect x="1" y="1" width="14" height="14" rx="2" />
@@ -56,6 +60,7 @@ const NAV_ITEMS = [
     name: "Integrations",
     href: "/integrations",
     dotColor: "#4DB6AC",
+    roles: ['agency_admin', 'agency_member', 'agency_manager'],
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <path d="M13 3H3a1 1 0 00-1 1v1.5l5 4.5v4l2 1v-5l5-4.5V4a1 1 0 00-1-1z" />
@@ -65,6 +70,7 @@ const NAV_ITEMS = [
   {
     name: "Billing",
     href: "/billing",
+    roles: ['agency_admin'],
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <rect x="1" y="3" width="14" height="10" rx="2" />
@@ -75,6 +81,7 @@ const NAV_ITEMS = [
   {
     name: "Settings",
     href: "/settings",
+    roles: ['agency_admin'],
     icon: (
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" className="w-[16px] h-[16px] shrink-0">
         <circle cx="8" cy="8" r="3" />
@@ -127,7 +134,11 @@ export function AgencySidebar({ initialUser }: { initialUser?: SidebarUserSnapsh
 
       {/* Navigation */}
       <nav className="px-2.5 pt-3 flex-1 space-y-0.5">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.filter((item) => {
+          const userRole = session?.user?.agencyRole;
+          if (!userRole) return true; // show all during loading
+          return item.roles.includes(userRole);
+        }).map((item) => {
           const isActive =
             item.href === "/"
               ? pathname === "/"

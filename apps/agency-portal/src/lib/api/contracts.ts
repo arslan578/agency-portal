@@ -180,13 +180,14 @@ export type HierarchyCampaignRow = z.infer<typeof HierarchyCampaignSchema>;
 
 export const AGENCY_ROLES = {
   agency_admin:   { label: 'Admin',   description: 'Full access to all agency features, billing, and team management' },
+  agency_member:  { label: 'Manager', description: 'Can manage clients, campaigns, and view reports' },
   agency_manager: { label: 'Manager', description: 'Can manage clients, campaigns, and view reports' },
   agency_viewer:  { label: 'Viewer',  description: 'Read-only access to dashboards and reports' },
 } as const;
 
-export type AgencyRole = keyof typeof AGENCY_ROLES;
+export type AgencyRole = 'agency_admin' | 'agency_member' | 'agency_manager' | 'agency_viewer';
 
-export const ROLE_PERMISSIONS: Record<AgencyRole, { capabilities: string[]; sections: string[] }> = {
+export const ROLE_PERMISSIONS: Record<string, { capabilities: string[]; sections: string[] }> = {
   agency_admin: {
     capabilities: [
       'View agency dashboard',
@@ -200,6 +201,15 @@ export const ROLE_PERMISSIONS: Record<AgencyRole, { capabilities: string[]; sect
     sections: ['Dashboard', 'Clients', 'Team', 'Settings', 'Billing', 'Campaigns', 'Reports'],
   },
   agency_manager: {
+    capabilities: [
+      'View agency dashboard',
+      'Manage clients (create, edit)',
+      'Create and manage campaigns',
+      'View all reports and analytics',
+    ],
+    sections: ['Dashboard', 'Clients', 'Campaigns', 'Reports'],
+  },
+  agency_member: {
     capabilities: [
       'View agency dashboard',
       'Manage clients (create, edit)',

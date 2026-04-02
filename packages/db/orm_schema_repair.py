@@ -199,6 +199,10 @@ def _ensure_plantier_enum_aligned(engine: Engine) -> None:
         ac.execute(text(_ADD_PLANTIER_LABELS))
         ac.execute(text("SET statement_timeout = '0';"))
 
+    tables = set(sa_inspect(engine).get_table_names())
+    if "agencies" not in tables:
+        return
+
     with engine.connect() as conn:
         conn.execute(text("SET statement_timeout = '15s';"))
         conn.execute(text("COMMIT;"))
@@ -328,20 +332,25 @@ def ensure_orm_schema(engine: Engine) -> None:
     _ensure_invitestatus_enum_aligned(engine)
     _ensure_clientrole_enum_aligned(engine)
 
+    existing_tables = set(sa_inspect(engine).get_table_names())
+
     with engine.connect() as conn:
         conn.execute(text("SET statement_timeout = '15s';"))
         conn.execute(text("COMMIT;"))
         for table, column, definition in _ORM_COLUMNS:
+            if table not in existing_tables:
+                continue
             conn.execute(
                 text(
                     f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {definition};"
                 )
             )
             conn.execute(text("COMMIT;"))
-        conn.execute(text(_AUDIT_LOGS_DDL))
-        conn.execute(text("COMMIT;"))
-        for stmt in _AUDIT_INDEXES:
-            conn.execute(text(stmt))
+        if "agencies" in existing_tables and "clients" in existing_tables and "users" in existing_tables:
+            conn.execute(text(_AUDIT_LOGS_DDL))
             conn.execute(text("COMMIT;"))
+            for stmt in _AUDIT_INDEXES:
+                conn.execute(text(stmt))
+                conn.execute(text("COMMIT;"))
         conn.execute(text("SET statement_timeout = '0';"))
         conn.execute(text("COMMIT;"))
