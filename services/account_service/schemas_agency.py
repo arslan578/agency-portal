@@ -69,6 +69,10 @@ class MemberOut(BaseModel):
     class Config:
         from_attributes = True
 
+class UpdateMemberRole(BaseModel):
+    """Schema for updating a member's role"""
+    role: str
+
 class InviteMember(BaseModel):
     """Schema for inviting a new member"""
     email: str

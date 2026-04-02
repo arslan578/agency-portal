@@ -19,6 +19,7 @@ export const API_ENDPOINTS = {
     DASHBOARD: (id: string) => `${BASE}/agency/${id}/dashboard`,
     MEMBERS: (id: string) => `${BASE}/agencies/${id}/members`,
     REMOVE_MEMBER: (id: string, memberId: number) => `${BASE}/agencies/${id}/members/${memberId}`,
+    UPDATE_MEMBER_ROLE: (id: string, memberId: number) => `${BASE}/agencies/${id}/members/${memberId}`,
     INVITE: (id: string) => `${BASE}/agencies/${id}/invite`,
     INVITES: (id: string) => `${BASE}/agencies/${id}/invites`,
     CANCEL_INVITE: (id: string, inviteId: number) => `${BASE}/agencies/${id}/invites/${inviteId}`,

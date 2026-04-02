@@ -73,6 +73,11 @@ def get_agency_dashboard(
             "id": agency.id,
             "name": agency.name,
             "logo_url": agency.logo_url,
+            "email": agency.email,
+            "website": agency.website,
+            "phone": agency.phone,
+            "timezone": agency.timezone,
+            "currency": agency.currency,
             "current_plan": agency.current_plan.value if agency.current_plan else "free",
             "credits": float(agency.credits) if agency.credits is not None else 0,
             "billing_status": agency.billing_status or "active",
@@ -440,6 +445,44 @@ def remove_member(
     db.commit()
     
     return {"success": True, "message": "Member removed from agency"}
+
+
+@router.patch("/agencies/{agency_id}/members/{member_id}", response_model=dict)
+def update_member_role(
+    agency_id: int,
+    member_id: int,
+    payload: schemas_agency.UpdateMemberRole,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin)
+):
+    """Update a team member's role (Admin only)"""
+    ensure_agency_scope(ctx, agency_id)
+
+    valid_roles = {r.value for r in AgencyRole}
+    if payload.role not in valid_roles:
+        raise HTTPException(status_code=422, detail=f"Invalid role. Must be one of: {', '.join(sorted(valid_roles))}")
+
+    membership = db.query(AgencyMembership).filter(
+        AgencyMembership.id == member_id,
+        AgencyMembership.agency_id == agency_id
+    ).first()
+
+    if not membership:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    # Prevent demoting the last admin
+    if membership.role == AgencyRole.ADMIN and payload.role != AgencyRole.ADMIN.value:
+        admin_count = db.query(AgencyMembership).filter(
+            AgencyMembership.agency_id == agency_id,
+            AgencyMembership.role == AgencyRole.ADMIN
+        ).count()
+        if admin_count <= 1:
+            raise HTTPException(status_code=400, detail="Cannot demote the last admin")
+
+    membership.role = AgencyRole(payload.role)
+    db.commit()
+
+    return {"success": True, "message": f"Role updated to {payload.role}"}
 
 
 @router.get("/clients", response_model=List[schemas_agency.ClientOut])

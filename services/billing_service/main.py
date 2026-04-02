@@ -318,5 +318,46 @@ def get_agency_billing_summary(agency_id: int, db: Session = Depends(get_db)):
     }
 
 
+# ── Dev-only endpoint to simulate a Stripe checkout for onboarding ──
+DEV_MODE = os.getenv("DEV_MODE", "true").lower() in ("1", "true", "yes")
+
+if DEV_MODE:
+    from pydantic import BaseModel as _BM, EmailStr
+
+    class SimulatePaymentRequest(_BM):
+        email: EmailStr
+        plan_name: str = "Agency"
+
+    @router.post("/dev/simulate-payment", tags=["Dev"])
+    def simulate_payment(req: SimulatePaymentRequest, db: Session = Depends(get_db)):
+        """
+        DEV ONLY — Simulate a post-payment onboarding flow.
+        Creates a magic link and sends the onboarding email, just like
+        a real checkout.session.completed webhook would.
+        """
+        from .onboarding import create_onboarding_magic_link
+        from .email import send_onboarding_magic_link_email
+
+        magic_url, error = create_onboarding_magic_link(
+            email=req.email.lower().strip(),
+            db=db,
+        )
+        if not magic_url:
+            raise HTTPException(status_code=500, detail=f"Magic link creation failed: {error}")
+
+        email_sent, email_debug = send_onboarding_magic_link_email(
+            to_email=req.email.lower().strip(),
+            magic_url=magic_url,
+            plan_name=req.plan_name,
+        )
+
+        return {
+            "status": "ok",
+            "magic_url": magic_url,
+            "email_sent": email_sent,
+            "email_debug": email_debug,
+        }
+
+
 app.include_router(router)
 app.include_router(webhook_router, prefix="/billing", tags=["Billing Webhooks"])

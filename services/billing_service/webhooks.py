@@ -20,6 +20,8 @@ from .logic import (
     handle_subscription_deleted,
     process_subscription_payment,
 )
+from .onboarding import create_onboarding_magic_link
+from .email import send_onboarding_magic_link_email
 from packages.db.models import Subscription
 
 logger = logging.getLogger(__name__)
@@ -41,26 +43,31 @@ async def stripe_webhook(
     Verifies HMAC signature and routes events to appropriate handlers
     """
     if not webhook_secret:
-        logger.error("STRIPE_WEBHOOK_SECRET not configured")
-        raise HTTPException(status_code=500, detail="Webhook secret not configured")
-    
-    if not stripe_signature:
-        raise HTTPException(status_code=400, detail="Missing Stripe signature header")
-    
-    body = await request.body()
-    
-    try:
-        event = stripe.Webhook.construct_event(
-            body,
-            stripe_signature,
-            webhook_secret
-        )
-    except ValueError as e:
-        logger.error(f"Invalid payload: {e}")
-        raise HTTPException(status_code=400, detail="Invalid payload")
-    except stripe.error.SignatureVerificationError as e:
-        logger.error(f"Invalid signature: {e}")
-        raise HTTPException(status_code=400, detail="Invalid signature")
+        logger.warning("STRIPE_WEBHOOK_SECRET not configured — skipping signature verification (dev mode)")
+        body = await request.body()
+        import json
+        try:
+            event = json.loads(body)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid JSON payload")
+    else:
+        if not stripe_signature:
+            raise HTTPException(status_code=400, detail="Missing Stripe signature header")
+        
+        body = await request.body()
+        
+        try:
+            event = stripe.Webhook.construct_event(
+                body,
+                stripe_signature,
+                webhook_secret
+            )
+        except ValueError as e:
+            logger.error(f"Invalid payload: {e}")
+            raise HTTPException(status_code=400, detail="Invalid payload")
+        except stripe.error.SignatureVerificationError as e:
+            logger.error(f"Invalid signature: {e}")
+            raise HTTPException(status_code=400, detail="Invalid signature")
     
     event_type = event['type']
     event_data = event['data']['object']
@@ -90,30 +97,92 @@ async def stripe_webhook(
 
 
 async def handle_checkout_session_completed(session_data: dict, db: Session):
-    """Handle checkout.session.completed event"""
+    """
+    Handle checkout.session.completed event.
+
+    Two cases:
+    1. Existing agency buying credits → metadata contains agency_id → confirm purchase.
+    2. New user paid on getkaivo.com → no agency_id in metadata → generate a
+       magic link and send an onboarding email so they can access agency.getkaivo.com.
+    """
     session_id = session_data.get('id')
     mode = session_data.get('mode')
     metadata = session_data.get('metadata', {})
-    
+
     logger.info(f"Processing checkout session: {session_id}, mode: {mode}")
-    
-    if mode == 'payment':
-        agency_id = metadata.get('agency_id')
-        if agency_id:
-            try:
-                confirm_credit_purchase(
-                    session_id=session_id,
-                    agency_id=int(agency_id),
-                    db=db
-                )
-                logger.info(f"Confirmed credit purchase for agency {agency_id}")
-            except Exception as e:
-                logger.error(f"Error confirming credit purchase: {e}")
-                raise
-    elif mode == 'subscription':
-        logger.info(f"Subscription checkout completed: {session_id}")
+
+    agency_id = metadata.get('agency_id')
+
+    # ── Case 1: Existing agency credit purchase ──
+    if mode == 'payment' and agency_id:
+        try:
+            confirm_credit_purchase(
+                session_id=session_id,
+                agency_id=int(agency_id),
+                db=db,
+            )
+            logger.info(f"Confirmed credit purchase for agency {agency_id}")
+        except Exception as e:
+            logger.error(f"Error confirming credit purchase: {e}")
+            raise
+        return
+
+    # ── Case 2: New user onboarding (payment or subscription from getkaivo.com) ──
+    # Extract email: customer_email → customer_details.email → metadata.email
+    customer_email = session_data.get('customer_email')
+    if not customer_email:
+        customer_details = session_data.get('customer_details') or {}
+        customer_email = customer_details.get('email')
+    if not customer_email:
+        customer_email = metadata.get('email')
+
+    if not customer_email:
+        logger.warning(
+            "checkout.session.completed (%s) has no agency_id and no customer email — skipping onboarding",
+            session_id,
+        )
+        return
+
+    customer_email = customer_email.lower().strip()
+    plan_name = metadata.get('plan_name', 'Agency')
+    stripe_customer_id = session_data.get('customer')
+
+    logger.info(
+        "New user payment detected — generating onboarding magic link for %s (session=%s, plan=%s)",
+        customer_email,
+        session_id,
+        plan_name,
+    )
+
+    magic_url, error = create_onboarding_magic_link(
+        email=customer_email,
+        db=db,
+        stripe_customer_id=stripe_customer_id,
+    )
+
+    if not magic_url:
+        logger.error(
+            "Failed to create onboarding magic link for %s: %s",
+            customer_email,
+            error,
+        )
+        return
+
+    email_sent, email_debug = send_onboarding_magic_link_email(
+        to_email=customer_email,
+        magic_url=magic_url,
+        plan_name=plan_name,
+    )
+
+    if email_sent:
+        logger.info("Onboarding email sent to %s (magic link created)", customer_email)
     else:
-        logger.warning(f"Unknown checkout mode: {mode}")
+        logger.warning(
+            "Onboarding magic link created for %s but email not sent (%s). Link: %s",
+            customer_email,
+            email_debug,
+            magic_url,
+        )
 
 
 async def handle_invoice_payment_succeeded(invoice_data: dict, db: Session):

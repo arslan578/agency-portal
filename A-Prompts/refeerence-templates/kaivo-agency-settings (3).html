@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kaivo — Settings</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --cream:#f4efe6; --cream-dark:#ece6db; --cream-border:#ddd6c8;
+    --teal:#2a9d8f; --teal-dark:#1f7a6e; --teal-light:#e8f5f3;
+    --coral:#e76f51; --coral-light:#fdf0ec; --coral-dark:#c85a3d;
+    --text-primary:#1a1a2e; --text-secondary:#5a5a72; --text-muted:#9a9aaa;
+    --green:#2d9e5a; --green-light:#e8f7ef;
+    --amber:#d4860a; --amber-light:#fef3dc;
+    --red:#d94040; --red-light:#fdeaea;
+    --purple:#5c54c8; --purple-light:#eeeeff;
+    --white:#ffffff; --nav-width:232px; --settings-nav:210px; --radius:12px;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:"Space Grotesk",sans-serif; background:var(--cream); color:var(--text-primary); display:flex; height:100vh; overflow:hidden; font-size:14px; }
+
+  /* SIDEBAR */
+  .sidebar { width:var(--nav-width); background:var(--white); border-right:2px solid var(--cream-border); display:flex; flex-direction:column; flex-shrink:0; }
+  .logo-row { padding:14px 18px; border-bottom:2px solid var(--cream-border); display:flex; align-items:center; gap:10px; }
+  .nav-section { padding:12px 10px 4px; flex:1; }
+  .nav-item { display:flex; align-items:center; gap:9px; padding:9px 10px; border-radius:8px; cursor:pointer; color:var(--text-secondary); font-size:13px; font-weight:600; transition:all 0.15s; margin-bottom:2px; }
+  .nav-item:hover { background:var(--cream); color:var(--text-primary); }
+  .nav-item.active { background:var(--teal); color:#fff; }
+  .nav-item svg { width:15px; height:15px; flex-shrink:0; }
+  .nav-pip { margin-left:auto; min-width:18px; height:18px; padding:0 5px; background:var(--coral); border-radius:5px; font-size:10px; font-weight:700; color:#fff; display:flex; align-items:center; justify-content:center; }
+  .sidebar-footer { margin-top:auto; padding:14px 10px; border-top:2px solid var(--cream-border); }
+  .user-card { background:var(--cream); border-radius:10px; padding:10px 12px; display:flex; align-items:center; gap:10px; cursor:pointer; border:1px solid var(--cream-border); }
+  .avatar { width:34px; height:34px; border-radius:8px; background:var(--coral); display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; color:#fff; flex-shrink:0; }
+  .user-name { font-size:12.5px; font-weight:700; }
+  .user-role { font-size:11px; color:var(--text-muted); }
+
+  /* SETTINGS NAV */
+  .settings-nav { width:var(--settings-nav); background:var(--white); border-right:2px solid var(--cream-border); display:flex; flex-direction:column; flex-shrink:0; padding:20px 10px; overflow-y:auto; }
+  .snav-group-label { font-size:9px; font-weight:800; letter-spacing:1.2px; text-transform:uppercase; color:var(--text-muted); padding:0 8px; margin:14px 0 6px; }
+  .snav-group-label:first-child { margin-top:0; }
+  .snav-item { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px; cursor:pointer; color:var(--text-secondary); font-size:12.5px; font-weight:600; transition:all 0.12s; }
+  .snav-item:hover { background:var(--cream); color:var(--text-primary); }
+  .snav-item.active { background:var(--teal-light); color:var(--teal-dark); font-weight:700; }
+  .snav-item svg { width:14px; height:14px; flex-shrink:0; opacity:0.65; }
+  .snav-item.active svg { opacity:1; }
+  .snav-divider { height:1px; background:var(--cream-border); margin:12px 0; }
+
+  /* MAIN */
+  .main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+  .topbar { height:56px; background:var(--white); border-bottom:2px solid var(--cream-border); display:flex; align-items:center; padding:0 28px; flex-shrink:0; }
+  .topbar-right { margin-left:auto; display:flex; gap:10px; }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:7px 16px; border-radius:8px; font-size:12px; font-weight:700; font-family:inherit; cursor:pointer; border:2px solid var(--cream-border); background:var(--white); color:var(--text-primary); transition:all 0.12s; white-space:nowrap; }
+  .btn:hover { border-color:var(--teal); color:var(--teal); }
+  .btn.primary { background:var(--teal); border-color:var(--teal); color:#fff; }
+  .btn.primary:hover { background:var(--teal-dark); }
+  .btn.danger { border-color:var(--red); color:var(--red); background:var(--white); }
+  .btn.danger:hover { background:var(--red-light); }
+  .btn.sm { padding:5px 12px; font-size:11px; }
+
+  .content { flex:1; overflow-y:auto; padding:28px; display:flex; flex-direction:column; gap:28px; }
+
+  /* SECTION */
+  .section { display:flex; flex-direction:column; gap:16px; scroll-margin-top:20px; }
+  .section-header { padding-bottom:12px; border-bottom:2px solid var(--cream-border); }
+  .section-title { font-size:16px; font-weight:800; color:var(--text-primary); margin-bottom:3px; }
+  .section-sub { font-size:12px; color:var(--text-muted); font-weight:500; }
+
+  /* CARDS */
+  .card { background:var(--white); border:2px solid var(--cream-border); border-radius:var(--radius); overflow:hidden; }
+  .card-header { padding:14px 18px; border-bottom:1px solid var(--cream-border); display:flex; align-items:center; justify-content:space-between; }
+  .card-title { font-size:13px; font-weight:800; color:var(--text-primary); }
+  .card-sub { font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:500; }
+  .card-body { padding:18px; display:flex; flex-direction:column; gap:16px; }
+
+  /* FORMS */
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .form-group { display:flex; flex-direction:column; gap:6px; }
+  .form-group.full { grid-column:1/-1; }
+  .form-label { font-size:11px; font-weight:700; color:var(--text-secondary); }
+  .form-input { padding:9px 12px; border:2px solid var(--cream-border); border-radius:8px; font-family:inherit; font-size:13px; font-weight:500; color:var(--text-primary); background:var(--white); outline:none; transition:border-color 0.12s; }
+  .form-input:focus { border-color:var(--teal); }
+  .form-input:disabled { background:var(--cream); color:var(--text-muted); cursor:not-allowed; }
+  .form-select { padding:9px 12px; border:2px solid var(--cream-border); border-radius:8px; font-family:inherit; font-size:13px; font-weight:500; color:var(--text-primary); background:var(--white); outline:none; cursor:pointer; }
+  .form-hint { font-size:10.5px; color:var(--text-muted); font-weight:500; }
+
+  /* LOGO UPLOAD */
+  .logo-upload { display:flex; align-items:center; gap:16px; }
+  .logo-preview { width:72px; height:72px; border-radius:12px; border:2px solid var(--cream-border); background:var(--cream); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+
+  /* COLOUR SWATCHES */
+  .colour-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .colour-swatch { width:26px; height:26px; border-radius:6px; cursor:pointer; border:2px solid transparent; transition:all 0.12s; flex-shrink:0; }
+  .colour-swatch.selected { border-color:var(--text-primary); transform:scale(1.12); }
+  .colour-swatch:hover:not(.selected) { transform:scale(1.06); }
+
+  /* DOMAIN */
+  .domain-row { display:flex; align-items:stretch; }
+  .domain-input { border-radius:8px 0 0 8px; border-right:none; flex:1; }
+  .domain-suffix { padding:9px 12px; background:var(--cream); border:2px solid var(--cream-border); border-radius:0 8px 8px 0; font-size:13px; color:var(--text-muted); font-weight:600; white-space:nowrap; display:flex; align-items:center; }
+  .domain-live { display:flex; align-items:center; gap:8px; padding:9px 14px; background:var(--cream); border:1.5px solid var(--cream-border); border-radius:8px; }
+  .live-dot { width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; }
+  .live-url { font-family:"Space Mono",monospace; font-size:11px; color:var(--text-secondary); font-weight:700; }
+
+  /* TEAM TABLE */
+  .team-table { width:100%; border-collapse:collapse; }
+  .team-table thead { background:var(--cream); border-bottom:2px solid var(--cream-border); }
+  .team-table th { padding:8px 14px; text-align:left; font-size:9px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--text-muted); }
+  .team-table td { padding:11px 14px; border-bottom:1px solid var(--cream-border); vertical-align:middle; }
+  .team-table tr:last-child td { border-bottom:none; }
+  .member-cell { display:flex; align-items:center; gap:10px; }
+  .member-av { width:30px; height:30px; border-radius:7px; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:800; color:#fff; flex-shrink:0; }
+  .member-name { font-size:12.5px; font-weight:700; }
+  .member-email { font-size:10px; color:var(--text-muted); margin-top:1px; }
+  .role-badge { display:inline-flex; font-size:10px; font-weight:700; padding:3px 8px; border-radius:5px; }
+  .role-admin   { background:var(--teal-light); color:var(--teal-dark); }
+  .role-manager { background:var(--purple-light); color:var(--purple); }
+  .role-viewer  { background:var(--cream-dark); color:var(--text-muted); border:1px solid var(--cream-border); }
+  .status-pill { display:inline-flex; font-size:10px; font-weight:700; padding:3px 8px; border-radius:5px; }
+  .st-active  { background:var(--green-light); color:var(--green); }
+  .st-invited { background:var(--amber-light); color:var(--amber); }
+  .perm-check { font-size:13px; color:var(--green); font-weight:700; }
+  .perm-dash { font-size:13px; color:var(--text-muted); }
+
+  /* TOGGLE */
+  .toggle-row { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--cream-border); }
+  .toggle-row:last-child { border-bottom:none; }
+  .toggle-info { flex:1; }
+  .toggle-label { font-size:13px; font-weight:700; color:var(--text-primary); }
+  .toggle-desc { font-size:11px; color:var(--text-muted); margin-top:2px; font-weight:500; }
+  .toggle { position:relative; width:38px; height:21px; flex-shrink:0; }
+  .toggle input { opacity:0; width:0; height:0; position:absolute; }
+  .toggle-slider { position:absolute; inset:0; background:var(--cream-dark); border:2px solid var(--cream-border); border-radius:21px; cursor:pointer; transition:all 0.2s; }
+  .toggle-slider::before { content:""; position:absolute; width:13px; height:13px; border-radius:50%; background:var(--white); top:2px; left:2px; transition:all 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.15); }
+  .toggle input:checked + .toggle-slider { background:var(--teal); border-color:var(--teal); }
+  .toggle input:checked + .toggle-slider::before { transform:translateX(17px); }
+
+  /* INVITE */
+  .invite-form { display:flex; gap:10px; align-items:flex-end; padding:12px 14px; background:var(--teal-light); border-top:1px solid var(--cream-border); }
+  .invite-form .form-group { flex:1; }
+
+  /* ACCOUNT BOTTOM */
+  .account-bottom { padding:16px 18px; border-top:1px solid var(--cream-border); display:flex; align-items:center; justify-content:space-between; }
+  .account-bottom-label { font-size:12.5px; font-weight:700; color:var(--text-primary); }
+  .account-bottom-desc { font-size:11px; color:var(--text-muted); margin-top:2px; }
+
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--cream-border); border-radius:10px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo-row">
+    <svg width="32" height="32" viewBox="0 0 239 239" fill="none"><path d="M0 0 C3.94 1.39 6.92 3.24 10.25 5.75 C15.07 9.33 19.97 12.72 25 16 C24.44 19.36 23.77 21.43 22.125 24.5 C16.04 36.27 15.75 49.01 18.88 61.61 C21.45 69.39 25.52 76.88 31 83 C33 83 33 83 33 83 C33.2 82.03 33.39 81.06 33.59 80.06 C38.31 58.32 49.75 39.70 68.17 26.78 C83.56 16.94 97.70 13 116 13 C116 22.9 116 32.8 116 43 C111.71 43.66 107.42 44.32 103 45 C89.47 49.06 77.89 55.95 70.95 68.62 C67.5 74.55 66 81 66 81 C67.96 80.06 68.97 79.57 68.97 79.57 C91.37 69.11 114.39 67.88 137.75 76.31 C148.87 80.84 160.14 87.77 168 97 C168 101 166.6 102.61 164.63 104.19 C160.38 107.68 156.33 111.35 152.3 115.08 C150.24 116.8 148.44 117.94 146 119 C132.83 106.29 119.6 101.51 103.57 101.74 C96.12 102.28 89.01 104.47 82 107 C82 109 83.22 109.33 85.69 110 C104.83 116.48 119.12 132.15 128.25 149.63 C135.68 164.72 139.69 184.46 135 201 C121.24 199.38 109.41 196.46 105 196 C105.1 192.67 105.47 176.12 90.29 149.04 C80.47 141.74 75 139 75 139 C76.38 142.69 83.15 163.15 71.28 204.6 C64.37 217.76 54.75 229.2 42 237 C38 238 38 238 38 238 C33.23 230.18 24 214 24 214 C24.72 211.73 26.18 209.76 29.63 207.44 C40.39 199.64 46.2 186.94 48.38 174.13 C49.24 166.96 48.8 160.16 48 153 C46 153 45.38 155 45.38 155 C43.48 159.14 38 166 38 166 C23.99 183.3 4.4 192.5 -15 195 C-26.42 195.64 -39.18 196.24 -50 192 C-51.24 188.27 -49.35 183.24 -47.06 176.31 C-43.97 166.91 -43 164 -43 164 C-33 164 -17.87 165.1 7 153 C14.57 146.47 21 136 21 136 C-1.4 139.49 -23.1 134.02 -39.3 122.34 C-56.15 109.1 -71 76 -71 76 C-62.83 73.66 -51.86 70.53 -48.75 69.64 C-46 69 -42 69 -42 69 C-40.46 72.25 -32.88 88.04 -7 104 C4.1 106.09 10 106 10 106 C-7.84 85.69 -15.24 64.36 -14.15 40.12 C-13.15 25.87 -8.14 11.73 0 0 Z" fill="#FC756C" transform="translate(71,0)"/></svg>
+    <svg height="22" viewBox="0 0 463 90" fill="none"><path d="M0 0 C16.08 0 26.19 2.31 35.19 11.09 C44.87 22.58 45.17 39.12 43.99 53.4 C43.23 60.85 42.14 67.76 38.44 74.38 C32.62 83.63 25.42 87.47 17.35 89.52 C5.95 90.7 -15.63 90.74 -35.31 79.85 C-45.49 69.44 -44.85 53.26 -44.71 39.75 C-44.48 28.73 -42.47 19.18 -35.19 10.56 C-22.16 -0.12 -10.95 -0.1 0 0 Z M-25.56 24.38 C-30.49 34.73 -30.3 50.38 -27.31 61.31 C-25.43 66.28 -23.21 69.41 -18.56 72.13 C-6.86 74.59 10.31 74.73 22.25 69.19 C29.64 59.68 29.12 46.27 27.75 34.81 C26.59 28.03 25.09 23.77 19.88 19.06 C6.45 12.47 -15.15 12.53 -25.56 24.38 Z" fill="#2a9d8f" transform="translate(418.56,-0.38)"/><path d="M0 0 C10.56 0 16 0 16 0 C17 41 17 41 17 41 C26 31 31.32 25.71 38.25 17.97 C47.81 5.4 55 0 76 0 C68.13 9.19 57.75 20.22 50.84 27.95 C45.43 33.55 40 41 40 41 C52.16 54.25 70 73.21 82 88 C65.67 90.07 59.79 86.75 48 74 C39.56 64.36 28 53 28 53 C22.53 56.61 16.38 66.88 16 88 C10.72 88 0 88 0 88 Z" fill="#2a9d8f" transform="translate(1,1)"/><path d="M0 0 C11.88 0 18 0 18 0 C34 44 43 65 43 65 C53 38 69 0 86 0 C78.94 20.68 53 88 53 88 C40.46 88 34 88 34 88 C19.8 52.77 0 0 0 0 Z" fill="#2a9d8f" transform="translate(268,1)"/><path d="M0 0 C10.56 0 16 0 16 0 C16 88 16 88 16 88 C5.44 88 0 88 0 88 Z" fill="#449C8B" transform="translate(224,1)"/><path d="M0 0 C14.9 0.09 17.14 0.11 17.14 0.11 C50.14 88.11 50.14 88.11 50.14 88.11 C38.92 88.11 33.14 88.11 33.14 88.11 C27.14 71.11 27.14 71.11 27.14 71.11 C14.27 71.44 -11.86 72.11 -11.86 72.11 C-35.86 88.11 -35.86 88.11 -35.86 88.11 C-5.86 55.11 20.14 55.11 20.14 55.11 C8.14 22.11 7.14 22.11 7.14 22.11 Z" fill="#2a9d8f" transform="translate(144.86,0.89)"/></svg>
+  </div>
+  <nav class="nav-section">
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>Dashboard</div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6.5"/><path d="M8 4.5v4l2.5 1.5"/></svg>AI Insights<span class="nav-pip">9</span></div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M2 12V5l6-3 6 3v7l-6 3-6-3z"/></svg>Clients<span class="nav-pip" style="background:var(--teal-dark);">12</span></div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 3H3a1 1 0 00-1 1v1.5l5 4.5v4l2 1v-5l5-4.5V4a1 1 0 00-1-1z"/></svg>Integrations<span style="width:7px;height:7px;border-radius:50%;background:#22c55e;margin-left:auto;flex-shrink:0;"></span></div>
+    <div class="nav-item"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M1 7h14"/></svg>Billing</div>
+    <div class="nav-item active"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4"/></svg>Settings</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="user-card"><div class="avatar">JL</div><div><div class="user-name">James Lewis</div><div class="user-role">Admin</div></div></div>
+  </div>
+</aside>
+
+<!-- SETTINGS NAV -->
+<nav class="settings-nav">
+  <div class="snav-group-label">Agency</div>
+  <div class="snav-item active" onclick="goTo('agency-profile',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="12" height="12" rx="3"/><path d="M5 8h6M5 11h4"/></svg>
+    Agency Profile
+  </div>
+  <div class="snav-item" onclick="goTo('team',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="5" r="2.5"/><circle cx="11" cy="5" r="2"/><path d="M1 13c0-2.2 2.2-4 5-4s5 1.8 5 4"/><path d="M13 13c0-1.5-1-2.8-2.5-3.3"/></svg>
+    Team
+  </div>
+  <div class="snav-item" onclick="goTo('whitelabel',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M1 7h14M5 3V2M11 3V2"/></svg>
+    White-label
+  </div>
+  <div class="snav-item" onclick="goTo('account',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v4M8 11v1"/></svg>
+    Account
+  </div>
+  <div class="snav-divider"></div>
+  <div class="snav-group-label">My Settings</div>
+  <div class="snav-item" onclick="goTo('my-profile',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="8" cy="6" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+    My Profile
+  </div>
+  <div class="snav-item" onclick="goTo('notifications',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 1a5 5 0 015 5v3l1.5 2.5h-13L3 9V6a5 5 0 015-5zM6.5 13.5a1.5 1.5 0 003 0"/></svg>
+    Notifications
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div>
+      <strong style="font-size:15px;font-weight:800;color:var(--text-primary);">Settings</strong>
+      <span style="font-size:12px;color:var(--text-muted);font-weight:500;margin-left:10px;">Media Co Agency</span>
+    </div>
+    <div class="topbar-right">
+      <button class="btn primary" onclick="saveAll()">Save Changes</button>
+    </div>
+  </div>
+
+  <div class="content" id="mainContent">
+
+    <!-- ── AGENCY PROFILE ── -->
+    <div class="section" id="agency-profile">
+      <div class="section-header">
+        <div class="section-title">Agency Profile</div>
+        <div class="section-sub">Details used across Kaivo and in client-facing communications</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Agency Details</div></div>
+        <div class="card-body">
+          <div class="logo-upload">
+            <div class="logo-preview">
+              <svg width="36" height="36" viewBox="0 0 40 40" fill="none"><path d="M20 4L20 20L34 12Z" fill="#e76f51" opacity=".9"/><path d="M20 20L34 28L34 12Z" fill="#e76f51" opacity=".65"/><path d="M20 20L20 36L34 28Z" fill="#e76f51" opacity=".45"/><path d="M20 20L6 28L20 36Z" fill="#e76f51" opacity=".65"/><path d="M20 20L6 12L6 28Z" fill="#e76f51" opacity=".8"/><path d="M20 4L6 12L20 20Z" fill="#e76f51" opacity=".55"/></svg>
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Agency Logo</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Used in the client white-label portal. PNG or SVG, min 200×200px.</div>
+              <button class="btn sm">Upload Logo</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Agency Name</label><input class="form-input" type="text" value="Media Co Agency"></div>
+            <div class="form-group"><label class="form-label">Contact Email</label><input class="form-input" type="email" value="hello@mediaco.agency"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Website</label><input class="form-input" type="text" value="https://mediaco.agency"></div>
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-input" type="text" placeholder="+1 (555) 000-0000"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Timezone</label>
+              <select class="form-select">
+                <option selected>America/Los_Angeles (PST)</option>
+                <option>America/New_York (EST)</option>
+                <option>America/Chicago (CST)</option>
+                <option>Europe/London (GMT)</option>
+                <option>Europe/Paris (CET)</option>
+                <option>Asia/Tokyo (JST)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Currency Display</label>
+              <select class="form-select">
+                <option selected>USD — US Dollar ($)</option>
+                <option>GBP — British Pound (£)</option>
+                <option>EUR — Euro (€)</option>
+                <option>AUD — Australian Dollar (A$)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TEAM ── -->
+    <div class="section" id="team">
+      <div class="section-header">
+        <div class="section-title">Team & Access</div>
+        <div class="section-sub">Manage who can access your agency portal and what they can do. Each member manages their own notification preferences.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div><div class="card-title">Team Members</div><div class="card-sub">3 of 10 seats used &middot; Agency Growth plan</div></div>
+          <button class="btn primary sm" onclick="showInvite()">+ Invite Member</button>
+        </div>
+        <table class="team-table">
+          <thead><tr><th>Member</th><th>Role</th><th>Status</th><th>Last Active</th><th></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><div class="member-cell"><div class="member-av" style="background:var(--coral);">JL</div><div><div class="member-name">James Lewis</div><div class="member-email">james@mediaco.agency</div></div></div></td>
+              <td><span class="role-badge role-admin">Admin</span></td>
+              <td><span class="status-pill st-active">&bull; Active</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-weight:600;">Now</td>
+              <td><button class="btn sm" disabled style="opacity:0.3;cursor:default;">You</button></td>
+            </tr>
+            <tr>
+              <td><div class="member-cell"><div class="member-av" style="background:var(--teal);">SR</div><div><div class="member-name">Sophie Reed</div><div class="member-email">sophie@mediaco.agency</div></div></div></td>
+              <td>
+                <select class="form-select" style="font-size:11px;padding:4px 8px;border-radius:6px;" onchange="confirmRoleChange(this,'Sophie Reed')">
+                  <option>Admin</option><option selected>Manager</option><option>Viewer</option>
+                </select>
+              </td>
+              <td><span class="status-pill st-active">&bull; Active</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-weight:600;">2 hrs ago</td>
+              <td><button class="btn sm danger" onclick="removeMember(this,'Sophie Reed')">Remove</button></td>
+            </tr>
+            <tr>
+              <td><div class="member-cell"><div class="member-av" style="background:var(--purple);">TK</div><div><div class="member-name">Tom Keller</div><div class="member-email">tom@mediaco.agency</div></div></div></td>
+              <td>
+                <select class="form-select" style="font-size:11px;padding:4px 8px;border-radius:6px;" onchange="confirmRoleChange(this,'Tom Keller')">
+                  <option>Admin</option><option>Manager</option><option selected>Viewer</option>
+                </select>
+              </td>
+              <td><span class="status-pill st-active">&bull; Active</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-weight:600;">Yesterday</td>
+              <td><button class="btn sm danger" onclick="removeMember(this,'Tom Keller')">Remove</button></td>
+            </tr>
+            <tr>
+              <td><div class="member-cell"><div class="member-av" style="background:var(--amber);">RN</div><div><div class="member-name">Rita Novak</div><div class="member-email">rita@mediaco.agency</div></div></div></td>
+              <td><span class="role-badge role-viewer">Viewer</span></td>
+              <td><span class="status-pill st-invited">&bull; Invited</span></td>
+              <td style="font-size:11px;color:var(--text-muted);font-weight:600;">Never</td>
+              <td style="display:flex;gap:6px;"><button class="btn sm" onclick="alert('Invite resent to Rita.')">Resend</button><button class="btn sm danger" onclick="removeMember(this,'Rita Novak')">Remove</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="invite-form" id="inviteForm" style="display:none;">
+          <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="inviteEmail" type="email" placeholder="colleague@agency.com"></div>
+          <div class="form-group"><label class="form-label">Role</label>
+            <select class="form-select" id="inviteRole"><option>Admin</option><option selected>Manager</option><option>Viewer</option></select>
+          </div>
+          <div style="display:flex;gap:8px;padding-top:22px;">
+            <button class="btn primary sm" onclick="sendInvite()">Send Invite</button>
+            <button class="btn sm" onclick="hideInvite()">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Role Permissions</div><div class="card-sub">What each role can do in the agency portal</div></div>
+        <div style="overflow-x:auto;">
+          <table class="team-table" style="min-width:520px;">
+            <thead><tr><th style="min-width:220px;">Permission</th><th style="text-align:center;">Admin</th><th style="text-align:center;">Manager</th><th style="text-align:center;">Viewer</th></tr></thead>
+            <tbody>
+              <tr><td style="font-size:12px;font-weight:600;">View dashboard, clients &amp; reports</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-check">&#10003;</td></tr>
+              <tr><td style="font-size:12px;font-weight:600;">Apply AI recommendations</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-dash">&mdash;</td></tr>
+              <tr><td style="font-size:12px;font-weight:600;">Pause / resume campaigns</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-dash">&mdash;</td></tr>
+              <tr><td style="font-size:12px;font-weight:600;">Edit campaign budgets</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-dash">&mdash;</td></tr>
+              <tr><td style="font-size:12px;font-weight:600;">Manage integrations &amp; accounts</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-dash">&mdash;</td><td style="text-align:center;" class="perm-dash">&mdash;</td></tr>
+              <tr><td style="font-size:12px;font-weight:600;">Invite &amp; remove team members</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-dash">&mdash;</td><td style="text-align:center;" class="perm-dash">&mdash;</td></tr>
+              <tr><td style="font-size:12px;font-weight:600;">Billing &amp; plan management</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-dash">&mdash;</td><td style="text-align:center;" class="perm-dash">&mdash;</td></tr>
+              <tr><td style="font-size:12px;font-weight:600;">White-label &amp; agency settings</td><td style="text-align:center;" class="perm-check">&#10003;</td><td style="text-align:center;" class="perm-dash">&mdash;</td><td style="text-align:center;" class="perm-dash">&mdash;</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WHITE-LABEL ── -->
+    <div class="section" id="whitelabel">
+      <div class="section-header">
+        <div class="section-title">White-label Client Portal</div>
+        <div class="section-sub">Customise how clients see their portal when you share access with them</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Branding</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Portal Name</label>
+              <input class="form-input" type="text" value="Media Co Client Portal">
+              <span class="form-hint">Shown in the browser tab when clients view their portal</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Agency Logo</label>
+              <div style="display:flex;align-items:center;gap:10px;">
+                <div class="logo-preview" style="width:42px;height:42px;border-radius:8px;">
+                  <svg width="22" height="22" viewBox="0 0 40 40" fill="none"><path d="M20 4L20 20L34 12Z" fill="#e76f51" opacity=".9"/><path d="M20 20L34 28L34 12Z" fill="#e76f51" opacity=".65"/><path d="M20 20L20 36L34 28Z" fill="#e76f51" opacity=".45"/><path d="M20 20L6 28L20 36Z" fill="#e76f51" opacity=".65"/><path d="M20 20L6 12L6 28Z" fill="#e76f51" opacity=".8"/><path d="M20 4L6 12L20 20Z" fill="#e76f51" opacity=".55"/></svg>
+                </div>
+                <button class="btn sm">Change Logo</button>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Brand Colour</label>
+            <div class="colour-row">
+              <div class="colour-swatch selected" style="background:#2a9d8f;" onclick="pickColour(this)"></div>
+              <div class="colour-swatch" style="background:#e76f51;" onclick="pickColour(this)"></div>
+              <div class="colour-swatch" style="background:#5c54c8;" onclick="pickColour(this)"></div>
+              <div class="colour-swatch" style="background:#2d9e5a;" onclick="pickColour(this)"></div>
+              <div class="colour-swatch" style="background:#d4860a;" onclick="pickColour(this)"></div>
+              <div class="colour-swatch" style="background:#0077b5;" onclick="pickColour(this)"></div>
+              <div class="colour-swatch" style="background:#1a1a2e;" onclick="pickColour(this)"></div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <input type="color" value="#2a9d8f" style="width:26px;height:26px;border:2px solid var(--cream-border);border-radius:6px;cursor:pointer;padding:1px;background:none;" onchange="pickColour(null,this.value)">
+                <span class="form-hint">Custom</span>
+              </div>
+            </div>
+            <span class="form-hint">Used for buttons, active states, and accent elements in the client portal</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Client Portal URL</div></div>
+        <div class="card-body">
+          <div class="form-group">
+            <label class="form-label">Subdomain</label>
+            <div class="domain-row">
+              <input class="form-input domain-input" type="text" value="mediaco">
+              <div class="domain-suffix">.kaivo.app</div>
+            </div>
+            <span class="form-hint">Changing this will break any previously shared client links</span>
+          </div>
+          <div class="domain-live">
+            <div class="live-dot"></div>
+            <span class="live-url">https://mediaco.kaivo.app</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Custom Domain <span style="font-size:9px;font-weight:700;background:var(--purple-light);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:4px;">Scale plan</span></label>
+            <input class="form-input" type="text" placeholder="portal.youragency.com" disabled>
+            <span class="form-hint">Upgrade to Agency Scale to use your own domain</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Client View Options</div><div class="card-sub">Control what clients see in their portal</div></div>
+        <div style="padding:0 18px;">
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Show Kaivo branding</div><div class="toggle-desc">Display "Powered by Kaivo" in the client portal footer</div></div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Show performance score</div><div class="toggle-desc">Clients can see their overall campaign performance score</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Show actual spend</div><div class="toggle-desc">Clients see real ad spend figures. Disable to hide raw spend data.</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Show campaign leaderboard</div><div class="toggle-desc">Clients see a ranking of their best and worst performing campaigns</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Show trend comparisons</div><div class="toggle-desc">Show month-over-month trend arrows and percentage changes</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACCOUNT ── -->
+    <div class="section" id="account">
+      <div class="section-header">
+        <div class="section-title">Account</div>
+        <div class="section-sub">Account-level settings and data management</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Account Details</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Account Owner</label>
+              <input class="form-input" type="email" value="james@mediaco.agency" disabled>
+              <span class="form-hint">Contact support to transfer account ownership</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Kaivo Account ID</label>
+              <input class="form-input" type="text" value="AGY-00841-MC" disabled>
+            </div>
+          </div>
+        </div>
+        <div class="account-bottom">
+          <div>
+            <div class="account-bottom-label">Export campaign data</div>
+            <div class="account-bottom-desc">Download all campaign performance data as CSV. Does not include AI insights or recommendations.</div>
+          </div>
+          <button class="btn sm">Export Data</button>
+        </div>
+        <div class="account-bottom">
+          <div>
+            <div class="account-bottom-label">Close account</div>
+            <div class="account-bottom-desc">To close your Kaivo account please contact our team. We will handle cancellation, final billing, and data deletion.</div>
+          </div>
+          <button class="btn sm danger" onclick="window.location.href='mailto:support@kaivo.com?subject=Account Closure Request — AGY-00841-MC'">Contact Us to Close Account</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MY PROFILE ── -->
+    <div class="section" id="my-profile">
+      <div class="section-header">
+        <div class="section-title">My Profile</div>
+        <div class="section-sub">Your personal account details</div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Personal Details</div></div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div class="avatar" style="width:56px;height:56px;border-radius:12px;font-size:18px;font-weight:800;flex-shrink:0;">JL</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;margin-bottom:4px;">Profile Photo</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">JPG or PNG, min 200x200px</div>
+              <button class="btn sm">Upload Photo</button>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">First Name</label><input class="form-input" type="text" value="James"></div>
+            <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" type="text" value="Lewis"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" type="email" value="james@mediaco.agency"></div>
+            <div class="form-group"><label class="form-label">Role</label><input class="form-input" type="text" value="Admin" disabled></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input class="form-input" type="password" value="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;">
+            </div>
+            <div class="form-group" style="justify-content:flex-end;padding-top:22px;">
+              <button class="btn sm">Change Password</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOTIFICATIONS ── -->
+    <div class="section" id="notifications">
+      <div class="section-header">
+        <div class="section-title">My Notifications</div>
+        <div class="section-sub">Your personal notification preferences. Other team members manage their own separately.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Email Alerts</div></div>
+        <div style="padding:0 18px;">
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Critical AI insights</div><div class="toggle-desc">Immediate email when a critical issue is detected across any client</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Platform sync failures</div><div class="toggle-desc">Alert when a platform token expires or sync fails</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Budget overruns</div><div class="toggle-desc">Alert when any client campaign exceeds its budget cap</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">Weekly portfolio digest</div><div class="toggle-desc">Summary of portfolio performance sent every Monday morning</div></div>
+            <label class="toggle"><input type="checkbox" checked><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">AI opportunity alerts</div><div class="toggle-desc">Email when high-confidence scaling opportunities are detected</div></div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="toggle-row">
+            <div class="toggle-info"><div class="toggle-label">New client connected</div><div class="toggle-desc">Notify when a new account is activated via Integrations</div></div>
+            <label class="toggle"><input type="checkbox"><span class="toggle-slider"></span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><div class="card-title">Digest Schedule</div></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Send Weekly Digest On</label>
+              <select class="form-select"><option selected>Monday</option><option>Tuesday</option><option>Wednesday</option><option>Thursday</option><option>Friday</option></select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Send At (Your Timezone)</label>
+              <select class="form-select"><option>7:00 AM</option><option selected>8:00 AM</option><option>9:00 AM</option><option>10:00 AM</option></select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+function goTo(id, navItem) {
+  document.querySelectorAll(".snav-item").forEach(function(i) { i.classList.remove("active"); });
+  if (navItem) navItem.classList.add("active");
+  var el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function showInvite() {
+  var f = document.getElementById("inviteForm");
+  f.style.display = "flex";
+  document.getElementById("inviteEmail").focus();
+}
+function hideInvite() { document.getElementById("inviteForm").style.display = "none"; }
+
+function sendInvite() {
+  var email = document.getElementById("inviteEmail").value.trim();
+  var role = document.getElementById("inviteRole").value;
+  if (!email) { alert("Please enter an email address."); return; }
+  hideInvite();
+  alert("Invite sent to " + email + " as " + role + ".");
+}
+
+function confirmRoleChange(sel, name) {
+  var newRole = sel.value;
+  var prev = sel.dataset.prev || sel.options[sel.selectedIndex === 0 ? 1 : 0].text;
+  if (!confirm("Change " + name + " from " + prev + " to " + newRole + "?")) {
+    sel.value = sel.dataset.prev || "Manager";
+    return;
+  }
+  sel.dataset.prev = newRole;
+}
+
+function removeMember(btn, name) {
+  if (!confirm("Remove " + name + " from your team? They will lose access immediately.")) return;
+  var row = btn.closest("tr");
+  row.style.opacity = "0";
+  row.style.transition = "opacity 0.2s";
+  setTimeout(function() { row.remove(); }, 200);
+}
+
+function pickColour(swatch, hex) {
+  document.querySelectorAll(".colour-swatch").forEach(function(s) { s.classList.remove("selected"); });
+  if (swatch) swatch.classList.add("selected");
+}
+
+function saveAll() { alert("Settings saved."); }
+</script>
+</body>
+</html>
