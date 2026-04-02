@@ -16,7 +16,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("clients", sa.Column("avatar_color", sa.String(length=20), nullable=True))
+    bind = op.get_bind()
+    import sqlalchemy as sa
+    inspector = sa.inspect(bind)
+    columns = [c['name'] for c in inspector.get_columns('clients')]
+    if 'avatar_color' not in columns:
+        op.add_column("clients", sa.Column("avatar_color", sa.String(length=20), nullable=True))
 
 
 def downgrade() -> None:

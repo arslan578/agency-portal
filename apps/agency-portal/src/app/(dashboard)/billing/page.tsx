@@ -54,7 +54,7 @@ export default function BillingPage() {
   const totalDue = planFee + spendFee;
 
   return (
-    <div className="flex flex-col h-full bg-surface-secondary overflow-hidden">
+    <div className="flex flex-col h-full bg-cream overflow-hidden">
       <DashboardHeader
         title="Billing & Spend"
         actions={

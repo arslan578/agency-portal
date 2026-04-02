@@ -226,7 +226,7 @@ function LoginPageContent() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen w-full flex items-center justify-center bg-surface-secondary">
+      <div className="min-h-screen w-full flex items-center justify-center bg-cream">
         <span className="inline-block h-6 w-6 border-2 border-teal-deep/30 border-t-teal-deep rounded-full animate-spin" />
       </div>
     }>

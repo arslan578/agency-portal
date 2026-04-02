@@ -166,7 +166,7 @@ export default function OnboardingPage() {
   const stepLabels = ['Agency Profile', 'Connect Platform', 'Select Clients', 'All Set'];
 
   return (
-    <div className="min-h-screen bg-surface-secondary flex flex-col">
+    <div className="min-h-screen bg-cream flex flex-col">
       {/* Top Bar */}
       <div className="bg-white border-b border-border-subtle px-8 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">

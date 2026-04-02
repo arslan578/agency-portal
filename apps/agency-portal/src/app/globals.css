@@ -2,7 +2,7 @@
 
 @theme {
   /* === Backgrounds === */
-  --color-background: #FFFFFF;
+  --color-background: #F4EFE6;
   --color-foreground: #0F172A;
 
   /* === Kaivo Brand — Tropical Oasis === */
@@ -84,7 +84,7 @@
 }
 
 :root {
-  --background: #FFFFFF;
+  --background: #F4EFE6;
   --foreground: #0F172A;
   --kaivo-teal-rgb: 0, 150, 136;
   --kaivo-aqua-rgb: 77, 182, 172;
