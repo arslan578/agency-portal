@@ -83,7 +83,9 @@ export default function DashboardPage() {
   
   const [tab, setTab] = useState<TabFilter>('all');
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [showUnassignedBar, setShowUnassignedBar] = useState(true);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const { count: unassignedCount } = useUnassignedCount();
 
   useEffect(() => {
     if (!profileMenuOpen) return;

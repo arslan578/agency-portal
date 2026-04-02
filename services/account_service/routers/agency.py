@@ -10,11 +10,26 @@ All sensitive operations require appropriate role-based access control.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Query
+from sqlalchemy import inspect
+from sqlalchemy.exc import ProgrammingError
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
 from packages.db.database import get_db
-from packages.db.models import Agency, Client, AgencyMembership, AgencyRole, User, AgencyInvite, InviteStatus, Campaign, CampaignStatus, PlatformAccount, ClientAccountGroup, ClientPortalSettings
+from packages.db.models import (
+    Agency,
+    Client,
+    AgencyMembership,
+    AgencyRole,
+    User,
+    AgencyInvite,
+    InviteStatus,
+    Campaign,
+    CampaignStatus,
+    PlatformAccount,
+    ClientAccountGroup,
+    ClientPortalSettings,
+)
 from services.account_service.email import send_agency_invite_email
 from services.account_service import schemas_agency
 from services.account_service.agency_access import ensure_agency_scope
@@ -27,6 +42,28 @@ from services.auth_service.dependencies import (
 )
 
 router = APIRouter()
+
+
+def _client_account_groups_table_exists(db: Session) -> bool:
+    try:
+        return bool(inspect(db.get_bind()).has_table("client_account_groups"))
+    except Exception:
+        return False
+
+
+def _unassigned_platform_accounts_query(db: Session, agency_id: int):
+    """Platform accounts for this agency that are not yet assigned in Client Manager."""
+    return (
+        db.query(PlatformAccount)
+        .join(Client, PlatformAccount.client_id == Client.id)
+        .filter(Client.agency_id == agency_id)
+        .outerjoin(
+            ClientAccountGroup,
+            ClientAccountGroup.platform_account_id == PlatformAccount.id,
+        )
+        .filter(ClientAccountGroup.id.is_(None))
+    )
+
 
 # --- Agency CRUD ---
 
@@ -925,14 +962,12 @@ def get_unassigned_accounts(
 ):
     """List platform accounts that are not yet grouped in Client Manager."""
     ensure_agency_scope(ctx, agency_id)
-    accounts = (
-        db.query(PlatformAccount)
-        .outerjoin(ClientAccountGroup)
-        .filter(ClientAccountGroup.id == None)
-        .join(Client)
-        .filter(Client.agency_id == agency_id)
-        .all()
-    )
+    if not _client_account_groups_table_exists(db):
+        return []
+    try:
+        accounts = _unassigned_platform_accounts_query(db, agency_id).all()
+    except ProgrammingError:
+        return []
     return [
         schemas_agency.ClientManagerAccount(
             id=pa.id,
@@ -957,14 +992,12 @@ def get_unassigned_count(
 ):
     """Return count of unassigned platform accounts for this agency."""
     ensure_agency_scope(ctx, agency_id)
-    count = (
-        db.query(PlatformAccount)
-        .outerjoin(ClientAccountGroup)
-        .filter(ClientAccountGroup.id == None)
-        .join(Client)
-        .filter(Client.agency_id == agency_id)
-        .count()
-    )
+    if not _client_account_groups_table_exists(db):
+        return {"count": 0}
+    try:
+        count = _unassigned_platform_accounts_query(db, agency_id).count()
+    except ProgrammingError:
+        count = 0
     return {"count": count}
 
 
@@ -1832,3 +1865,150 @@ def get_client_tiktok_insights(
         raise HTTPException(status_code=403, detail="Agency does not own this client")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch TikTok insights: {str(e)}")
+
+
+# ── Microsoft Ads Agency Endpoints ────────────────────────────────────────────
+
+@router.post("/agency/{agency_id}/microsoft/connect")
+def connect_microsoft_agency_route(
+    agency_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.microsoft_agency_service import connect_microsoft_agency_oauth
+
+    code = body.get("code")
+    redirect_uri = body.get("redirectUri")
+    if not code:
+        raise HTTPException(status_code=400, detail="OAuth code is required")
+
+    try:
+        return connect_microsoft_agency_oauth(
+            db,
+            agency_id,
+            code,
+            user_id=ctx.get("user_id"),
+            redirect_uri=redirect_uri,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect Microsoft Ads: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/microsoft/disconnect")
+def disconnect_microsoft_agency_route(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.microsoft_agency_service import disconnect_microsoft_agency
+
+    try:
+        return disconnect_microsoft_agency(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/microsoft/status")
+def get_microsoft_agency_status(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.microsoft_agency_service import get_microsoft_status
+
+    try:
+        return get_microsoft_status(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/microsoft/accounts")
+def get_microsoft_agency_accounts(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.microsoft_agency_service import get_microsoft_agency_accounts
+
+    try:
+        return get_microsoft_agency_accounts(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch Microsoft Ads accounts: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/microsoft/auto-link")
+def auto_link_microsoft_clients(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.microsoft_agency_service import auto_link_microsoft_clients
+
+    try:
+        return auto_link_microsoft_clients(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-link failed: {str(e)}")
+
+
+@router.post("/clients/{client_id}/microsoft/manual-link")
+def manual_link_microsoft_client(
+    client_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    from services.account_service.microsoft_agency_service import manual_link_microsoft_client
+
+    ad_account_id = body.get("ad_account_id")
+    if not ad_account_id:
+        raise HTTPException(status_code=400, detail="ad_account_id is required")
+
+    try:
+        return manual_link_microsoft_client(
+            db=db,
+            client_id=client_id,
+            ad_account_id=ad_account_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Manual link failed: {str(e)}")
+
+
+@router.get("/clients/{client_id}/microsoft-insights")
+def get_client_microsoft_insights(
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    from services.account_service.microsoft_agency_service import fetch_client_microsoft_insights
+
+    try:
+        return fetch_client_microsoft_insights(
+            db,
+            client_id=client_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch Microsoft Ads insights: {str(e)}")
