@@ -26,7 +26,7 @@ class CloudinaryClient:
             if not self.cloud_name:
                 raise ValueError("CLOUDINARY_CLOUD_NAME not set")
         except Exception as e:
-            logger.warning(f"Cloudinary Client failed to initialize: {e}")
+            logger.info(f"Cloudinary Client not configured: {e}")
             self.cloud_name = None
     
     def upload(
