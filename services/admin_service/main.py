@@ -34,6 +34,7 @@ TOKEN_EXPIRY_HOURS = 48
 ROLE_MAP = {
     "agency_admin": AgencyRole.ADMIN,
     "agency_member": AgencyRole.MEMBER,
+    "agency_manager": AgencyRole.MEMBER,
     "agency_viewer": AgencyRole.VIEWER,
 }
 

@@ -17,6 +17,8 @@ function SignupPageContent() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const journeyParam = searchParams?.get('journey');
   const journey = useMemo<InviteJourney | null>(() => {
@@ -58,6 +60,22 @@ function SignupPageContent() {
 
     if (password.length < 8) {
       setError('Password must be at least 8 characters.');
+      return;
+    }
+    if (!/[A-Z]/.test(password)) {
+      setError('Password must contain at least one uppercase letter.');
+      return;
+    }
+    if (!/[a-z]/.test(password)) {
+      setError('Password must contain at least one lowercase letter.');
+      return;
+    }
+    if (!/[0-9]/.test(password)) {
+      setError('Password must contain at least one number.');
+      return;
+    }
+    if (!/[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/`~]/.test(password)) {
+      setError('Password must contain at least one special character.');
       return;
     }
 
@@ -159,36 +177,79 @@ function SignupPageContent() {
 
             <div className="flex flex-col gap-[6px] mb-4">
               <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Password</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                placeholder="At least 8 characters"
-                autoComplete="new-password"
-                className="py-[11px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
-                value={password}
-                onChange={(e) => {
-                  setPassword(e.target.value);
-                  setError('');
-                }}
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  placeholder="Min 8 chars, upper, lower, number, special"
+                  autoComplete="new-password"
+                  className="w-full py-[11px] px-[14px] pr-[42px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError('');
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  )}
+                </button>
+              </div>
+              {password && (
+                <div className="flex flex-wrap gap-1.5 mt-1">
+                  {[
+                    { test: password.length >= 8, label: '8+ chars' },
+                    { test: /[A-Z]/.test(password), label: 'Uppercase' },
+                    { test: /[a-z]/.test(password), label: 'Lowercase' },
+                    { test: /[0-9]/.test(password), label: 'Number' },
+                    { test: /[!@#$%^&*()_+\-=\[\]{}|;:',.<>?/`~]/.test(password), label: 'Special' },
+                  ].map(({ test, label }) => (
+                    <span key={label} className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${test ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                      {test ? '✓' : '○'} {label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-[6px] mb-6">
               <label className="text-[11px] font-semibold text-text-secondary tracking-wide">Confirm Password</label>
-              <input
-                type="password"
-                required
-                minLength={8}
-                placeholder="Re-enter your password"
-                autoComplete="new-password"
-                className="py-[11px] px-[14px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
-                value={confirmPassword}
-                onChange={(e) => {
-                  setConfirmPassword(e.target.value);
-                  setError('');
-                }}
-              />
+              <div className="relative">
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  required
+                  minLength={8}
+                  placeholder="Re-enter your password"
+                  autoComplete="new-password"
+                  className="w-full py-[11px] px-[14px] pr-[42px] border border-border rounded-[10px] text-[14px] font-medium text-text-primary bg-white placeholder:text-text-muted focus:outline-none focus:border-teal-deep transition-colors"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setError('');
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-secondary transition-colors"
+                  tabIndex={-1}
+                >
+                  {showConfirm ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <button

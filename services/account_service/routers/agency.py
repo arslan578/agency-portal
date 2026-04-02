@@ -194,10 +194,11 @@ def invite_member(
     if existing_invite:
         raise HTTPException(status_code=400, detail="An invite is already pending for this email")
     
-    # Map role strings to AgencyRole enum
+    # Map role strings to AgencyRole enum (accept both member/manager labels)
     role_map = {
         "agency_admin": AgencyRole.ADMIN,
         "agency_member": AgencyRole.MEMBER,
+        "agency_manager": AgencyRole.MEMBER,
         "agency_viewer": AgencyRole.VIEWER
     }
     
@@ -227,7 +228,8 @@ def invite_member(
     # Role display mapping for user-friendly emails
     role_display_map = {
         "agency_admin": "Admin",
-        "agency_member": "Member",
+        "agency_member": "Manager",
+        "agency_manager": "Manager",
         "agency_viewer": "Viewer"
     }
     role_label = role_display_map.get(invite.role, "Collaborator")

@@ -348,8 +348,17 @@ def set_password(
     if body.password != body.confirm_password:
         raise HTTPException(status_code=400, detail="Passwords do not match")
 
-    if len(body.password) < 8:
+    pwd = body.password
+    if len(pwd) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters")
+    if not any(c.isupper() for c in pwd):
+        raise HTTPException(status_code=400, detail="Password must contain at least one uppercase letter")
+    if not any(c.islower() for c in pwd):
+        raise HTTPException(status_code=400, detail="Password must contain at least one lowercase letter")
+    if not any(c.isdigit() for c in pwd):
+        raise HTTPException(status_code=400, detail="Password must contain at least one number")
+    if not any(c in "!@#$%^&*()_+-=[]{}|;:',.<>?/`~" for c in pwd):
+        raise HTTPException(status_code=400, detail="Password must contain at least one special character")
 
     user.hashed_password = auth.pwd_context.hash(body.password)
     db.commit()
@@ -389,15 +398,79 @@ def verify_magic_token(token: str, db: Session = Depends(get_db)):
     """
     Public endpoint — verify a magic link token and issue a JWT.
     Creates the user account if it doesn't exist, and establishes agency membership.
+    Supports both MagicToken (admin onboarding) and AgencyInvite (team invite) tokens.
     """
-    from packages.db.models import MagicToken, AgencyMembership, AgencyRole
+    from packages.db.models import MagicToken, AgencyMembership, AgencyRole, AgencyInvite, InviteStatus
 
     if not token or not token.strip():
         raise HTTPException(status_code=400, detail="Token parameter is required")
 
     magic = db.query(MagicToken).filter(MagicToken.token == token).first()
     if not magic:
-        raise HTTPException(status_code=404, detail="Invalid link")
+        # --- Fallback: check AgencyInvite table for team invite tokens ---
+        invite = db.query(AgencyInvite).filter(
+            AgencyInvite.token == token,
+            AgencyInvite.status == InviteStatus.PENDING,
+        ).first()
+        if not invite:
+            raise HTTPException(status_code=404, detail="Invalid link")
+
+        # Validate expiry
+        exp = invite.expires_at if invite.expires_at.tzinfo else invite.expires_at.replace(tzinfo=timezone.utc)
+        if exp < datetime.now(timezone.utc):
+            invite.status = InviteStatus.EXPIRED
+            db.commit()
+            raise HTTPException(status_code=400, detail="This invite link has expired")
+
+        # Create or fetch the user
+        user = auth.get_user_by_email(db, invite.email)
+        if not user:
+            user_create = schemas.UserCreate(email=invite.email, password=None)
+            user = auth.create_user(db, user_create)
+
+        user.last_login_at = datetime.now(timezone.utc)
+        user.is_active = True
+
+        # Create membership if not already present
+        existing_membership = db.query(AgencyMembership).filter(
+            AgencyMembership.user_id == user.id,
+            AgencyMembership.agency_id == invite.agency_id,
+        ).first()
+        if not existing_membership:
+            membership = AgencyMembership(
+                user_id=user.id,
+                agency_id=invite.agency_id,
+                role=invite.role or AgencyRole.VIEWER,
+            )
+            db.add(membership)
+
+        # Mark invite as accepted
+        invite.status = InviteStatus.ACCEPTED
+        invite.accepted_at = datetime.now(timezone.utc)
+        db.commit()
+        db.refresh(user)
+
+        agency_context = get_user_agency_context(db, user.id)
+        access_token = auth.create_access_token(
+            data={
+                "sub": user.email,
+                "user_id": user.id,
+                "agency_id": agency_context["agency_id"],
+                "agency_role": agency_context["agency_role"],
+            },
+            expires_delta=timedelta(hours=auth.ACCESS_TOKEN_EXPIRE_HOURS),
+        )
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": user.email,
+                "role": agency_context.get("agency_role"),
+                "agency_id": agency_context.get("agency_id"),
+                "is_superuser": user.is_superuser,
+            },
+        }
 
     GRACE_PERIOD_MINUTES = 5
 
