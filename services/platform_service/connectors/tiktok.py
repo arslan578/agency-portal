@@ -664,6 +664,174 @@ class TikTokAdsConnector(PlatformConnector):
                 "error_code": "CONNECTION_ERROR"
             }
 
+    def _tiktok_parse_bc_get_list(self, result: Dict[str, Any]) -> List[Dict[str, str]]:
+        if result.get("code") != 0:
+            return []
+        data = result.get("data") or {}
+        raw = data.get("list") or data.get("bc_list") or []
+        out: List[Dict[str, str]] = []
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            info = item.get("bc_info") if isinstance(item.get("bc_info"), dict) else item
+            bc_id = str(info.get("bc_id") or info.get("id") or "").strip()
+            if not bc_id:
+                continue
+            name = str(
+                info.get("name") or info.get("bc_name") or info.get("company_name") or ""
+            ).strip()
+            out.append({"bc_id": bc_id, "name": name})
+        return out
+
+    def _tiktok_fetch_bc_list(
+        self,
+        app_id: Optional[str],
+        headers: Dict[str, str],
+        corr_id: str,
+    ) -> List[Dict[str, str]]:
+        url = "https://business-api.tiktok.com/open_api/v1.3/bc/get/"
+        params: Dict[str, Any] = {"page": 1, "page_size": 100}
+        if app_id:
+            params["app_id"] = app_id
+        try:
+
+            def _req():
+                with httpx.Client(timeout=15.0) as client:
+                    return client.get(url, params=params, headers=headers)
+
+            resp = _retry_with_exponential_backoff(_req, correlation_id=corr_id)
+            if resp.status_code != 200:
+                return []
+            return self._tiktok_parse_bc_get_list(resp.json())
+        except Exception as e:
+            logger.debug("TikTok bc/get failed: %s", e, exc_info=True)
+            return []
+
+    def _tiktok_fetch_bc_asset_advertiser_ids(
+        self,
+        bc_id: str,
+        app_id: Optional[str],
+        headers: Dict[str, str],
+        corr_id: str,
+    ) -> List[str]:
+        url = "https://business-api.tiktok.com/open_api/v1.3/bc/asset/get/"
+        collected: List[str] = []
+        page = 1
+        try:
+            while page <= 50:
+                base_params: Dict[str, Any] = {
+                    "bc_id": bc_id,
+                    "asset_type": "ADVERTISER",
+                    "page_size": 100,
+                }
+                if app_id:
+                    base_params["app_id"] = app_id
+                page_num = page
+
+                def _req():
+                    q = dict(base_params)
+                    q["page"] = page_num
+                    with httpx.Client(timeout=15.0) as client:
+                        return client.get(url, params=q, headers=headers)
+
+                resp = _retry_with_exponential_backoff(_req, correlation_id=corr_id)
+                if resp.status_code != 200:
+                    break
+                body = resp.json()
+                if body.get("code") != 0:
+                    break
+                data = body.get("data") or {}
+                lst = data.get("list") or []
+                for item in lst:
+                    if not isinstance(item, dict):
+                        continue
+                    aid = item.get("advertiser_id") or item.get("asset_id")
+                    if aid:
+                        collected.append(str(aid))
+                pinfo = data.get("page_info") or {}
+                if not pinfo.get("has_more"):
+                    break
+                page += 1
+        except Exception as e:
+            logger.debug("TikTok bc/asset/get failed for %s: %s", bc_id, e, exc_info=True)
+        return collected
+
+    def _merge_tiktok_bc_hierarchy(
+        self,
+        oauth_accounts: List[Dict[str, Any]],
+        app_id: Optional[str],
+        headers: Dict[str, str],
+        corr_id: str,
+    ) -> List[Dict[str, Any]]:
+        """When Business Center APIs succeed, parent BC rows + child advertisers (OAuth + BC-only)."""
+        bc_rows = self._tiktok_fetch_bc_list(app_id, headers, corr_id)
+        if not bc_rows:
+            return oauth_accounts
+
+        by_id: Dict[str, Dict[str, Any]] = {a["account_id"]: dict(a) for a in oauth_accounts}
+        any_child = False
+        for bc in bc_rows:
+            bc_id = bc["bc_id"]
+            pid = f"tiktok_bc:{bc_id}"
+            adv_ids = self._tiktok_fetch_bc_asset_advertiser_ids(bc_id, app_id, headers, corr_id)
+            if not adv_ids:
+                continue
+            any_child = True
+            for aid in adv_ids:
+                if aid in by_id:
+                    by_id[aid]["parent_account_id"] = pid
+                    by_id[aid]["is_manager"] = False
+                else:
+                    by_id[aid] = {
+                        "id": aid,
+                        "account_id": aid,
+                        "name": f"Advertiser {aid}",
+                        "account_name": f"Advertiser {aid}",
+                        "currency": "USD",
+                        "status": "active",
+                        "timezone": "",
+                        "spend": 0,
+                        "parent_account_id": pid,
+                        "is_manager": False,
+                    }
+
+        if not any_child:
+            return oauth_accounts
+
+        ordered: List[Dict[str, Any]] = []
+        placed: set = set()
+        for bc in bc_rows:
+            pid = f"tiktok_bc:{bc['bc_id']}"
+            kids = [v for v in by_id.values() if v.get("parent_account_id") == pid]
+            if not kids:
+                continue
+            nm = bc.get("name") or f"Business Center {bc['bc_id']}"
+            ordered.append(
+                {
+                    "id": pid,
+                    "account_id": pid,
+                    "name": nm,
+                    "account_name": nm,
+                    "currency": "USD",
+                    "status": "active",
+                    "timezone": "",
+                    "spend": 0,
+                    "parent_account_id": None,
+                    "is_manager": True,
+                }
+            )
+            placed.add(pid)
+            for k in sorted(kids, key=lambda x: str(x.get("account_id", ""))):
+                ordered.append(k)
+                placed.add(k["account_id"])
+
+        for a in by_id.values():
+            if a["account_id"] not in placed:
+                ordered.append(a)
+                placed.add(a["account_id"])
+
+        return ordered
+
     def fetch_ad_accounts(self, correlation_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Fetch all advertiser accounts associated with the authenticated user via TikTok Business API.
@@ -720,25 +888,40 @@ class TikTokAdsConnector(PlatformConnector):
                 
                 if result.get("code") == 0:
                     advertiser_data = result.get("data", {}).get("list", [])
-                    
-                    # Normalize format to be consistent with frontend expectations
+
                     ad_accounts = [
                         {
                             "id": str(account.get("advertiser_id")),
-                            "name": account.get("advertiser_name", f"Account {account.get('advertiser_id')}"),
+                            "name": account.get(
+                                "advertiser_name", f"Account {account.get('advertiser_id')}"
+                            ),
                             "account_id": str(account.get("advertiser_id")),
-                            "currency": "USD",  # TikTok doesn't always return currency here
-                            "status": "active"
+                            "account_name": account.get(
+                                "advertiser_name", f"Account {account.get('advertiser_id')}"
+                            ),
+                            "currency": "USD",
+                            "status": "active",
+                            "timezone": "",
+                            "spend": 0,
+                            "parent_account_id": None,
+                            "is_manager": False,
                         }
                         for account in advertiser_data
                     ]
-                    
+
+                    headers = self._get_api_headers(corr_id)
+                    merged = self._merge_tiktok_bc_hierarchy(ad_accounts, app_id, headers, corr_id)
+
                     CONNECTOR_REQUESTS_TOTAL.labels(platform="tiktok", operation="fetch_ad_accounts", status="success").inc()
-                    logger.info(f"TikTok ad accounts fetched successfully: {len(ad_accounts)}", extra=log_data)
+                    logger.info(
+                        "TikTok ad accounts fetched: %s rows (OAuth + BC hierarchy when available)",
+                        len(merged),
+                        extra=log_data,
+                    )
                     return {
                         "success": True,
-                        "ad_accounts": ad_accounts,
-                        "correlation_id": corr_id
+                        "ad_accounts": merged,
+                        "correlation_id": corr_id,
                     }
                 else:
                     error_message = result.get("message", "Unknown TikTok API error")

@@ -296,6 +296,10 @@ export interface BMAccount {
   status: string;
   spend: number;
   linked_client_id?: string | null;
+  /** Google Ads: linked under this manager customer ID (MCC hierarchy). */
+  parent_account_id?: string | null;
+  /** Google Ads: customer acts as a manager (sub-MCC). */
+  is_manager?: boolean;
 }
 
 export interface MetaBMStatus {

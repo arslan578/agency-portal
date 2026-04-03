@@ -131,12 +131,33 @@ class SpotifyAdsConnector(PlatformConnector):
                     "message": "No Spotify businesses found for this user. Create one at adsmanager.spotify.com.",
                 }
 
-            all_ad_accounts: List[Dict[str, Any]] = []
+            hierarchical: List[Dict[str, Any]] = []
+            leaf_count = 0
             with httpx.Client(timeout=15.0) as client:
                 for biz in businesses:
                     biz_id = biz.get("id")
                     if not biz_id:
                         continue
+                    biz_id_str = str(biz_id)
+                    parent_id = f"spotify_business:{biz_id_str}"
+                    biz_name = (biz.get("name") or "").strip() or f"Business {biz_id_str}"
+                    hierarchical.append(
+                        {
+                            "id": parent_id,
+                            "name": biz_name,
+                            "account_id": parent_id,
+                            "account_name": biz_name,
+                            "currency": "USD",
+                            "timezone": "",
+                            "status": "ACTIVE",
+                            "spend": 0,
+                            "business_id": biz_id_str,
+                            "business_name": biz_name,
+                            "parent_account_id": None,
+                            "is_manager": True,
+                        }
+                    )
+
                     accts_url = f"{SPOTIFY_ADS_API_BASE}/businesses/{biz_id}/ad_accounts"
                     accts_resp = client.get(accts_url, headers=headers)
                     if accts_resp.status_code != 200:
@@ -149,22 +170,38 @@ class SpotifyAdsConnector(PlatformConnector):
                         accounts = []
 
                     for acct in accounts:
-                        all_ad_accounts.append({
-                            "id": acct.get("id", ""),
-                            "name": acct.get("name", "Unnamed Account"),
-                            "account_id": acct.get("id", ""),
-                            "business_id": biz_id,
-                            "business_name": biz.get("name", ""),
-                            "status": acct.get("status", "UNKNOWN"),
-                            "country_code": acct.get("country_code", ""),
-                        })
+                        aid = acct.get("id", "")
+                        nm = acct.get("name", "Unnamed Account")
+                        leaf_count += 1
+                        hierarchical.append(
+                            {
+                                "id": aid,
+                                "name": nm,
+                                "account_id": aid,
+                                "account_name": nm,
+                                "business_id": biz_id_str,
+                                "business_name": biz_name,
+                                "status": acct.get("status", "UNKNOWN"),
+                                "country_code": acct.get("country_code", ""),
+                                "currency": "USD",
+                                "timezone": "",
+                                "spend": 0,
+                                "parent_account_id": parent_id,
+                                "is_manager": False,
+                            }
+                        )
 
-            logger.info(f"Spotify ad accounts fetched: {len(all_ad_accounts)} accounts across {len(businesses)} businesses")
+            logger.info(
+                "Spotify ad accounts fetched: %s leaf accounts across %s businesses (+%s parent rows)",
+                leaf_count,
+                len(businesses),
+                len(businesses),
+            )
 
             return {
                 "success": True,
-                "ad_accounts": all_ad_accounts,
-                "count": len(all_ad_accounts),
+                "ad_accounts": hierarchical,
+                "count": leaf_count,
             }
 
         except httpx.TimeoutException:

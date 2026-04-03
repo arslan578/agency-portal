@@ -223,12 +223,13 @@ def get_tiktok_agency_accounts(db: Session, agency_id: int) -> Dict[str, Any]:
     accounts = result.get("ad_accounts", [])
     clients = db.query(Client).filter(Client.agency_id == agency_id).all()
     linked = {
-        c.agency_tiktok_account_id: c.id
+        str(c.agency_tiktok_account_id): str(c.id)
         for c in clients
         if c.agency_tiktok_account_id
     }
     for acc in accounts:
-        acc["linked_client_id"] = linked.get(acc.get("account_id"))
+        aid = acc.get("account_id")
+        acc["linked_client_id"] = linked.get(str(aid)) if aid is not None else None
 
     return {"connected": True, "accounts": accounts}
 
@@ -319,6 +320,9 @@ def manual_link_tiktok_client(
         raise ValueError("Client not found")
     if client.agency_id != agency_id:
         raise PermissionError("Agency does not own this client")
+
+    if str(ad_account_id).startswith("tiktok_bc:"):
+        raise ValueError("Map a TikTok advertiser account, not the Business Center (parent) row")
 
     agency = db.query(Agency).filter(Agency.id == agency_id).first()
     account_name = ""

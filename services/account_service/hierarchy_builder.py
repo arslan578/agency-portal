@@ -32,6 +32,7 @@ PLATFORM_LABELS: Dict[str, str] = {
     "tiktok": "TikTok",
     "google": "Google Ads",
     "reddit": "Reddit",
+    "spotify": "Spotify",
     "linkedin": "LinkedIn",
     "youtube": "YouTube",
     "snapchat": "Snapchat",
@@ -202,10 +203,36 @@ def build_client_hierarchy(
             platform_keys.add(normalize_platform_key(acc.platform))
         for camp in cl_camps:
             platform_keys |= _campaign_platform_keys(camp)
+        # Google Ads agency link is stored on Client, not always as a PlatformAccount row
+        gads_cid = str(getattr(cl, "agency_google_ads_customer_id", None) or "").replace("-", "").strip()
+        if gads_cid.isdigit() and len(gads_cid) == 10:
+            platform_keys.add("google")
+        tt_id = str(getattr(cl, "agency_tiktok_account_id", None) or "").strip()
+        if tt_id:
+            platform_keys.add("tiktok")
+        rd_id = str(getattr(cl, "agency_reddit_account_id", None) or "").strip()
+        if rd_id:
+            platform_keys.add("reddit")
+        sp_id = str(getattr(cl, "agency_spotify_account_id", None) or "").strip()
+        if sp_id:
+            platform_keys.add("spotify")
 
         ordered_platforms = sorted(
             platform_keys,
-            key=lambda k: (0 if k == "meta" else 1 if k == "tiktok" else 2 if k == "google" else 3, k),
+            key=lambda k: (
+                0
+                if k == "meta"
+                else 1
+                if k == "tiktok"
+                else 2
+                if k == "google"
+                else 3
+                if k == "reddit"
+                else 4
+                if k == "spotify"
+                else 5,
+                k,
+            ),
         )
 
         cl_spend = cl_imp = cl_clk = cl_budget = 0.0
@@ -221,6 +248,26 @@ def build_client_hierarchy(
             linked_accounts = [
                 {"id": a.id, "external_id": a.account_id or ""} for a in p_acct_rows
             ]
+            if pk == "google" and gads_cid:
+                if gads_cid not in (p_accounts or []):
+                    p_accounts = list(p_accounts) + [gads_cid]
+                if not linked_accounts:
+                    linked_accounts = [{"id": 0, "external_id": gads_cid}]
+            if pk == "tiktok" and tt_id:
+                if tt_id not in (p_accounts or []):
+                    p_accounts = list(p_accounts) + [tt_id]
+                if not p_acct_rows:
+                    linked_accounts = list(linked_accounts) + [{"id": 0, "external_id": tt_id}]
+            if pk == "reddit" and rd_id:
+                if rd_id not in (p_accounts or []):
+                    p_accounts = list(p_accounts) + [rd_id]
+                if not p_acct_rows:
+                    linked_accounts = list(linked_accounts) + [{"id": 0, "external_id": rd_id}]
+            if pk == "spotify" and sp_id:
+                if sp_id not in (p_accounts or []):
+                    p_accounts = list(p_accounts) + [sp_id]
+                if not p_acct_rows:
+                    linked_accounts = list(linked_accounts) + [{"id": 0, "external_id": sp_id}]
             p_camps = [c for c in cl_camps if pk in _campaign_platform_keys(c)]
             p_spend = p_imp = p_clk = p_budget = 0.0
             camp_nodes: List[Dict[str, Any]] = []

@@ -238,6 +238,76 @@ function createMetaFallbackPlatforms(insights: MetaInsights): PlatformWithCampai
   ];
 }
 
+type GoogleAdsInsightsPayload = {
+  connected: boolean;
+  campaigns?: Array<{ campaign_id?: string; id?: string; name?: string; status?: string }>;
+  ad_accounts?: Array<{ account_id?: string; account_name?: string }>;
+};
+
+function createGoogleAdsFallbackPlatforms(
+  data: GoogleAdsInsightsPayload,
+): PlatformWithCampaignAccountId[] {
+  if (!data.connected) return [];
+  const camps = data.campaigns ?? [];
+  const accts = data.ad_accounts ?? [];
+  if (camps.length === 0 && accts.length === 0) return [];
+
+  const linked_accounts = accts.map((acc, i) => ({
+    id: i + 1,
+    external_id: String(acc.account_id ?? ''),
+  }));
+
+  const campaigns: HierarchyCampaignRow[] = camps.map((camp, idx) => {
+    const raw = String(camp.campaign_id ?? camp.id ?? idx);
+    const parsed = Number(raw.replace(/\D/g, '').slice(0, 15)) || 900_000_000 + idx;
+    return {
+      id: parsed,
+      name: camp.name || `Campaign ${raw}`,
+      status: String(camp.status || 'unknown').toLowerCase(),
+      metrics: {
+        spend: 0,
+        impressions: 0,
+        clicks: 0,
+        ctr: 0,
+        cpc: 0,
+        conversions: 0,
+        cost_per_conversion: 0,
+        budget: 0,
+        pacing: 0,
+        score: 60,
+        alerts: { count: 0, severity: 'ok' },
+      },
+      ad_sets: [],
+    };
+  });
+
+  const totalBudget = campaigns.reduce((s, c) => s + (c.metrics?.budget ?? 0), 0);
+  const platformMetrics = {
+    spend: 0,
+    impressions: 0,
+    clicks: 0,
+    ctr: 0,
+    cpc: 0,
+    conversions: 0,
+    cost_per_conversion: 0,
+    budget: totalBudget,
+    pacing: 0,
+    score: 60,
+    alerts: { count: 0, severity: 'ok' },
+  };
+
+  return [
+    {
+      key: 'google',
+      display_name: 'Google Ads',
+      account_ids: accts.map((a) => String(a.account_id ?? '')).filter(Boolean),
+      linked_accounts,
+      metrics: platformMetrics,
+      campaigns,
+    },
+  ];
+}
+
 function ScoreBadge({ score }: { score: number }) {
   const cls = score >= 80 ? 'bg-green-light text-green' : score >= 60 ? 'bg-amber-light text-amber' : 'bg-red-light text-red';
   return <span className={`inline-flex items-center px-2 py-[2px] rounded-md text-[11.5px] font-semibold tabular-nums ${cls}`}>{score.toFixed(1)}</span>;
@@ -363,7 +433,9 @@ export default function ClientsPage() {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
   const [metaFallbackPlatformsByClient, setMetaFallbackPlatformsByClient] = useState<Record<number, PlatformWithCampaignAccountId[]>>({});
+  const [googleFallbackPlatformsByClient, setGoogleFallbackPlatformsByClient] = useState<Record<number, PlatformWithCampaignAccountId[]>>({});
   const [metaLoadingClients, setMetaLoadingClients] = useState<Set<number>>(() => new Set());
+  const [googleLoadingClients, setGoogleLoadingClients] = useState<Set<number>>(() => new Set());
 
   const [addOpen, setAddOpen] = useState(false);
   const [formData, setFormData] = useState({ name: '', industry: '', website: '' });
@@ -404,10 +476,12 @@ export default function ClientsPage() {
       const nativeCamps = c.platforms.flatMap((p) => p.campaigns);
       const metaPlatforms = metaFallbackPlatformsByClient[c.id] ?? [];
       const metaCamps = metaPlatforms.flatMap((p) => p.campaigns);
+      const googlePlatforms = googleFallbackPlatformsByClient[c.id] ?? [];
+      const googleCamps = googlePlatforms.flatMap((p) => p.campaigns);
       const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
       const otherCamps = fallbackMap ? Array.from(fallbackMap.values()).flat() : [];
 
-      sourceCampaigns = [...nativeCamps, ...metaCamps, ...otherCamps];
+      sourceCampaigns = [...nativeCamps, ...metaCamps, ...googleCamps, ...otherCamps];
 
       const hasDetail =
         sourceCampaigns.length > 0 || (c.platforms.length > 0 && (base.spend > 0 || base.budget > 0));
@@ -464,7 +538,7 @@ export default function ClientsPage() {
     }
 
     return map;
-  }, [allClients, metaFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
+  }, [allClients, metaFallbackPlatformsByClient, googleFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
 
   const needsActionCount = useMemo(
     () => allClients.filter((c) => (clientDisplayMetricsById.get(c.id)?.alerts.count ?? 0) > 0).length,
@@ -503,6 +577,9 @@ export default function ClientsPage() {
         const metaPlates = metaFallbackPlatformsByClient[c.id] ?? [];
         if (metaPlates.some((p) => p.display_name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q))) return true;
 
+        const googlePlates = googleFallbackPlatformsByClient[c.id] ?? [];
+        if (googlePlates.some((p) => p.display_name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q))) return true;
+
         const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
         if (fallbackMap && Array.from(fallbackMap.keys()).some((pk) => pk.toLowerCase().includes(q))) return true;
 
@@ -523,7 +600,7 @@ export default function ClientsPage() {
       // Default stable sort by name
       return a.name.localeCompare(b.name) * dir;
     });
-  }, [allClients, tab, search, sortKey, sortDir, clientDisplayMetricsById, metaFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
+  }, [allClients, tab, search, sortKey, sortDir, clientDisplayMetricsById, metaFallbackPlatformsByClient, googleFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
 
   // Footer counts are computed from whichever data source we have (hierarchy / fallbacks / lazy meta-insights).
 
@@ -535,9 +612,13 @@ export default function ClientsPage() {
     for (const client of filtered) {
       const dbPlatforms = client.platforms;
       const metaPlatforms = metaFallbackPlatformsByClient[client.id] ?? [];
+      const googlePlatforms = googleFallbackPlatformsByClient[client.id] ?? [];
       const fallbackMap = fallbackCampaignsByClientPlatform.get(client.id);
+      const dbKeys = new Set(dbPlatforms.map((p) => p.key));
+      const metaExtra = metaPlatforms.filter((p) => !dbKeys.has(p.key));
+      const googleExtra = googlePlatforms.filter((p) => !dbKeys.has(p.key) && !metaExtra.some((m) => m.key === p.key));
 
-      platforms += dbPlatforms.length + metaPlatforms.length + (fallbackMap ? fallbackMap.size : 0);
+      platforms += dbPlatforms.length + metaExtra.length + googleExtra.length + (fallbackMap ? fallbackMap.size : 0);
 
       for (const p of dbPlatforms) {
         campaigns += p.campaigns.length;
@@ -546,11 +627,25 @@ export default function ClientsPage() {
         }
       }
 
-      for (const p of metaPlatforms) {
+      for (const p of metaExtra) {
         campaigns += p.campaigns.length;
         for (const camp of p.campaigns) {
           ad_sets += camp.ad_sets?.length ?? 0;
         }
+      }
+
+      for (const p of googleExtra) {
+        campaigns += p.campaigns.length;
+        for (const camp of p.campaigns) {
+          ad_sets += camp.ad_sets?.length ?? 0;
+        }
+      }
+
+      for (const p of googlePlatforms) {
+        const dbp = dbPlatforms.find((d) => d.key === p.key);
+        const n = p.campaigns.length;
+        const dbn = dbp?.campaigns.length ?? 0;
+        if (n > dbn) campaigns += n - dbn;
       }
 
       if (fallbackMap) {
@@ -561,9 +656,41 @@ export default function ClientsPage() {
     }
 
     return { platforms, campaigns, ad_sets };
-  }, [filtered, metaFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
+  }, [filtered, metaFallbackPlatformsByClient, googleFallbackPlatformsByClient, fallbackCampaignsByClientPlatform]);
 
   const metaFailedClients = useRef<Set<number>>(new Set());
+  const googleFailedClients = useRef<Set<number>>(new Set());
+
+  const loadGoogleAdsFallbackForClient = useCallback(async (clientId: number) => {
+    if (!accessToken || !agencyId) return;
+    if (googleFailedClients.current.has(clientId)) return;
+
+    setGoogleLoadingClients((prev) => {
+      if (prev.has(clientId)) return prev;
+      return new Set(prev).add(clientId);
+    });
+
+    try {
+      const data = await apiClient.get<GoogleAdsInsightsPayload>(
+        API_ENDPOINTS.GOOGLE_ADS.CLIENT_INSIGHTS(String(clientId)),
+        { accessToken, agencyId },
+      );
+      const platforms = createGoogleAdsFallbackPlatforms(data);
+      if (platforms.length > 0) {
+        setGoogleFallbackPlatformsByClient((prev) => ({ ...prev, [clientId]: platforms }));
+      } else if (!data.connected) {
+        googleFailedClients.current.add(clientId);
+      }
+    } catch {
+      googleFailedClients.current.add(clientId);
+    } finally {
+      setGoogleLoadingClients((prev) => {
+        const next = new Set(prev);
+        next.delete(clientId);
+        return next;
+      });
+    }
+  }, [accessToken, agencyId]);
 
   const loadMetaFallbackForClient = useCallback(async (clientId: number) => {
     if (!accessToken || !agencyId) return;
@@ -644,10 +771,11 @@ export default function ClientsPage() {
       // Expand platforms (both native and fallback)
       const nativePlts = c.platforms.map(p => p.key);
       const metaPlts = (metaFallbackPlatformsByClient[c.id] ?? []).map(p => p.key);
+      const googlePlts = (googleFallbackPlatformsByClient[c.id] ?? []).map(p => p.key);
       const fallbackMap = fallbackCampaignsByClientPlatform.get(c.id);
       const fallbackPlts = fallbackMap ? Array.from(fallbackMap.keys()) : [];
       
-      const allPltKeys = Array.from(new Set([...nativePlts, ...metaPlts, ...fallbackPlts]));
+      const allPltKeys = Array.from(new Set([...nativePlts, ...metaPlts, ...googlePlts, ...fallbackPlts]));
       
       for (const pk of allPltKeys) {
         keys.push(`${cKey}-p-${pk}`);
@@ -929,6 +1057,7 @@ export default function ClientsPage() {
                       const live = c.is_active !== false;
                       const fallbackPlatformsMap = fallbackCampaignsByClientPlatform.get(c.id);
                       const metaFallbackPlatforms = metaFallbackPlatformsByClient[c.id] ?? [];
+                      const googleFallbackPlatforms = googleFallbackPlatformsByClient[c.id] ?? [];
                       const displayMetrics = clientDisplayMetricsById.get(c.id) ?? m;
                       const derivedPlatforms = [
                         ...c.platforms,
@@ -938,6 +1067,7 @@ export default function ClientsPage() {
                             )
                           : []),
                         ...metaFallbackPlatforms,
+                        ...googleFallbackPlatforms,
                       ];
                       return (
                         <Fragment key={cKey}>
@@ -946,8 +1076,9 @@ export default function ClientsPage() {
                             onClick={() => {
                               const opening = !cOpen;
                               toggleKey(cKey);
-                              if (opening && metaFallbackPlatforms.length === 0) {
-                                void loadMetaFallbackForClient(c.id);
+                              if (opening) {
+                                if (metaFallbackPlatforms.length === 0) void loadMetaFallbackForClient(c.id);
+                                if (googleFallbackPlatforms.length === 0) void loadGoogleAdsFallbackForClient(c.id);
                               }
                             }}
                           >
@@ -958,8 +1089,9 @@ export default function ClientsPage() {
                                   e.stopPropagation();
                                   const opening = !cOpen;
                                   toggleKey(cKey);
-                                  if (opening && metaFallbackPlatforms.length === 0) {
-                                    void loadMetaFallbackForClient(c.id);
+                                  if (opening) {
+                                    if (metaFallbackPlatforms.length === 0) void loadMetaFallbackForClient(c.id);
+                                    if (googleFallbackPlatforms.length === 0) void loadGoogleAdsFallbackForClient(c.id);
                                   }
                                 }}
                                 className="w-6 h-6 flex items-center justify-center text-text-muted hover:text-text-primary text-[11px] transition-transform shrink-0"
@@ -1003,7 +1135,9 @@ export default function ClientsPage() {
                               cKey={cKey}
                               fallbackPlatformsMap={fallbackPlatformsMap}
                               metaFallbackPlatforms={metaFallbackPlatforms}
+                              googleFallbackPlatforms={googleFallbackPlatforms}
                               metaLoading={metaLoadingClients.has(c.id)}
+                              googleLoading={googleLoadingClients.has(c.id)}
                               expanded={expanded}
                               onToggle={toggleKey}
                               fallbackCampaignsByClientPlatform={fallbackCampaignsByClientPlatform}
@@ -1120,7 +1254,9 @@ function ClientDetailedPlatforms({
   cKey,
   fallbackPlatformsMap,
   metaFallbackPlatforms,
+  googleFallbackPlatforms,
   metaLoading,
+  googleLoading,
   expanded,
   onToggle,
   fallbackCampaignsByClientPlatform,
@@ -1131,7 +1267,9 @@ function ClientDetailedPlatforms({
   cKey: string;
   fallbackPlatformsMap?: Map<string, HierarchyCampaignRow[]>;
   metaFallbackPlatforms: PlatformWithCampaignAccountId[];
+  googleFallbackPlatforms: PlatformWithCampaignAccountId[];
   metaLoading: boolean;
+  googleLoading: boolean;
   expanded: Set<string>;
   onToggle: (key: string) => void;
   fallbackCampaignsByClientPlatform: Map<number, Map<string, HierarchyCampaignRow[]>>;
@@ -1163,6 +1301,7 @@ function ClientDetailedPlatforms({
         )
       : []),
     ...metaFallbackPlatforms,
+    ...googleFallbackPlatforms,
   ].forEach((p) => {
     if (!effectivePlatformsMap.has(p.key)) {
       effectivePlatformsMap.set(p.key, p);
@@ -1187,7 +1326,7 @@ function ClientDetailedPlatforms({
       <tr className="border-b border-border-subtle/40 bg-surface-secondary/20 text-[11.5px]">
         <td className="pl-4 pr-0 py-2" />
         <td className="pl-8 pr-3 py-2 text-text-muted" colSpan={12}>
-          {metaLoading
+          {metaLoading || googleLoading
             ? 'Loading platform data...'
             : 'No platform hierarchy data available for this client.'}
         </td>

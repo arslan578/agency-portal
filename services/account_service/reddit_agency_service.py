@@ -152,9 +152,10 @@ def _extract_businesses(payload: Any) -> List[Dict[str, Any]]:
         if isinstance(b, dict):
             bid = b.get("id") or b.get("business_id")
             if bid:
-                out.append({"id": str(bid)})
+                nm = (b.get("name") or b.get("business_name") or "").strip()
+                out.append({"id": str(bid), "name": nm})
         elif isinstance(b, str):
-            out.append({"id": b})
+            out.append({"id": b, "name": ""})
 
     if out:
         return out
@@ -164,12 +165,14 @@ def _extract_businesses(payload: Any) -> List[Dict[str, Any]]:
         or (payload.get("data", {}) if isinstance(payload.get("data"), dict) else {}).get("business_id")
     )
     if single:
-        return [{"id": str(single)}]
+        return [{"id": str(single), "name": ""}]
     return []
 
 
 def fetch_reddit_ad_accounts(access_token: str) -> List[Dict[str, Any]]:
-    accounts: List[Dict[str, Any]] = []
+    """Business (parent) rows + ad accounts with ``parent_account_id`` (same pattern as Spotify / Google MCC)."""
+    out: List[Dict[str, Any]] = []
+    seen_leaf: Dict[str, Dict[str, Any]] = {}
     headers = _ads_headers(access_token)
     with httpx.Client(timeout=30.0, headers=headers) as client:
         me_resp = client.get(f"{REDDIT_ADS_BASE}/api/v3/me")
@@ -195,6 +198,24 @@ def fetch_reddit_ad_accounts(access_token: str) -> List[Dict[str, Any]]:
             biz_id = biz if isinstance(biz, str) else biz.get("id")
             if not biz_id:
                 continue
+            biz_id = str(biz_id)
+            biz_name = ""
+            if isinstance(biz, dict):
+                biz_name = (biz.get("name") or "").strip()
+            parent_id = f"reddit_business:{biz_id}"
+            out.append(
+                {
+                    "account_id": parent_id,
+                    "account_name": biz_name or f"Reddit business {biz_id}",
+                    "currency": "USD",
+                    "timezone": "",
+                    "status": "MANAGER",
+                    "spend": 0.0,
+                    "parent_account_id": None,
+                    "is_manager": True,
+                }
+            )
+
             acct_resp = client.get(f"{REDDIT_ADS_BASE}/api/v3/businesses/{biz_id}/ad_accounts")
             if acct_resp.status_code != 200:
                 logger.warning("Reddit ad_accounts failed for business %s: %s", biz_id, acct_resp.status_code)
@@ -207,21 +228,22 @@ def fetch_reddit_ad_accounts(access_token: str) -> List[Dict[str, Any]]:
 
             for row in rows:
                 acct_id = str(row.get("id", row.get("ad_account_id", "")))
-                if not acct_id:
+                if not acct_id or acct_id in seen_leaf:
                     continue
-                accounts.append({
+                leaf = {
                     "account_id": acct_id,
                     "account_name": row.get("name", f"Reddit Account {acct_id}"),
                     "currency": row.get("currency", "USD"),
+                    "timezone": "",
                     "status": str(row.get("status", "active")).upper(),
                     "spend": 0.0,
-                })
+                    "parent_account_id": parent_id,
+                    "is_manager": False,
+                }
+                seen_leaf[acct_id] = leaf
+                out.append(leaf)
 
-    # Deduplicate by account_id
-    unique: Dict[str, Dict[str, Any]] = {}
-    for a in accounts:
-        unique[a["account_id"]] = a
-    return list(unique.values())
+    return out
 
 
 def connect_reddit_agency(
@@ -301,9 +323,14 @@ def get_reddit_agency_accounts(db: Session, agency_id: int) -> Dict[str, Any]:
 
     accounts = fetch_reddit_ad_accounts(agency.reddit_agency_access_token)
     clients = db.query(Client).filter(Client.agency_id == agency_id).all()
-    linked = {c.agency_reddit_account_id: c.id for c in clients if c.agency_reddit_account_id}
+    linked = {
+        str(c.agency_reddit_account_id): str(c.id)
+        for c in clients
+        if c.agency_reddit_account_id
+    }
     for acc in accounts:
-        acc["linked_client_id"] = linked.get(acc["account_id"])
+        aid = acc.get("account_id")
+        acc["linked_client_id"] = linked.get(str(aid)) if aid is not None else None
     return {"connected": True, "accounts": accounts}
 
 
@@ -354,6 +381,9 @@ def manual_link_reddit_client(
         raise ValueError("Client not found")
     if client.agency_id != agency_id:
         raise PermissionError("Agency does not own this client")
+
+    if str(ad_account_id).startswith("reddit_business:"):
+        raise ValueError("Map a Reddit ad account, not the business (parent) row")
 
     agency = db.query(Agency).filter(Agency.id == agency_id).first()
     account_name = ""

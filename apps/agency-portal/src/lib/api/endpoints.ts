@@ -113,6 +113,15 @@ export const API_ENDPOINTS = {
     MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/microsoft/manual-link`,
     CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/microsoft-insights`,
   },
+  GOOGLE_ADS: {
+    CONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/google/connect`,
+    DISCONNECT: (agencyId: string) => `${BASE}/agency/${agencyId}/google/disconnect`,
+    STATUS: (agencyId: string) => `${BASE}/agency/${agencyId}/google/status`,
+    ACCOUNTS: (agencyId: string) => `${BASE}/agency/${agencyId}/google/accounts`,
+    AUTO_LINK: (agencyId: string) => `${BASE}/agency/${agencyId}/google/auto-link`,
+    MANUAL_LINK: (clientId: string) => `${BASE}/clients/${clientId}/google/manual-link`,
+    CLIENT_INSIGHTS: (clientId: string) => `${BASE}/clients/${clientId}/google-ads-insights`,
+  },
   INSIGHTS: {
     LIST: (status: string = 'pending', clientId?: number) => {
       const q = new URLSearchParams({ status });
