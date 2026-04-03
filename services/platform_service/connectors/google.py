@@ -6,7 +6,7 @@ Production implementation for Google Ads advertising platform.
 import os
 import time
 import random
-from typing import Dict, Any, List, Optional, Callable
+from typing import Dict, Any, List, Optional, Callable, Tuple
 from ..connector_base import PlatformConnector, PlatformStatus
 import logging
 import httpx
@@ -141,7 +141,18 @@ class GoogleAdsConnector(PlatformConnector):
                 else:
                     logger.warning("Google Ads connector: Missing credentials (stub mode)")
         else:
-            self.status = PlatformStatus.AVAILABLE
+            c = self.credentials
+            if not GOOGLE_ADS_SDK_AVAILABLE:
+                self.status = PlatformStatus.STUB
+            elif (
+                c.get("developer_token")
+                and c.get("client_id")
+                and c.get("client_secret")
+                and c.get("refresh_token")
+            ):
+                self.status = PlatformStatus.AVAILABLE
+            else:
+                self.status = PlatformStatus.STUB
     
     def estimate_reach(
         self,
@@ -232,11 +243,20 @@ class GoogleAdsConnector(PlatformConnector):
             }
         }
     
-    def _get_google_ads_client(self):
+    def _get_google_ads_client(
+        self,
+        require_customer_id: bool = True,
+        login_customer_id_override: Optional[str] = None,
+    ):
         """Initialize and return Google Ads API client."""
         if self.status != PlatformStatus.AVAILABLE:
             raise RuntimeError("Google Ads connector not available. Configure credentials.")
-        
+        if require_customer_id:
+            cid = self.credentials.get("customer_id")
+            norm = str(cid).replace("-", "").strip() if cid else ""
+            if not norm.isdigit() or len(norm) != 10:
+                raise RuntimeError("Google Ads customer_id required for this operation.")
+
         config = {
             "developer_token": self.credentials["developer_token"],
             "client_id": self.credentials["client_id"],
@@ -245,12 +265,332 @@ class GoogleAdsConnector(PlatformConnector):
             "use_proto_plus": True,
             "version": "v22"
         }
-        
-        login_customer_id = self.credentials.get("login_customer_id")
-        if login_customer_id and login_customer_id.isdigit() and len(login_customer_id) == 10:
-            config["login_customer_id"] = login_customer_id
-        
+
+        if login_customer_id_override is not None:
+            lid = str(login_customer_id_override).replace("-", "").strip()
+            if lid.isdigit() and len(lid) == 10:
+                config["login_customer_id"] = lid
+        else:
+            login_customer_id = self.credentials.get("login_customer_id")
+            if login_customer_id:
+                lid = str(login_customer_id).replace("-", "").strip()
+                if lid.isdigit() and len(lid) == 10:
+                    config["login_customer_id"] = lid
+
         return GoogleAdsClient.load_from_dict(config)
+
+    def _fetch_customer_descriptive_row(self, client: Any, customer_id: str):
+        """Best-effort customer descriptive_name and currency for a accessible customer ID."""
+        ga_service = client.get_service("GoogleAdsService")
+        query = """
+            SELECT customer.id, customer.descriptive_name, customer.currency_code
+            FROM customer
+            LIMIT 1
+        """
+        try:
+            stream = ga_service.search(customer_id=customer_id, query=query)
+            for row in stream:
+                return row.customer.descriptive_name, row.customer.currency_code
+        except Exception:
+            logger.debug("Could not load customer row for %s", customer_id, exc_info=True)
+        return None, None
+
+    def _parse_customer_resource_id(self, resource_name: str) -> Optional[str]:
+        """Extract 10-digit customer id from resource name ``customers/1234567890``."""
+        if not resource_name:
+            return None
+        s = str(resource_name).strip()
+        parts = s.split("/")
+        if len(parts) < 2:
+            return None
+        cid = parts[-1].replace("-", "")
+        return cid if cid.isdigit() and len(cid) == 10 else None
+
+    def _customer_client_status_is_listable(self, cc: Any) -> bool:
+        """CustomerClient.status uses CustomerStatus (ENABLED, SUSPENDED, …) — not REMOVED."""
+        st = getattr(cc, "status", None)
+        name = ""
+        if st is not None:
+            name = getattr(st, "name", None) or ""
+            if not name and hasattr(st, "value"):
+                name = str(st.value)
+        name_u = str(name).upper()
+        if name_u in ("CANCELED", "CLOSED", "UNSPECIFIED"):
+            return False
+        return True
+
+    def _fetch_customer_client_children(
+        self,
+        manager_customer_id: str,
+        login_customer_id_for_header: str,
+    ) -> List[Dict[str, Any]]:
+        """
+        Direct linked accounts under a manager (official sample uses ``level <= 1``, skips level 0).
+
+        ``login_customer_id_for_header`` must be the manager account to send as login-customer-id
+        (typically the root MCC for that branch, not necessarily ``manager_customer_id`` for sub-MCCs).
+        """
+        mgr = str(manager_customer_id).replace("-", "").strip()
+        login = str(login_customer_id_for_header).replace("-", "").strip()
+        if not mgr.isdigit() or len(mgr) != 10:
+            return []
+        if not login.isdigit() or len(login) != 10:
+            login = mgr
+        try:
+            gac = self._get_google_ads_client(
+                require_customer_id=False,
+                login_customer_id_override=login,
+            )
+            ga_service = gac.get_service("GoogleAdsService")
+            # Match Google "get_account_hierarchy" sample — do not use REMOVED (invalid for CustomerStatus).
+            query = """
+                SELECT
+                    customer_client.client_customer,
+                    customer_client.id,
+                    customer_client.level,
+                    customer_client.manager,
+                    customer_client.descriptive_name,
+                    customer_client.currency_code,
+                    customer_client.hidden,
+                    customer_client.status
+                FROM customer_client
+                WHERE customer_client.level <= 1
+            """
+            out: List[Dict[str, Any]] = []
+            stream = ga_service.search(customer_id=mgr, query=query)
+            for row in stream:
+                cc = row.customer_client
+                level = int(getattr(cc, "level", -1) or -1)
+                if level == 0:
+                    continue
+                raw_id = getattr(cc, "id", None)
+                cid = str(int(raw_id)) if raw_id is not None else None
+                if not cid:
+                    raw_name = getattr(cc, "client_customer", None) or ""
+                    cid = self._parse_customer_resource_id(str(raw_name))
+                if not cid or cid == mgr:
+                    continue
+                if not self._customer_client_status_is_listable(cc):
+                    continue
+                is_mgr = bool(getattr(cc, "manager", False))
+                name = (getattr(cc, "descriptive_name", None) or "").strip() or f"Account {cid}"
+                currency = (getattr(cc, "currency_code", None) or "USD").strip() or "USD"
+                out.append(
+                    {
+                        "account_id": cid,
+                        "name": name,
+                        "account_name": name,
+                        "currency": currency,
+                        "is_manager": is_mgr,
+                        "level": level,
+                    }
+                )
+            return out
+        except GoogleAdsException as e:
+            msgs = [err.message for err in e.failure.errors]
+            err_txt = "; ".join(msgs) if msgs else str(e)
+            logger.warning(
+                "Google Ads customer_client query failed (manager=%s login_header=%s): %s",
+                mgr,
+                login,
+                err_txt,
+            )
+            return []
+        except Exception as e:
+            logger.warning(
+                "Google Ads customer_client query failed (manager=%s): %s",
+                mgr,
+                e,
+                exc_info=True,
+            )
+            return []
+
+    def _expand_accessible_accounts_with_mcc_children(
+        self,
+        seed_accounts: List[Dict[str, Any]],
+        max_total: int = 500,
+    ) -> List[Dict[str, Any]]:
+        """
+        BFS over manager accounts. Queue carries (manager_id, login_customer_id_header) so
+        sub-MCC expansion still sends the root MCC as login-customer-id when appropriate.
+        """
+        by_id: Dict[str, Dict[str, Any]] = {}
+        for acc in seed_accounts:
+            aid = acc.get("account_id")
+            if not aid:
+                continue
+            norm = str(aid).replace("-", "").strip()
+            if norm not in by_id:
+                row = dict(acc)
+                row["account_id"] = norm
+                row.setdefault("parent_account_id", None)
+                row.setdefault("is_manager", False)
+                by_id[norm] = row
+
+        configured_login = self.credentials.get("login_customer_id")
+        cfg_norm = None
+        if configured_login:
+            s = str(configured_login).replace("-", "").strip()
+            if s.isdigit() and len(s) == 10:
+                cfg_norm = s
+
+        queue: List[Tuple[str, str]] = []
+        for norm in list(by_id.keys()):
+            login_h = cfg_norm or norm
+            queue.append((norm, login_h))
+
+        expanded: set[str] = set()
+
+        while queue and len(by_id) < max_total:
+            mgr, login_h = queue.pop(0)
+            if mgr in expanded:
+                continue
+            expanded.add(mgr)
+            children = self._fetch_customer_client_children(mgr, login_h)
+            if children:
+                by_id[mgr]["is_manager"] = True
+            for ch in children:
+                cid = ch["account_id"]
+                if len(by_id) >= max_total:
+                    break
+                if ch.get("level") != 1:
+                    continue
+                if cid not in by_id:
+                    by_id[cid] = {
+                        "account_id": cid,
+                        "name": ch["name"],
+                        "account_name": ch["account_name"],
+                        "currency": ch.get("currency") or "USD",
+                        "timezone": "",
+                        "status": "ACTIVE",
+                        "spend": 0,
+                        "parent_account_id": mgr,
+                        "is_manager": ch.get("is_manager", False),
+                    }
+                    if ch.get("is_manager"):
+                        queue.append((cid, login_h))
+                else:
+                    existing = by_id[cid]
+                    if not existing.get("parent_account_id"):
+                        existing["parent_account_id"] = mgr
+                    if ch.get("is_manager"):
+                        existing["is_manager"] = True
+                        if cid not in expanded:
+                            queue.append((cid, login_h))
+
+        def sort_key(item: Dict[str, Any]) -> tuple:
+            parent = item.get("parent_account_id")
+            is_root = parent is None
+            return (0 if is_root else 1, parent or "", item.get("account_name") or item.get("name") or "")
+
+        return sorted(by_id.values(), key=sort_key)
+
+    def fetch_accessible_ad_accounts(self) -> Dict[str, Any]:
+        """
+        List Google Ads customers accessible with the current refresh token
+        (CustomerService.list_accessible_customers). Does not require customer_id in credentials.
+        """
+        if not GOOGLE_ADS_SDK_AVAILABLE:
+            return {
+                "success": False,
+                "error": "google-ads-python SDK not installed",
+                "error_code": "NO_SDK",
+                "ad_accounts": [],
+            }
+        if self.status != PlatformStatus.AVAILABLE:
+            return {
+                "success": False,
+                "error": "Google Ads connector not available",
+                "error_code": "NOT_AVAILABLE",
+                "ad_accounts": [],
+            }
+        try:
+            gac = self._get_google_ads_client(require_customer_id=False)
+            csvc = gac.get_service("CustomerService")
+            resp = csvc.list_accessible_customers()
+            ad_accounts: List[Dict[str, Any]] = []
+            for resource_name in resp.resource_names:
+                parts = str(resource_name).split("/")
+                if len(parts) < 2:
+                    continue
+                cid = parts[-1].replace("-", "")
+                if not cid.isdigit() or len(cid) != 10:
+                    continue
+                name, currency = self._fetch_customer_descriptive_row(gac, cid)
+                ad_accounts.append(
+                    {
+                        "account_id": cid,
+                        "name": name or f"Account {cid}",
+                        "account_name": name or f"Account {cid}",
+                        "currency": currency or "USD",
+                        "timezone": "",
+                        "status": "ACTIVE",
+                        "spend": 0,
+                        "parent_account_id": None,
+                        "is_manager": False,
+                    }
+                )
+            ad_accounts = self._expand_accessible_accounts_with_mcc_children(ad_accounts)
+            return {"success": True, "ad_accounts": ad_accounts}
+        except GoogleAdsException as e:
+            msgs = [err.message for err in e.failure.errors]
+            err_txt = "; ".join(msgs) if msgs else str(e)
+            logger.warning("Google Ads list_accessible_customers failed: %s", err_txt)
+            return {
+                "success": False,
+                "error": err_txt,
+                "error_code": "GOOGLE_ADS_ERROR",
+                "ad_accounts": [],
+            }
+        except Exception as e:
+            logger.warning("Google Ads fetch_accessible_ad_accounts failed: %s", e, exc_info=True)
+            return {
+                "success": False,
+                "error": str(e),
+                "error_code": "FETCH_ERROR",
+                "ad_accounts": [],
+            }
+
+    def fetch_campaigns_for_customer(self, customer_id: str) -> Dict[str, Any]:
+        """Run a GAQL search for non-removed campaigns under a customer ID."""
+        if not GOOGLE_ADS_SDK_AVAILABLE:
+            return {"success": False, "error": "SDK not installed", "campaigns": []}
+        if self.status != PlatformStatus.AVAILABLE:
+            return {"success": False, "error": "Connector not available", "campaigns": []}
+        cid = str(customer_id).replace("-", "").strip()
+        if not cid.isdigit() or len(cid) != 10:
+            return {"success": False, "error": "Invalid customer_id", "campaigns": []}
+        try:
+            gac = self._get_google_ads_client(require_customer_id=False)
+            ga_service = gac.get_service("GoogleAdsService")
+            query = """
+                SELECT campaign.id, campaign.name, campaign.status
+                FROM campaign
+                WHERE campaign.status != REMOVED
+                ORDER BY campaign.id
+                LIMIT 200
+            """
+            campaigns: List[Dict[str, Any]] = []
+            stream = ga_service.search(customer_id=cid, query=query)
+            for row in stream:
+                st = row.campaign.status.name if row.campaign.status else "UNKNOWN"
+                cid_str = str(row.campaign.id)
+                campaigns.append(
+                    {
+                        "campaign_id": cid_str,
+                        "id": cid_str,
+                        "name": row.campaign.name or f"Campaign {cid_str}",
+                        "status": st,
+                        "ad_account_id": cid,
+                    }
+                )
+            return {"success": True, "campaigns": campaigns}
+        except GoogleAdsException as e:
+            msgs = [err.message for err in e.failure.errors]
+            err_txt = "; ".join(msgs) if msgs else str(e)
+            return {"success": False, "error": err_txt, "campaigns": []}
+        except Exception as e:
+            return {"success": False, "error": str(e), "campaigns": []}
     
     def launch_campaign(
         self, 
@@ -280,8 +620,8 @@ class GoogleAdsConnector(PlatformConnector):
             raise RuntimeError("Google Ads connector not available. Configure credentials.")
         
         try:
-            client = self._get_google_ads_client()
-            customer_id = self.credentials["customer_id"]
+            client = self._get_google_ads_client(require_customer_id=True)
+            customer_id = str(self.credentials["customer_id"]).replace("-", "")
             
             goal_to_campaign_type = {
                 'awareness': client.enums.AdvertisingChannelTypeEnum.DISPLAY,
@@ -436,8 +776,8 @@ class GoogleAdsConnector(PlatformConnector):
             raise RuntimeError("Google Ads connector not available. Configure credentials.")
 
         try:
-            client = self._get_google_ads_client()
-            customer_id = self.credentials["customer_id"]
+            client = self._get_google_ads_client(require_customer_id=True)
+            customer_id = str(self.credentials["customer_id"]).replace("-", "")
             
             campaign_operation = client.get_type("CampaignOperation")
             campaign = campaign_operation.update
@@ -575,8 +915,8 @@ class GoogleAdsConnector(PlatformConnector):
             }
         
         try:
-            client = self._get_google_ads_client()
-            customer_id = self.credentials["customer_id"]
+            client = self._get_google_ads_client(require_customer_id=True)
+            customer_id = str(self.credentials["customer_id"]).replace("-", "")
             
             query = f"""
                 SELECT

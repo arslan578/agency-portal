@@ -18,6 +18,15 @@ const SPOTIFY_CLIENT_ID = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID || '';
 const TIKTOK_CLIENT_KEY = process.env.NEXT_PUBLIC_TIKTOK_CLIENT_KEY || '';
 const MICROSOFT_ADS_CLIENT_ID = process.env.NEXT_PUBLIC_MICROSOFT_ADS_CLIENT_ID || '';
 const MICROSOFT_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_MICROSOFT_REDIRECT_URI || '';
+/** Same OAuth client as server GOOGLE_ADS_CLIENT_ID (public for authorize URL only). */
+const GOOGLE_ADS_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID || '';
+const GOOGLE_ADS_REDIRECT_URI_OVERRIDE = process.env.NEXT_PUBLIC_GOOGLE_ADS_REDIRECT_URI || '';
+/** Must match server MICROSOFT_ADS_LOGIN_AUTHORITY or MICROSOFT_ADS_TENANT_ID (default common). */
+const MICROSOFT_ADS_LOGIN_AUTHORITY = (
+  process.env.NEXT_PUBLIC_MICROSOFT_ADS_LOGIN_AUTHORITY
+  || process.env.NEXT_PUBLIC_MICROSOFT_ADS_TENANT_ID
+  || 'common'
+).trim();
 
 /** Template-matched sync log rows (UI only; no backend). */
 const SYNC_LOG_STATIC_ROWS: {
@@ -45,6 +54,7 @@ const CONNECT_MODAL_META: Record<string, { bg: string; color: string; letter: st
   Pinterest: { color: '#e60023', bg: '#fdecea', letter: 'P', sub: 'Authorise Kaivo in Pinterest Ads Manager to pull client accounts.' },
   Reddit: { color: '#ff4500', bg: '#fff0ec', letter: 'r', sub: 'Connect via Reddit Ads to access client ad accounts.' },
   'Microsoft Ads': { color: '#0078d4', bg: '#e8f0fe', letter: 'M', sub: 'Authorise Kaivo in Microsoft Advertising to pull client accounts.' },
+  'Google Ads': { color: '#ea4335', bg: '#fdecea', letter: 'G', sub: 'Sign in with Google and grant Google Ads access — same app as Kaivo commercial.' },
   Spotify: { color: '#1db954', bg: '#e8f7ef', letter: '♪', sub: 'Connect via Spotify Ad Studio to pull client ad accounts.' },
   'X (Twitter)': { color: '#000', bg: '#f0f0f0', letter: '𝕏', sub: 'Authorise Kaivo in X Ads Manager to pull client ad accounts.' },
 };
@@ -106,6 +116,14 @@ function getMicrosoftRedirectUri() {
   return '/integrations/microsoft/oauth/callback';
 }
 
+function getGoogleAdsRedirectUri() {
+  if (GOOGLE_ADS_REDIRECT_URI_OVERRIDE.trim()) return GOOGLE_ADS_REDIRECT_URI_OVERRIDE.trim();
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/integrations/google/oauth/callback`;
+  }
+  return '/integrations/google/oauth/callback';
+}
+
 // ── Main Page ────────────────────────────────────────────────────────────────
 
 export default function IntegrationsPage() {
@@ -135,6 +153,12 @@ export default function IntegrationsPage() {
   const [microsoftAccountsLoading, setMicrosoftAccountsLoading] = useState(false);
   const [microsoftConnecting, setMicrosoftConnecting] = useState(false);
   const [microsoftAutoLinking, setMicrosoftAutoLinking] = useState(false);
+  const [googleAdsStatus, setGoogleAdsStatus] = useState<{ connected: boolean; connected_at: string | null; token_valid?: boolean } | null>(null);
+  const [googleAdsAccounts, setGoogleAdsAccounts] = useState<BMAccount[]>([]);
+  const [googleAdsAccountsLoading, setGoogleAdsAccountsLoading] = useState(false);
+  const [googleAdsConnecting, setGoogleAdsConnecting] = useState(false);
+  const [googleAdsAutoLinking, setGoogleAdsAutoLinking] = useState(false);
+  const [tiktokAutoLinking, setTiktokAutoLinking] = useState(false);
 
   // Panels & Modals
   const [showAccountsPanel, setShowAccountsPanel] = useState(false);
@@ -142,6 +166,7 @@ export default function IntegrationsPage() {
   const [showSpotifyAccountsPanel, setShowSpotifyAccountsPanel] = useState(false);
   const [showTiktokAccountsPanel, setShowTiktokAccountsPanel] = useState(false);
   const [showMicrosoftAccountsPanel, setShowMicrosoftAccountsPanel] = useState(false);
+  const [showGoogleAdsAccountsPanel, setShowGoogleAdsAccountsPanel] = useState(false);
   const [panelEntered, setPanelEntered] = useState(false);
   const [bmAccounts, setBmAccounts] = useState<BMAccount[]>([]);
   const [bmAccountsLoading, setBmAccountsLoading] = useState(false);
@@ -238,13 +263,27 @@ export default function IntegrationsPage() {
     }
   }, [accessToken, agencyId]);
 
+  const fetchGoogleAdsStatus = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    try {
+      const data = await apiClient.get<{ connected: boolean; connected_at: string | null; token_valid?: boolean }>(
+        API_ENDPOINTS.GOOGLE_ADS.STATUS(agencyId),
+        { accessToken, agencyId },
+      );
+      setGoogleAdsStatus(data);
+    } catch {
+      setGoogleAdsStatus(null);
+    }
+  }, [accessToken, agencyId]);
+
   useEffect(() => {
     void fetchMetaStatus();
     void fetchRedditStatus();
     void fetchSpotifyStatus();
     void fetchTiktokStatus();
     void fetchMicrosoftStatus();
-  }, [fetchMetaStatus, fetchRedditStatus, fetchSpotifyStatus, fetchTiktokStatus, fetchMicrosoftStatus]);
+    void fetchGoogleAdsStatus();
+  }, [fetchMetaStatus, fetchRedditStatus, fetchSpotifyStatus, fetchTiktokStatus, fetchMicrosoftStatus, fetchGoogleAdsStatus]);
 
   const fetchBmAccounts = useCallback(async () => {
     if (!accessToken || !agencyId) return;
@@ -323,6 +362,22 @@ export default function IntegrationsPage() {
       setMicrosoftAccounts([]);
     } finally {
       setMicrosoftAccountsLoading(false);
+    }
+  }, [accessToken, agencyId]);
+
+  const fetchGoogleAdsAccounts = useCallback(async () => {
+    if (!accessToken || !agencyId) return;
+    setGoogleAdsAccountsLoading(true);
+    try {
+      const data = await apiClient.get<{ connected: boolean; accounts: BMAccount[] }>(
+        API_ENDPOINTS.GOOGLE_ADS.ACCOUNTS(agencyId),
+        { accessToken, agencyId },
+      );
+      setGoogleAdsAccounts(data.accounts || []);
+    } catch {
+      setGoogleAdsAccounts([]);
+    } finally {
+      setGoogleAdsAccountsLoading(false);
     }
   }, [accessToken, agencyId]);
 
@@ -570,6 +625,54 @@ export default function IntegrationsPage() {
     })();
   }, [accessToken, agencyId, microsoftConnecting, fetchMicrosoftStatus, fetchMicrosoftAccounts]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('google_callback') !== '1') return;
+    const code = params.get('code');
+    const oauthError = params.get('error');
+    const oauthErrorDescription = params.get('error_description');
+
+    if (oauthError) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('google_callback');
+      url.searchParams.delete('code');
+      url.searchParams.delete('state');
+      url.searchParams.delete('error');
+      url.searchParams.delete('error_description');
+      window.history.replaceState({}, '', url.toString());
+      toast.error(oauthErrorDescription || oauthError || 'Google authorization failed');
+      return;
+    }
+
+    if (!code || !accessToken || !agencyId || googleAdsConnecting) return;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('google_callback');
+    url.searchParams.delete('code');
+    url.searchParams.delete('state');
+    window.history.replaceState({}, '', url.toString());
+
+    (async () => {
+      setGoogleAdsConnecting(true);
+      try {
+        const exactRedirectUri = getGoogleAdsRedirectUri();
+        await apiClient.post(
+          API_ENDPOINTS.GOOGLE_ADS.CONNECT(agencyId),
+          { code, redirectUri: exactRedirectUri },
+          { accessToken, agencyId },
+        );
+        toast.success('Google Ads connected!');
+        await fetchGoogleAdsStatus();
+        await fetchGoogleAdsAccounts();
+      } catch (err: unknown) {
+        toast.error(getErrorMessage(err, 'Failed to connect Google Ads'));
+      } finally {
+        setGoogleAdsConnecting(false);
+      }
+    })();
+  }, [accessToken, agencyId, googleAdsConnecting, fetchGoogleAdsStatus, fetchGoogleAdsAccounts]);
+
   const handleConnectTrigger = (platform: string) => {
     if (platform === 'Meta') {
       const redirectUri = `${window.location.origin}/integrations?meta_callback=1`;
@@ -626,10 +729,35 @@ export default function IntegrationsPage() {
       }
       const redirectUri = getMicrosoftRedirectUri();
       const state = Math.random().toString(36).slice(2);
-      const scope = encodeURIComponent('https://ads.microsoft.com/msads.manage offline_access');
-      const encodedRedirect = encodeURIComponent(redirectUri);
-      window.location.href =
-        `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=${encodeURIComponent(MICROSOFT_ADS_CLIENT_ID)}&response_type=code&redirect_uri=${encodedRedirect}&response_mode=query&scope=${scope}&state=${encodeURIComponent(state)}`;
+      const authBase = `https://login.microsoftonline.com/${encodeURIComponent(MICROSOFT_ADS_LOGIN_AUTHORITY)}/oauth2/v2.0/authorize`;
+      const params = new URLSearchParams({
+        client_id: MICROSOFT_ADS_CLIENT_ID,
+        response_type: 'code',
+        redirect_uri: redirectUri,
+        response_mode: 'query',
+        scope: 'https://ads.microsoft.com/msads.manage offline_access',
+        state,
+        prompt: 'select_account',
+      });
+      window.location.href = `${authBase}?${params.toString()}`;
+    } else if (platform === 'Google Ads') {
+      if (!GOOGLE_ADS_CLIENT_ID) {
+        toast.error('Missing NEXT_PUBLIC_GOOGLE_ADS_CLIENT_ID (must match GOOGLE_ADS_CLIENT_ID on the server)');
+        return;
+      }
+      const redirectUri = getGoogleAdsRedirectUri();
+      const state = Math.random().toString(36).slice(2);
+      const params = new URLSearchParams({
+        client_id: GOOGLE_ADS_CLIENT_ID,
+        redirect_uri: redirectUri,
+        scope: 'https://www.googleapis.com/auth/adwords',
+        state,
+        response_type: 'code',
+        access_type: 'offline',
+        include_granted_scopes: 'true',
+        prompt: 'consent',
+      });
+      window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
     } else {
       toast.info(`${platform} integration coming soon!`);
     }
@@ -757,6 +885,71 @@ export default function IntegrationsPage() {
     }
   };
 
+  const handleAutoLinkGoogleAds = async () => {
+    if (!accessToken || !agencyId) return;
+    setGoogleAdsAutoLinking(true);
+    try {
+      const result = await apiClient.post<{ matched: number }>(
+        API_ENDPOINTS.GOOGLE_ADS.AUTO_LINK(agencyId), {}, { accessToken, agencyId },
+      );
+      toast.success(`Successfully auto-linked ${result.matched} Google Ads account(s).`);
+      await fetchGoogleAdsStatus();
+      if (showGoogleAdsAccountsPanel) await fetchGoogleAdsAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Auto-link failed'));
+    } finally {
+      setGoogleAdsAutoLinking(false);
+    }
+  };
+
+  const handleManualLinkGoogleAds = async (clientId: number, adAccountId: string) => {
+    if (!accessToken || !agencyId) return;
+    try {
+      await apiClient.post(
+        API_ENDPOINTS.GOOGLE_ADS.MANUAL_LINK(String(clientId)),
+        { ad_account_id: adAccountId },
+        { accessToken, agencyId },
+      );
+      toast.success('Google Ads customer mapped successfully');
+      await fetchGoogleAdsAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Mapping failed'));
+    }
+  };
+
+  const handleAutoLinkTiktok = async () => {
+    if (!accessToken || !agencyId) return;
+    setTiktokAutoLinking(true);
+    try {
+      const result = await apiClient.post<{ matched: number }>(
+        API_ENDPOINTS.TIKTOK.AUTO_LINK(agencyId),
+        {},
+        { accessToken, agencyId },
+      );
+      toast.success(`Successfully auto-linked ${result.matched} TikTok account(s).`);
+      await fetchTiktokAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Auto-link failed'));
+    } finally {
+      setTiktokAutoLinking(false);
+    }
+  };
+
+  const handleManualLinkTiktok = async (clientId: number, adAccountId: string) => {
+    if (!accessToken || !agencyId) return;
+    try {
+      await apiClient.post(
+        API_ENDPOINTS.TIKTOK.MANUAL_LINK(String(clientId)),
+        { ad_account_id: adAccountId },
+        { accessToken, agencyId },
+      );
+      toast.success('TikTok account mapped successfully');
+      await fetchTiktokAccounts();
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Mapping failed'));
+    }
+  };
+
   // ── Derived State ──────────────────────────────────────────────────────────
 
   const metaConnected = metaStatus?.connected ?? false;
@@ -783,6 +976,13 @@ export default function IntegrationsPage() {
     return clients.filter((c) => !linkedIds.has(String(c.id)));
   }, [clients, redditAccounts]);
 
+  const unlinkedTiktokClients = useMemo(() => {
+    const linkedIds = new Set(
+      tiktokAccounts.map((a) => a.linked_client_id).filter((id): id is string => id != null && id !== ''),
+    );
+    return clients.filter((c) => !linkedIds.has(String(c.id)));
+  }, [clients, tiktokAccounts]);
+
   const unlinkedMicrosoftClients = useMemo(() => {
     const linkedIds = new Set(
       microsoftAccounts.map((a) => a.linked_client_id).filter((id): id is string => id != null && id !== ''),
@@ -790,11 +990,19 @@ export default function IntegrationsPage() {
     return clients.filter((c) => !linkedIds.has(String(c.id)));
   }, [clients, microsoftAccounts]);
 
+  const unlinkedGoogleAdsClients = useMemo(() => {
+    const linkedIds = new Set(
+      googleAdsAccounts.map((a) => a.linked_client_id).filter((id): id is string => id != null && id !== ''),
+    );
+    return clients.filter((c) => !linkedIds.has(String(c.id)));
+  }, [clients, googleAdsAccounts]);
+
   const activeBmCount = bmAccounts.filter(a => a.linked_client_id !== null).length;
   const activeRedditCount = redditAccounts.filter(a => a.linked_client_id !== null).length;
   const activeSpotifyCount = spotifyAccounts.filter(a => a.linked_client_id !== null).length;
   const activeTiktokCount = tiktokAccounts.filter(a => a.linked_client_id !== null).length;
   const activeMicrosoftCount = microsoftAccounts.filter(a => a.linked_client_id !== null).length;
+  const activeGoogleAdsCount = googleAdsAccounts.filter(a => a.linked_client_id !== null).length;
 
   const metaManagedSpendDisplay = useMemo(() => {
     if (!bmAccounts.length) return '—';
@@ -805,12 +1013,12 @@ export default function IntegrationsPage() {
   // ── Animation Controllers ──────────────────────────────────────────────────
 
   useEffect(() => {
-    if (showAccountsPanel || showRedditAccountsPanel || showSpotifyAccountsPanel || showTiktokAccountsPanel || showMicrosoftAccountsPanel || panelPlatform) {
+    if (showAccountsPanel || showRedditAccountsPanel || showSpotifyAccountsPanel || showTiktokAccountsPanel || showMicrosoftAccountsPanel || showGoogleAdsAccountsPanel || panelPlatform) {
       const frame = requestAnimationFrame(() => setPanelEntered(true));
       return () => cancelAnimationFrame(frame);
     }
     setPanelEntered(false);
-  }, [showAccountsPanel, showRedditAccountsPanel, showSpotifyAccountsPanel, showTiktokAccountsPanel, showMicrosoftAccountsPanel, panelPlatform]);
+  }, [showAccountsPanel, showRedditAccountsPanel, showSpotifyAccountsPanel, showTiktokAccountsPanel, showMicrosoftAccountsPanel, showGoogleAdsAccountsPanel, panelPlatform]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -820,6 +1028,7 @@ export default function IntegrationsPage() {
     void fetchSpotifyStatus();
     void fetchTiktokStatus();
     void fetchMicrosoftStatus();
+    void fetchGoogleAdsStatus();
     toast.message('Refreshing connected platforms…');
   };
 
@@ -1127,23 +1336,11 @@ export default function IntegrationsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={async () => {
-                          if (!accessToken || !agencyId) return;
-                          try {
-                            const result = await apiClient.post<{ matched: number }>(
-                              API_ENDPOINTS.TIKTOK.AUTO_LINK(agencyId),
-                              {},
-                              { accessToken, agencyId },
-                            );
-                            toast.success(`Successfully auto-linked ${result.matched} TikTok account(s).`);
-                            await fetchTiktokAccounts();
-                          } catch (err: unknown) {
-                            toast.error(getErrorMessage(err, 'Auto-link failed'));
-                          }
-                        }}
-                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md"
+                        onClick={() => void handleAutoLinkTiktok()}
+                        disabled={tiktokAutoLinking}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md disabled:opacity-50"
                       >
-                        Auto-link
+                        {tiktokAutoLinking ? 'Linking…' : 'Auto-link'}
                       </button>
                       <button
                         type="button"
@@ -1267,7 +1464,92 @@ export default function IntegrationsPage() {
                 </div>
               </div>
 
-              {MOCK_PLATFORMS.filter((p) => p.status === 'connected' && p.id !== 'meta' && p.id !== 'tiktok').map((p) => {
+              {/* Google Ads */}
+              <div className="glass-card bg-white border border-border rounded-[12px] overflow-hidden transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-aqua/40">
+                <div className="px-[18px] pt-[18px] pb-3.5 flex items-start gap-3.5">
+                  <div className="w-11 h-11 rounded-[10px] flex items-center justify-center text-[20px] font-semibold shrink-0 bg-[#fdecea] text-[#ea4335] leading-none">
+                    G
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-bold text-text-primary">Google Ads</h3>
+                    <div
+                      className={`flex items-center gap-1.5 text-[11px] font-semibold mt-1 ${googleAdsStatus?.connected ? 'text-green' : 'text-text-muted'}`}
+                    >
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${googleAdsStatus?.connected ? 'bg-green' : 'bg-text-muted'}`} />
+                      {googleAdsStatus?.connected ? 'Connected · Agency refresh token' : 'Not connected'}
+                    </div>
+                    {googleAdsStatus?.connected && (
+                      <p className="text-[11px] text-text-muted font-semibold mt-2">
+                        {googleAdsAccounts.length
+                          ? `${activeGoogleAdsCount} of ${googleAdsAccounts.length} customers linked`
+                          : 'Loading accessible customers…'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="px-3.5 py-3 flex flex-wrap items-center gap-2">
+                  {googleAdsStatus?.connected ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowGoogleAdsAccountsPanel(true);
+                          void fetchGoogleAdsAccounts();
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md"
+                      >
+                        Manage Accounts
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleAutoLinkGoogleAds()}
+                        disabled={googleAdsAutoLinking}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-secondary hover:border-aqua/60 hover:text-teal-deep transition-colors shadow-sm hover:shadow-md disabled:opacity-50"
+                      >
+                        {googleAdsAutoLinking ? 'Linking…' : 'Auto-link'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          if (!accessToken || !agencyId) return;
+                          if (!isAdmin) {
+                            toast.error('Only agency admins can disconnect Google Ads.');
+                            return;
+                          }
+                          if (!window.confirm('Disconnect Google Ads? This will reset all client mappings.')) return;
+                          try {
+                            await apiClient.post(
+                              API_ENDPOINTS.GOOGLE_ADS.DISCONNECT(agencyId),
+                              {},
+                              { accessToken, agencyId },
+                            );
+                            toast.success('Google Ads disconnected');
+                            setGoogleAdsStatus(null);
+                            setGoogleAdsAccounts([]);
+                          } catch (err: unknown) {
+                            toast.error(getErrorMessage(err, 'Failed to disconnect Google Ads'));
+                          } finally {
+                            void fetchGoogleAdsStatus();
+                          }
+                        }}
+                        className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-border bg-white text-text-muted hover:border-red hover:text-red transition-colors shadow-sm hover:shadow-md ml-auto"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => handleConnectTrigger('Google Ads')}
+                      className="text-[11.5px] font-semibold py-1.5 px-3 rounded-[7px] border border-teal-deep bg-teal-deep text-white hover:bg-teal-deep/90 transition-colors shadow-sm hover:shadow-md w-full"
+                    >
+                      Connect Google Ads
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {MOCK_PLATFORMS.filter((p) => p.status === 'connected' && p.id !== 'meta' && p.id !== 'tiktok' && p.id !== 'google').map((p) => {
                 const variant = 'integrationUiVariant' in p ? p.integrationUiVariant : 'connected_ok';
                 const isError = variant === 'auth_error';
                 return (
@@ -1385,7 +1667,7 @@ export default function IntegrationsPage() {
           <div>
             <h2 className="text-[11px] font-bold tracking-[0.06em] uppercase text-text-muted mb-3.5">Available Platforms</h2>
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
-              {MOCK_PLATFORMS.filter((p) => p.status !== 'connected' && p.id !== 'reddit').map((p) => (
+              {MOCK_PLATFORMS.filter((p) => p.status !== 'connected' && p.id !== 'reddit' && p.id !== 'google').map((p) => (
                 <button
                   key={p.id}
                   type="button"
@@ -1673,21 +1955,42 @@ export default function IntegrationsPage() {
                   <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
                 ) : redditAccounts.map(acc => {
                   const linkedClient = acc.linked_client_id ? clients.find(c => c.id === Number(acc.linked_client_id)) : null;
+                  const parentId = acc.parent_account_id ?? null;
+                  const isParentRow = Boolean(acc.is_manager) || String(acc.account_id).startsWith('reddit_business:');
+                  const displayName = (acc.account_name || 'Reddit').trim();
+                  const initials = displayName.slice(0, 2).toUpperCase() || 'R';
                   return (
-                    <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#faf7f2] transition-colors">
+                    <div
+                      key={`${acc.account_id}-${parentId ?? 'root'}`}
+                      className={`px-5 py-[13px] hover:bg-[#faf7f2] transition-colors ${parentId ? 'bg-white/80' : ''}`}
+                    >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-4 min-w-0">
+                        <div className={`flex items-start gap-4 min-w-0 ${parentId ? 'pl-3 ml-1 border-l-2 border-[#ff7043]/25' : ''}`}>
                           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#ff7043]">
-                            {acc.account_name.slice(0, 2).toUpperCase()}
+                            {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-bold text-text-primary leading-tight truncate">{acc.account_name}</div>
-                            <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency}</div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-bold text-text-primary leading-tight truncate">{displayName}</div>
+                              {isParentRow ? (
+                                <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface-secondary text-text-muted shrink-0">
+                                  Business
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency ?? '—'}</div>
+                            {parentId ? (
+                              <div className="text-[10px] text-text-muted mt-0.5">
+                                Under <span className="font-mono">{parentId}</span>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </div>
                       <div className="mt-4 flex items-center gap-3">
-                        {linkedClient ? (
+                        {isParentRow ? (
+                          <div className="text-[11px] text-text-muted font-medium italic">Map ad accounts below to clients</div>
+                        ) : linkedClient ? (
                           <>
                             <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">Connected</div>
                             <div className="text-xs font-semibold text-text-secondary truncate">→ {linkedClient.name}</div>
@@ -1760,23 +2063,42 @@ export default function IntegrationsPage() {
                   <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
                 ) : spotifyAccounts.map(acc => {
                 const linkedClient = acc.linked_client_id ? clients.find(c => c.id === Number(acc.linked_client_id)) : null;
-                const displayName = (acc.account_name ?? (acc as any).name ?? acc.account_id ?? '').toString();
+                const displayName = (acc.account_name ?? (acc as { name?: string }).name ?? acc.account_id ?? '').toString();
                 const initials = displayName ? displayName.slice(0, 2).toUpperCase() : 'SP';
+                const parentId = acc.parent_account_id ?? null;
+                const isParentRow = Boolean(acc.is_manager) || String(acc.account_id).startsWith('spotify_business:');
                 return (
-                <div key={acc.account_id} className="px-5 py-[13px] hover:bg-[#f5fbf7] transition-colors">
+                <div
+                  key={`${acc.account_id}-${parentId ?? 'root'}`}
+                  className={`px-5 py-[13px] hover:bg-[#f5fbf7] transition-colors ${parentId ? 'bg-white/80' : ''}`}
+                >
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-start gap-4 min-w-0">
+                        <div className={`flex items-start gap-4 min-w-0 ${parentId ? 'pl-3 ml-1 border-l-2 border-[#1db954]/25' : ''}`}>
                           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#1db954]">
                             {initials}
                           </div>
                           <div className="min-w-0">
-                            <div className="text-sm font-bold text-text-primary leading-tight truncate">{displayName || 'Spotify Account'}</div>
-                            <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency}</div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-bold text-text-primary leading-tight truncate">{displayName || 'Spotify Account'}</div>
+                              {isParentRow ? (
+                                <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface-secondary text-text-muted shrink-0">
+                                  Business
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-[10px] font-mono text-text-muted mt-1">{acc.account_id} · {acc.currency ?? '—'}</div>
+                            {parentId ? (
+                              <div className="text-[10px] text-text-muted mt-0.5">
+                                Under <span className="font-mono">{parentId}</span>
+                              </div>
+                            ) : null}
                           </div>
                         </div>
                       </div>
                       <div className="mt-4 flex items-center gap-3">
-                        {linkedClient ? (
+                        {isParentRow ? (
+                          <div className="text-[11px] text-text-muted font-medium italic">Map ad accounts below to clients</div>
+                        ) : linkedClient ? (
                           <>
                             <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">Connected</div>
                             <div className="text-xs font-semibold text-text-secondary truncate">→ {linkedClient.name}</div>
@@ -1795,7 +2117,7 @@ export default function IntegrationsPage() {
                                     { accessToken, agencyId },
                                   ).then(() => {
                                     toast.success('Spotify account mapped successfully');
-                                    fetchSpotifyAccounts();
+                                    void fetchSpotifyAccounts();
                                   }).catch((err: unknown) => {
                                     toast.error(getErrorMessage(err, 'Mapping failed'));
                                   });
@@ -1816,6 +2138,143 @@ export default function IntegrationsPage() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {showTiktokAccountsPanel && (
+        <>
+          <div
+            className="fixed inset-0 z-[100] transition-opacity bg-black/40 backdrop-blur-sm"
+            role="presentation"
+            onClick={() => setShowTiktokAccountsPanel(false)}
+          />
+          <aside
+            className={`fixed top-0 right-0 h-full w-[480px] max-w-[100vw] bg-white border-l border-border z-[101] shadow-2xl flex flex-col transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${panelEntered ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <header className="px-5 py-[18px] border-b border-border-subtle flex items-center gap-3 bg-white text-text-primary shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[#e6f9fb] text-[#00b8c4] flex items-center justify-center text-base font-semibold shrink-0 leading-none">
+                T
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] font-bold text-text-primary truncate">Manage TikTok Accounts</h3>
+                <p className="text-[11px] text-text-muted font-medium mt-0.5">
+                  {tiktokAccounts.length
+                    ? `${tiktokAccounts.length} row(s) · Business Centers + advertisers when available`
+                    : 'TikTok Marketing API'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowTiktokAccountsPanel(false)}
+                className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </header>
+
+            <div className="px-5 py-2 border-b border-border flex items-center gap-2 shrink-0 bg-surface-secondary">
+              <button
+                type="button"
+                onClick={() => void handleAutoLinkTiktok()}
+                disabled={tiktokAutoLinking}
+                className="h-9 px-4 rounded-lg bg-[#00b8c4] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+              >
+                {tiktokAutoLinking ? 'Linking…' : '⚡ Auto-link'}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="px-5 py-2 text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted bg-surface-secondary border-y border-border">
+                TikTok advertisers
+              </div>
+              <div className="divide-y divide-border">
+                {tiktokAccountsLoading ? (
+                  <div className="p-10 text-center text-text-muted animate-pulse font-semibold italic">Fetching accounts…</div>
+                ) : tiktokAccounts.length === 0 ? (
+                  <div className="p-10 text-center text-text-muted font-semibold italic">No accounts found</div>
+                ) : (
+                  tiktokAccounts.map((acc) => {
+                    const linkedClient = acc.linked_client_id
+                      ? clients.find((c) => c.id === Number(acc.linked_client_id))
+                      : null;
+                    const displayName = (acc.account_name ?? (acc as { name?: string }).name ?? acc.account_id ?? '').toString();
+                    const initials = displayName ? displayName.slice(0, 2).toUpperCase() : 'TT';
+                    const parentId = acc.parent_account_id ?? null;
+                    const isParentRow = Boolean(acc.is_manager) || String(acc.account_id).startsWith('tiktok_bc:');
+                    return (
+                      <div
+                        key={`${acc.account_id}-${parentId ?? 'root'}`}
+                        className={`px-5 py-[13px] hover:bg-[#f0fcfd] transition-colors ${parentId ? 'bg-white/80' : ''}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className={`flex items-start gap-4 min-w-0 ${parentId ? 'pl-3 ml-1 border-l-2 border-[#00b8c4]/25' : ''}`}>
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#00b8c4]">
+                              {initials}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div className="text-sm font-bold text-text-primary leading-tight truncate">
+                                  {displayName || 'TikTok account'}
+                                </div>
+                                {isParentRow ? (
+                                  <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface-secondary text-text-muted shrink-0">
+                                    Business Center
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div className="text-[10px] font-mono text-text-muted mt-1">
+                                {acc.account_id} · {acc.currency ?? '—'}
+                              </div>
+                              {parentId ? (
+                                <div className="text-[10px] text-text-muted mt-0.5">
+                                  Under <span className="font-mono">{parentId}</span>
+                                </div>
+                              ) : null}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="mt-4 flex items-center gap-3">
+                          {isParentRow ? (
+                            <div className="text-[11px] text-text-muted font-medium italic">
+                              Map advertiser accounts below to clients
+                            </div>
+                          ) : linkedClient ? (
+                            <>
+                              <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">
+                                Connected
+                              </div>
+                              <div className="text-xs font-semibold text-text-secondary truncate">
+                                → {linkedClient.name}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex-1 flex items-center gap-2">
+                              <select
+                                className="flex-1 h-9 rounded-lg border border-border bg-white text-[11px] font-semibold px-3 outline-none focus:border-teal-deep transition-colors"
+                                onChange={(e) => {
+                                  const val = e.target.value;
+                                  if (val) void handleManualLinkTiktok(Number(val), acc.account_id);
+                                }}
+                                value=""
+                              >
+                                <option value="">Map to client...</option>
+                                {unlinkedTiktokClients.map((c) => (
+                                  <option key={c.id} value={c.id}>
+                                    {c.name}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </aside>
@@ -1915,6 +2374,135 @@ export default function IntegrationsPage() {
                             >
                               <option value="">Map to client...</option>
                               {unlinkedMicrosoftClients.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
+
+      {showGoogleAdsAccountsPanel && (
+        <>
+          <div
+            className="fixed inset-0 z-[100] transition-opacity bg-black/40 backdrop-blur-sm"
+            role="presentation"
+            onClick={() => setShowGoogleAdsAccountsPanel(false)}
+          />
+          <aside
+            className={`fixed top-0 right-0 h-full w-[480px] max-w-[100vw] bg-white border-l border-border z-[101] shadow-2xl flex flex-col transition-transform duration-[260ms] ease-[cubic-bezier(0.4,0,0.2,1)] ${panelEntered ? 'translate-x-0' : 'translate-x-full'}`}
+          >
+            <header className="px-5 py-[18px] border-b border-border-subtle flex items-center gap-3 bg-white text-text-primary shrink-0">
+              <div className="w-9 h-9 rounded-lg bg-[#fdecea] text-[#ea4335] flex items-center justify-center text-base font-semibold shrink-0 leading-none">
+                G
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-[15px] font-bold text-text-primary truncate">Manage Google Ads Customers</h3>
+                <p className="text-[11px] text-text-muted font-medium mt-0.5">
+                  {googleAdsAccounts.length
+                    ? `${googleAdsAccounts.length} accessible customer ID(s)`
+                    : 'Google Ads API'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoogleAdsAccountsPanel(false)}
+                className="w-7 h-7 rounded-md border border-border flex items-center justify-center text-sm text-text-muted hover:border-coral hover:text-coral transition-all shrink-0 ml-auto"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </header>
+
+            <div className="px-5 py-2 border-b border-border flex items-center gap-2 shrink-0 bg-surface-secondary">
+              <button
+                type="button"
+                onClick={() => void handleAutoLinkGoogleAds()}
+                disabled={googleAdsAutoLinking}
+                className="h-9 px-4 rounded-lg bg-[#ea4335] text-white text-[11px] font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity whitespace-nowrap"
+              >
+                {googleAdsAutoLinking ? 'Linking…' : '⚡ Auto-link'}
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto min-h-0">
+              <div className="px-5 py-2 text-[9px] font-semibold tracking-[0.06em] uppercase text-text-muted bg-surface-secondary border-y border-border">
+                Accessible Google Ads customers
+              </div>
+              <div className="divide-y divide-border">
+                {googleAdsAccountsLoading ? (
+                  <div className="p-10 text-center text-text-muted animate-pulse font-semibold italic">Fetching customers…</div>
+                ) : googleAdsAccounts.length === 0 ? (
+                  <div className="p-10 text-center text-text-muted font-semibold italic">No customers found</div>
+                ) : googleAdsAccounts.map((acc) => {
+                  const linkedClient = acc.linked_client_id
+                    ? clients.find((c) => c.id === Number(acc.linked_client_id))
+                    : null;
+                  const displayName = (acc.account_name ?? (acc as { name?: string }).name ?? acc.account_id ?? '').toString();
+                  const initials = displayName ? displayName.slice(0, 2).toUpperCase() : 'G';
+                  const parentId = acc.parent_account_id ?? null;
+                  const isManager = Boolean(acc.is_manager);
+                  return (
+                    <div
+                      key={`${acc.account_id}-${parentId ?? 'root'}`}
+                      className={`px-5 py-[13px] hover:bg-[#fff8f7] transition-colors ${parentId ? 'bg-white/80' : ''}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className={`flex items-start gap-4 min-w-0 ${parentId ? 'pl-3 ml-1 border-l-2 border-[#ea4335]/25' : ''}`}>
+                          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-semibold text-white shrink-0 shadow-sm bg-[#ea4335]">
+                            {initials}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <div className="text-sm font-bold text-text-primary leading-tight truncate">
+                                {displayName || 'Google Ads customer'}
+                              </div>
+                              {isManager ? (
+                                <span className="text-[9px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded bg-surface-secondary text-text-muted shrink-0">
+                                  Manager
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="text-[10px] font-mono text-text-muted mt-1">
+                              {acc.account_id} · {acc.currency ?? '—'}
+                            </div>
+                            {parentId ? (
+                              <div className="text-[10px] text-text-muted mt-0.5">
+                                Under manager <span className="font-mono">{parentId}</span>
+                              </div>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 flex items-center gap-3">
+                        {linkedClient ? (
+                          <>
+                            <div className="px-2.5 py-1 rounded-md bg-green-light text-green text-[10px] font-semibold border border-green/10">
+                              Connected
+                            </div>
+                            <div className="text-xs font-semibold text-text-secondary truncate">→ {linkedClient.name}</div>
+                          </>
+                        ) : (
+                          <div className="flex-1 flex items-center gap-2">
+                            <select
+                              className="flex-1 h-9 rounded-lg border border-border bg-white text-[11px] font-semibold px-3 outline-none focus:border-teal-deep transition-colors"
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val) void handleManualLinkGoogleAds(Number(val), acc.account_id);
+                              }}
+                              value=""
+                            >
+                              <option value="">Map to client...</option>
+                              {unlinkedGoogleAdsClients.map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.name}
                                 </option>

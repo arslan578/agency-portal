@@ -311,12 +311,7 @@ class RedditAdsConnector(PlatformConnector):
 
     def fetch_ad_accounts(self, correlation_id: Optional[str] = None) -> Dict[str, Any]:
         """
-        Fetch all advertiser accounts associated with the authenticated user via Reddit Ads API v3.
-
-        Reddit v3 flow:
-          1. GET /api/v3/me              → profile_id
-          2. GET /api/v3/profiles/{id}   → business_id(s)
-          3. GET /api/v3/businesses/{id}/ad_accounts → ad accounts list
+        Delegates to agency service implementation (business parent rows + ad accounts).
         """
         access_token = None
         if isinstance(self.credentials, dict):
@@ -327,97 +322,24 @@ class RedditAdsConnector(PlatformConnector):
                 "success": False,
                 "error": "Missing access token",
                 "error_code": "MISSING_CREDENTIALS",
-                "ad_accounts": []
+                "ad_accounts": [],
             }
-
-        base_url = os.getenv("REDDIT_ADS_API_BASE_URL", "https://ads-api.reddit.com")
-        user_agent = os.getenv("REDDIT_USER_AGENT", "KaivoCore/2.0")
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "User-Agent": user_agent,
-        }
 
         try:
-            with httpx.Client(timeout=15.0, headers=headers) as client:
-                # Step 1: Get current user profile
-                me_resp = client.get(f"{base_url}/api/v3/me")
-                if me_resp.status_code != 200:
-                    return {
-                        "success": False,
-                        "error": f"Reddit /me returned HTTP {me_resp.status_code}",
-                        "error_code": f"HTTP_{me_resp.status_code}",
-                        "ad_accounts": [],
-                    }
+            from services.account_service.reddit_agency_service import fetch_reddit_ad_accounts
 
-                me_data = me_resp.json()
-                profile_id = me_data.get("id") or me_data.get("profile_id")
-                if not profile_id:
-                    logger.warning(f"Reddit /me response missing profile id: {me_data}")
-                    return {
-                        "success": False,
-                        "error": "Could not determine Reddit profile ID",
-                        "error_code": "MISSING_PROFILE_ID",
-                        "ad_accounts": [],
-                    }
-
-                # Step 2: Get business IDs from profile
-                profile_resp = client.get(f"{base_url}/api/v3/profiles/{profile_id}")
-                if profile_resp.status_code != 200:
-                    return {
-                        "success": False,
-                        "error": f"Reddit profiles endpoint returned HTTP {profile_resp.status_code}",
-                        "error_code": f"HTTP_{profile_resp.status_code}",
-                        "ad_accounts": [],
-                    }
-
-                profile_data = profile_resp.json()
-                businesses = profile_data.get("businesses", [])
-                if not businesses:
-                    business_id = profile_data.get("business_id")
-                    if business_id:
-                        businesses = [{"id": business_id}]
-
-                if not businesses:
-                    return {
-                        "success": True,
-                        "ad_accounts": [],
-                        "message": "No Reddit business accounts found for this profile.",
-                    }
-
-                # Step 3: Fetch ad accounts from each business
-                ad_accounts = []
-                for biz in businesses:
-                    biz_id = biz if isinstance(biz, str) else biz.get("id")
-                    if not biz_id:
-                        continue
-                    acct_resp = client.get(f"{base_url}/api/v3/businesses/{biz_id}/ad_accounts")
-                    if acct_resp.status_code != 200:
-                        logger.warning(f"Reddit ad_accounts for business {biz_id}: HTTP {acct_resp.status_code}")
-                        continue
-
-                    acct_data = acct_resp.json()
-                    accounts_list = acct_data if isinstance(acct_data, list) else acct_data.get("data", acct_data.get("ad_accounts", []))
-                    if not isinstance(accounts_list, list):
-                        accounts_list = []
-
-                    for account in accounts_list:
-                        acct_id = str(account.get("id", account.get("ad_account_id", "")))
-                        ad_accounts.append({
-                            "id": acct_id,
-                            "name": account.get("name", f"Reddit Account {acct_id}"),
-                            "account_id": acct_id,
-                            "currency": account.get("currency", "USD"),
-                            "status": str(account.get("status", "active")).lower(),
-                        })
-
-            logger.info(f"Reddit ad accounts fetched successfully: {len(ad_accounts)}")
+            ad_accounts = fetch_reddit_ad_accounts(access_token)
+            logger.info("Reddit ad accounts fetched successfully: %s rows", len(ad_accounts))
+            return {"success": True, "ad_accounts": ad_accounts}
+        except ValueError as e:
             return {
-                "success": True,
-                "ad_accounts": ad_accounts,
+                "success": False,
+                "error": str(e),
+                "error_code": "REDDIT_API_ERROR",
+                "ad_accounts": [],
             }
-
         except Exception as e:
-            logger.error(f"Reddit fetch ad accounts failed: {e}", exc_info=True)
+            logger.error("Reddit fetch ad accounts failed: %s", e, exc_info=True)
             return {
                 "success": False,
                 "error": str(e),
