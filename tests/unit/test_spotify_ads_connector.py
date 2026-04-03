@@ -175,9 +175,12 @@ class TestSpotifyAdsConnector:
         result = connector_with_creds.fetch_ad_accounts()
 
         assert result["success"] is True
-        assert len(result["ad_accounts"]) == 1
-        assert result["ad_accounts"][0]["id"] == MOCK_AD_ACCOUNT_ID
-        assert result["ad_accounts"][0]["business_id"] == MOCK_BUSINESS_ID
+        assert len(result["ad_accounts"]) == 2
+        assert result["ad_accounts"][0]["is_manager"] is True
+        assert str(result["ad_accounts"][0]["account_id"]).startswith("spotify_business:")
+        assert result["ad_accounts"][1]["id"] == MOCK_AD_ACCOUNT_ID
+        assert result["ad_accounts"][1]["business_id"] == str(MOCK_BUSINESS_ID)
+        assert result["ad_accounts"][1]["parent_account_id"] == f"spotify_business:{MOCK_BUSINESS_ID}"
         assert result["count"] == 1
 
     @patch('services.platform_service.connectors.spotify.httpx.Client')
@@ -537,7 +540,9 @@ class TestEndToEndFlow:
         assert ad_accounts_result["success"], "Should fetch ad accounts successfully"
         assert len(ad_accounts_result["ad_accounts"]) > 0, "Should have at least one ad account"
 
-        selected_ad_account = ad_accounts_result["ad_accounts"][0]["id"]
+        leaf_rows = [a for a in ad_accounts_result["ad_accounts"] if not a.get("is_manager")]
+        assert leaf_rows, "Should have at least one linkable ad account row"
+        selected_ad_account = leaf_rows[0]["id"]
 
         # Step 3: Simulate platform_allocations_json storage (frontend does this)
         platform_allocations = {

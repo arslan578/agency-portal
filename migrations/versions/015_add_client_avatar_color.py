@@ -16,8 +16,11 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("clients", sa.Column("avatar_color", sa.String(length=20), nullable=True))
+    # Idempotent: schema may already have avatar_color (e.g. sync / manual / 058 branch).
+    op.execute(
+        sa.text("ALTER TABLE clients ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(20)")
+    )
 
 
 def downgrade() -> None:
-    op.drop_column("clients", "avatar_color")
+    op.execute(sa.text("ALTER TABLE clients DROP COLUMN IF EXISTS avatar_color"))

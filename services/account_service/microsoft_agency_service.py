@@ -20,7 +20,10 @@ import httpx
 from sqlalchemy.orm import Session
 
 from packages.db.models import Agency, AuditLog, Client
-from services.platform_service.connectors.microsoft_ads import MicrosoftAdsConnector
+from services.platform_service.connectors.microsoft_ads import (
+    MicrosoftAdsConnector,
+    microsoft_login_tenant,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +56,8 @@ def exchange_microsoft_code_for_token(
         raise ValueError("MICROSOFT_ADS_CLIENT_ID and MICROSOFT_ADS_CLIENT_SECRET must be set")
 
     final_redirect = _oauth_redirect_uri(redirect_uri)
-    token_url = "https://login.microsoftonline.com/common/oauth2/v2.0/token"
+    tenant = microsoft_login_tenant()
+    token_url = f"https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token"
     payload = {
         "client_id": client_id,
         "client_secret": client_secret,
@@ -266,7 +270,11 @@ def auto_link_microsoft_clients(
     connector = MicrosoftAdsConnector(credentials=_microsoft_connector_creds(agency))
     result = connector.fetch_ad_accounts()
     if not result.get("success"):
-        raise ValueError(result.get("error") or "Failed to fetch Microsoft Ads accounts")
+        raise ValueError(
+            result.get("user_hint")
+            or result.get("error")
+            or "Failed to fetch Microsoft Ads accounts"
+        )
 
     accounts = result.get("ad_accounts", [])
     account_map = {a["account_id"]: a for a in accounts}
