@@ -184,7 +184,7 @@ class TranslatorService:
                 self.client = None
                 self.api_key = None
         else:
-            logger.warning("No Google Translate credentials found (API Key or Service Account). Translation will be unavailable.")
+            logger.info("Google Translate not configured (no API key/service account); translation features are disabled.")
             self.api_key = None
             self.client = None
     

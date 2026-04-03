@@ -693,7 +693,7 @@ export default function ClientDetailPage() {
 
   if (clientsLoading) {
     return (
-      <div className="flex flex-col h-full bg-surface-secondary overflow-hidden">
+      <div className="flex flex-col h-full bg-cream overflow-hidden">
         <DashboardHeader title="Loading..." />
         <main className="flex-1 overflow-auto p-6">
           <div className="animate-pulse space-y-4">
@@ -708,7 +708,7 @@ export default function ClientDetailPage() {
 
   if (!client || Number.isNaN(clientId)) {
     return (
-      <div className="flex flex-col h-full bg-surface-secondary overflow-hidden">
+      <div className="flex flex-col h-full bg-cream overflow-hidden">
         <div className="px-6 pt-4 pb-2 shrink-0">
           <Link href="/clients" className="text-[13px] font-semibold text-teal-deep hover:text-teal-deep/80 transition-colors">
             ← Back to Clients

@@ -16,7 +16,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Idempotent: schema may already have avatar_color (e.g. sync / manual / 058 branch).
+    # Idempotent: schema may already have avatar_color (e.g. sync / manual / other branches).
     op.execute(
         sa.text("ALTER TABLE clients ADD COLUMN IF NOT EXISTS avatar_color VARCHAR(20)")
     )

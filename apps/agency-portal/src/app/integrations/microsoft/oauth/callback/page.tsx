@@ -22,7 +22,13 @@ export default function MicrosoftOauthCallbackPage() {
     if (error) params.set('error', error);
     if (errorDescription) params.set('error_description', errorDescription);
 
-    window.location.replace(`/integrations?${params.toString()}`);
+    const returnBase =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('kaivo_oauth_return_base') || '/integrations'
+        : '/integrations';
+    if (typeof window !== 'undefined') sessionStorage.removeItem('kaivo_oauth_return_base');
+
+    window.location.replace(`${returnBase}?${params.toString()}`);
   }, []);
 
   return (

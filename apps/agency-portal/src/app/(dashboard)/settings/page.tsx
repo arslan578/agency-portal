@@ -311,7 +311,7 @@ export default function SettingsPage() {
 
   if (status === 'loading') {
     return (
-      <div className="flex flex-col h-full bg-surface-secondary">
+      <div className="flex flex-col h-full bg-cream">
         <div className="h-14 bg-white border-b border-border-subtle animate-pulse" />
         <div className="flex flex-1 p-6 gap-6">
           <div className="w-[210px] bg-white border border-border rounded-[10px] animate-pulse" />
@@ -449,7 +449,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full min-h-0 bg-surface-secondary">
+    <div className="flex flex-col h-full min-h-0 bg-cream">
       <DashboardHeader
         title="Settings"
         subtitle={tabSubtitle}

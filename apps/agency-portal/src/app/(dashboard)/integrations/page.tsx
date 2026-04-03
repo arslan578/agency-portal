@@ -1033,7 +1033,7 @@ export default function IntegrationsPage() {
   };
 
   return (
-    <div className="relative flex flex-col h-full bg-surface-secondary font-sans">
+    <div className="relative flex flex-col h-full bg-cream font-sans">
       <div
         aria-hidden
         className="pointer-events-none absolute -inset-24 bg-gradient-animate opacity-15 blur-3xl rounded-[48px] -z-10"
