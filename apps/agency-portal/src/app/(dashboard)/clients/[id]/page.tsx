@@ -117,6 +117,11 @@ function avatarColorFromId(id: number): string {
   return `hsl(${h} 55% 42%)`;
 }
 
+type GoogleAdsInsightsPayload = {
+  connected: boolean;
+  campaigns?: Array<{ campaign_id?: string; id?: string; name?: string; status?: string }>;
+};
+
 function mapMetaCampaignsToDisplay(meta: MetaInsights): DisplayCampaign[] {
   if (!meta.campaigns || meta.campaigns.length === 0) return [];
   return meta.campaigns.map((camp, idx) => {
@@ -211,6 +216,8 @@ export default function ClientDetailPage() {
   const [metaInsights, setMetaInsights] = useState<MetaInsights | null>(null);
   const [metaInsightsLoading, setMetaInsightsLoading] = useState(false);
   const metaInsightsFetched = useRef(false);
+  const [googleAdsInsights, setGoogleAdsInsights] = useState<GoogleAdsInsightsPayload | null>(null);
+  const googleAdsInsightsFetched = useRef(false);
 
   const hc = hierarchy?.clients?.[0];
 
@@ -291,6 +298,29 @@ export default function ClientDetailPage() {
     }
   }, [accessToken, agencyId, clientId]);
 
+  const loadGoogleAdsInsights = useCallback(async () => {
+    if (!accessToken || !agencyId || Number.isNaN(clientId)) return;
+    if (googleAdsInsightsFetched.current) return;
+    googleAdsInsightsFetched.current = true;
+    try {
+      const data = await apiClient.get<GoogleAdsInsightsPayload>(
+        API_ENDPOINTS.GOOGLE_ADS.CLIENT_INSIGHTS(String(clientId)),
+        { accessToken, agencyId },
+      );
+      if (data?.connected) {
+        setGoogleAdsInsights(data);
+      }
+    } catch {
+      // ignore
+    }
+  }, [accessToken, agencyId, clientId]);
+
+  useEffect(() => {
+    if (!accessToken || !agencyId || Number.isNaN(clientId)) return;
+    if (googleAdsInsightsFetched.current) return;
+    void loadGoogleAdsInsights();
+  }, [accessToken, agencyId, clientId, loadGoogleAdsInsights]);
+
   useEffect(() => {
     if (hasHierarchyCampaigns) return;
     if (apiCampaigns.length > 0) return;
@@ -352,6 +382,27 @@ export default function ClientDetailPage() {
     });
   }, [metaInsights]);
 
+  const googleDisplayCampaigns = useMemo<DisplayCampaign[]>(() => {
+    if (!googleAdsInsights?.connected || !googleAdsInsights.campaigns?.length) return [];
+    return googleAdsInsights.campaigns.map((camp, idx) => {
+      const raw = String(camp.campaign_id ?? camp.id ?? idx);
+      const idNum = Number(raw.replace(/\D/g, '').slice(0, 12)) || 800_000_000 + idx;
+      const st = (camp.status || 'unknown').toLowerCase().replace(/_/g, ' ');
+      return {
+        id: idNum,
+        name: camp.name || `Campaign ${raw}`,
+        platform: 'Google Ads',
+        status: st,
+        budget: 0,
+        spend: 0,
+        pacing: 0,
+        roas: 0,
+        cpa: 0,
+        isReal: true,
+      };
+    });
+  }, [googleAdsInsights]);
+
   const platformNodes = useMemo<DisplayPlatformNode[]>(() => {
     // 1. If we have hierarchy with actual campaigns, use it as primary structure.
     const hasHcCampaigns = (hc?.platforms?.some((p) => p.campaigns.length > 0));
@@ -361,6 +412,8 @@ export default function ClientDetailPage() {
         let pCampaigns: DisplayCampaign[];
         if (p.key === 'meta' && metaDisplayCampaigns.length > 0) {
           pCampaigns = metaDisplayCampaigns;
+        } else if (p.key === 'google' && googleDisplayCampaigns.length > 0) {
+          pCampaigns = googleDisplayCampaigns;
         } else {
           pCampaigns = p.campaigns.map((camp) => ({
             id: camp.id,
@@ -433,6 +486,25 @@ export default function ClientDetailPage() {
         });
       }
 
+      if (googleDisplayCampaigns.length > 0 && !nodes.some((n) => n.key === 'google')) {
+        nodes.push({
+          key: 'google',
+          name: 'Google Ads',
+          score: 60,
+          impressions: 0,
+          clicks: 0,
+          spend: 0,
+          budget: 0,
+          pacing: 0,
+          cpc: 0,
+          ctr: 0,
+          conversions: 0,
+          status: 'live',
+          aiMode: 'manual',
+          campaigns: googleDisplayCampaigns,
+        });
+      }
+
       return nodes;
     }
 
@@ -445,7 +517,7 @@ export default function ClientDetailPage() {
       const conversions = metaDisplayCampaigns.reduce((s, c) => s + (c.conversions || 0), 0);
       const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0;
       const cpc = clicks > 0 ? spend / clicks : 0;
-      return [{
+      const metaNode: DisplayPlatformNode = {
         key: 'meta',
         name: 'Meta',
         score: Math.min(100, Math.max(0, 75 + ctr * 10 - cpc / 2)),
@@ -460,7 +532,50 @@ export default function ClientDetailPage() {
         status: 'live',
         aiMode: 'manual',
         campaigns: metaDisplayCampaigns,
-      }];
+      };
+      if (googleDisplayCampaigns.length > 0) {
+        return [
+          metaNode,
+          {
+            key: 'google',
+            name: 'Google Ads',
+            score: 60,
+            impressions: 0,
+            clicks: 0,
+            spend: 0,
+            budget: 0,
+            pacing: 0,
+            cpc: 0,
+            ctr: 0,
+            conversions: 0,
+            status: 'live',
+            aiMode: 'manual',
+            campaigns: googleDisplayCampaigns,
+          },
+        ];
+      }
+      return [metaNode];
+    }
+
+    if (googleDisplayCampaigns.length > 0) {
+      return [
+        {
+          key: 'google',
+          name: 'Google Ads',
+          score: 60,
+          impressions: 0,
+          clicks: 0,
+          spend: 0,
+          budget: 0,
+          pacing: 0,
+          cpc: 0,
+          ctr: 0,
+          conversions: 0,
+          status: 'live',
+          aiMode: 'manual',
+          campaigns: googleDisplayCampaigns,
+        },
+      ];
     }
 
     // 3. Otherwise, build from the unified campaigns list (includes api list etc)
@@ -499,9 +614,29 @@ export default function ClientDetailPage() {
       };
     });
 
-    if (nodes.length > 0) return nodes;
+    if (nodes.length > 0) {
+      if (googleDisplayCampaigns.length > 0 && !nodes.some((n) => n.key === 'google')) {
+        nodes.push({
+          key: 'google',
+          name: 'Google Ads',
+          score: 60,
+          impressions: 0,
+          clicks: 0,
+          spend: 0,
+          budget: 0,
+          pacing: 0,
+          cpc: 0,
+          ctr: 0,
+          conversions: 0,
+          status: 'live',
+          aiMode: 'manual',
+          campaigns: googleDisplayCampaigns,
+        });
+      }
+      return nodes;
+    }
     return [];
-  }, [hc, campaigns, metaDisplayCampaigns]);
+  }, [hc, campaigns, metaDisplayCampaigns, googleDisplayCampaigns]);
 
   const activityEntries = useMemo(() => {
     if (!client) return [];

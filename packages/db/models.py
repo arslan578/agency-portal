@@ -130,7 +130,11 @@ class Agency(Base):
     microsoft_refresh_token = Column(Text, nullable=True)
     microsoft_token_expires_at = Column(DateTime(timezone=True), nullable=True)
     microsoft_connected_at = Column(DateTime(timezone=True), nullable=True)
-    
+    # --- Google Ads Agency OAuth (refresh token for API; same app as commercial) ---
+    google_ads_refresh_token = Column(Text, nullable=True)
+    google_ads_connected_at = Column(DateTime(timezone=True), nullable=True)
+    google_ads_login_customer_id = Column(String(20), nullable=True)  # optional MCC / manager
+
     memberships = relationship("packages.db.models.AgencyMembership", back_populates="agency")
     clients = relationship("packages.db.models.Client", back_populates="agency")
     invoices = relationship("packages.db.models.Invoice", back_populates="agency")
@@ -231,7 +235,12 @@ class Client(Base):
     microsoft_account_status = Column(String(30), default="agency_not_connected")
     microsoft_account_name = Column(String(255), nullable=True)
     microsoft_linked_at = Column(DateTime(timezone=True), nullable=True)
-    
+    # --- Google Ads customer linking (Google customer ID, 10 digits) ---
+    agency_google_ads_customer_id = Column(String(20), nullable=True)
+    google_ads_account_status = Column(String(30), default="agency_not_connected")
+    google_ads_account_name = Column(String(255), nullable=True)
+    google_ads_linked_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     agency = relationship("packages.db.models.Agency", back_populates="clients")

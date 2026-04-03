@@ -97,7 +97,6 @@ export default function DashboardPage() {
     return () => document.removeEventListener('mousedown', onPointerDown);
   }, [profileMenuOpen]);
 
-
   if (status === 'loading') return <DashboardSkeleton />;
   if (status !== 'authenticated') return null;
 

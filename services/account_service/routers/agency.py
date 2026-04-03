@@ -2014,3 +2014,152 @@ def get_client_microsoft_insights(
         raise HTTPException(status_code=403, detail="Agency does not own this client")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to fetch Microsoft Ads insights: {str(e)}")
+
+
+# ── Google Ads Agency Endpoints ───────────────────────────────────────────────
+
+@router.post("/agency/{agency_id}/google/connect")
+def connect_google_ads_agency_route(
+    agency_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.google_agency_service import connect_google_ads_agency_oauth
+
+    code = body.get("code")
+    redirect_uri = body.get("redirectUri")
+    login_customer_id = body.get("login_customer_id")
+    if not code:
+        raise HTTPException(status_code=400, detail="OAuth code is required")
+
+    try:
+        return connect_google_ads_agency_oauth(
+            db,
+            agency_id,
+            code,
+            user_id=ctx.get("user_id"),
+            redirect_uri=redirect_uri,
+            login_customer_id=login_customer_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to connect Google Ads: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/google/disconnect")
+def disconnect_google_ads_agency_route(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.google_agency_service import disconnect_google_ads_agency
+
+    try:
+        return disconnect_google_ads_agency(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/google/status")
+def get_google_ads_agency_status(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.google_agency_service import get_google_ads_status
+
+    try:
+        return get_google_ads_status(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/agency/{agency_id}/google/accounts")
+def get_google_ads_agency_accounts_route(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.google_agency_service import get_google_ads_agency_accounts
+
+    try:
+        return get_google_ads_agency_accounts(db, agency_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch Google Ads accounts: {str(e)}")
+
+
+@router.post("/agency/{agency_id}/google/auto-link")
+def auto_link_google_ads_clients_route(
+    agency_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_admin),
+):
+    ensure_agency_scope(ctx, agency_id)
+    from services.account_service.google_agency_service import auto_link_google_ads_clients
+
+    try:
+        return auto_link_google_ads_clients(db, agency_id, user_id=ctx.get("user_id"))
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Auto-link failed: {str(e)}")
+
+
+@router.post("/clients/{client_id}/google/manual-link")
+def manual_link_google_ads_client_route(
+    client_id: int,
+    body: dict,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_member_or_above),
+):
+    from services.account_service.google_agency_service import manual_link_google_ads_client
+
+    ad_account_id = body.get("ad_account_id")
+    if not ad_account_id:
+        raise HTTPException(status_code=400, detail="ad_account_id is required")
+
+    try:
+        return manual_link_google_ads_client(
+            db=db,
+            client_id=client_id,
+            ad_account_id=ad_account_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Manual link failed: {str(e)}")
+
+
+@router.get("/clients/{client_id}/google-ads-insights")
+def get_client_google_ads_insights_route(
+    client_id: int,
+    db: Session = Depends(get_db),
+    ctx: dict = Depends(require_any_member),
+):
+    from services.account_service.google_agency_service import fetch_client_google_ads_insights
+
+    try:
+        return fetch_client_google_ads_insights(
+            db,
+            client_id=client_id,
+            agency_id=ctx.get("agency_id"),
+            user_id=ctx.get("user_id"),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Agency does not own this client")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch Google Ads insights: {str(e)}")

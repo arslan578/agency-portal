@@ -19,6 +19,32 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def microsoft_login_tenant() -> str:
+    """
+    Azure AD path segment for Microsoft Advertising OAuth + Bing Ads SDK.
+
+    Must match between: browser authorize URL, token exchange URL, and
+    OAuthWebAuthCodeGrant(tenant=...). If these diverge, or if `common` picks
+    the wrong identity for an email that exists as both Work and Personal,
+    Bing Ads returns IdentityTypeMismatch (126).
+
+    Env (first non-empty wins):
+      MICROSOFT_ADS_LOGIN_AUTHORITY — e.g. common, organizations, consumers, or tenant GUID
+      MICROSOFT_ADS_TENANT_ID — Azure AD tenant UUID (same as authority when using one tenant)
+
+    Typical fixes for 126:
+      - Work/school ads user: set to ``organizations`` or your tenant GUID
+      - Personal Microsoft account only: set to ``consumers``
+    """
+    t = os.getenv("MICROSOFT_ADS_LOGIN_AUTHORITY", "").strip()
+    if t:
+        return t
+    t = os.getenv("MICROSOFT_ADS_TENANT_ID", "").strip()
+    if t:
+        return t
+    return "common"
+
+
 def _oauth_redirection_uri_for_web_app() -> str:
     """
     Must match the redirect_uri used in the authorize + token exchange steps exactly.
@@ -126,6 +152,7 @@ class MicrosoftAdsConnector(PlatformConnector):
             oauth_tokens=oauth_tokens,
             env=self.ENVIRONMENT,
             oauth_scope=oauth_scope,
+            tenant=microsoft_login_tenant(),
         )
 
         acct = account_id or (
@@ -488,12 +515,25 @@ class MicrosoftAdsConnector(PlatformConnector):
             err_text = str(e)
             if hasattr(e, "fault") and e.fault is not None:
                 err_text = str(e.fault)
+            error_code = "FETCH_ERROR"
+            user_hint: Optional[str] = None
+            if "IdentityTypeMismatch" in err_text or (
+                "Code = \"126\"" in err_text and "AdApiError" in err_text
+            ):
+                error_code = "IDENTITY_TYPE_MISMATCH"
+                user_hint = (
+                    "Microsoft Advertising user does not match this sign-in type (work vs personal) for your email. "
+                    "Disconnect Microsoft Ads, set MICROSOFT_ADS_LOGIN_AUTHORITY and NEXT_PUBLIC_MICROSOFT_ADS_LOGIN_AUTHORITY "
+                    "to the same value (try 'organizations' for work/school, 'consumers' for personal Microsoft account, "
+                    "or your Azure tenant ID), then connect again and pick the correct account on the Microsoft page."
+                )
             logger.error("Microsoft Ads fetch_ad_accounts error: %s", err_text, exc_info=True)
             return {
                 "success": False,
-                "error": err_text,
-                "error_code": "FETCH_ERROR",
+                "error": user_hint or err_text,
+                "error_code": error_code,
                 "ad_accounts": [],
+                "user_hint": user_hint,
             }
 
     def _fetch_ad_accounts_stub(self) -> Dict[str, Any]:
